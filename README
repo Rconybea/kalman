@@ -1,0 +1,14 @@
+* To build this project using nix:
+   $ nix-build -A path/to/kalman
+
+* To debug build
+   $ nix-shell -A path/to/kalman
+   $ source ${setup}
+   $ help
+  to attempt build
+   $ do_all_phases
+
+* to run cmake
+   $ cd path/to/kalman/build
+   $ cmake -DEXPORT_COMPILE_COMMANDS=1 ../src
+   

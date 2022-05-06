@@ -1,0 +1,8 @@
+/* @file KalmanConfig.h */
+
+// the configured options and settings for Tutorial
+#define Kalman_VERSION_MAJOR @CMAKE_PROJECT_VERSION_MAJOR@
+#define Kalman_VERSION_MINOR @CMAKE_PROJECT_VERSION_MINOR@
+
+/* @file KalmanConfig.h */
+
