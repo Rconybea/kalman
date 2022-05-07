@@ -9,17 +9,25 @@ project(kalman VERSION 0.1)
 # propagate version info to c++
 configure_file(KalmanConfig.h.in KalmanConfig.h)
 
+# add logutil/ subdirectory
+add_subdirectory(logutil)
+
 # add the executable
 add_executable(example matrix/junk.cpp)
 
-# since version file will be in build directory,  need that directory
-# to also be included in compiler's include path
+# PROJECT_SOURCE_DIR:
+#   so we can for example write
+#     #include "logutil/scope.hpp"
+#   from anywhere in the project
+# PROJECT_BINARY_DIR:
+#   since version file will be in build directory,  need that directory
+#   to also be included in compiler's include path
 #
-target_include_directories(example PUBLIC ${PROJECT_BINARY_DIR} ${EIGEN_INCLUDE_DIRS})
+target_include_directories(example PUBLIC
+                           ${PROJECT_SOURCE_DIR}
+                           ${PROJECT_BINARY_DIR}
+			   ${EIGEN_INCLUDE_DIRS})
 target_compile_options(example PUBLIC ${EIGEN_CFLAGS_OTHER})
-
-#target_link_libraries(testapp ${SDL2_LIBRARIES})
-#target_compile_options(testapp PUBLIC ${SDL2_CFLAGS_OTHE})
 
 # specify the C++ standard
 set(CMAKE_CXX_STANDARD 11)

@@ -1,0 +1,6 @@
+nesting logger.
+
+idea is to track thread-specific nesting level using raii,
+so log messages can be homologous with stack activity.
+
+for logging we actually want dynamic scoping :)

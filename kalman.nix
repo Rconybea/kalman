@@ -18,7 +18,7 @@ pkgs: attrs:
       srcdir = ./src;
 
       # inherit $x -> shell variable ${x} will be defined
-      # when ./builder.sh runs, value will nixpkgs.${x},
+      # when ./builder.sh runs, value will be the nix store location for nixpkgs.${x},
       # which will typically be the build artifact for a nix derivation
       #
       buildInputs = [ pkg-config eigen cmake which ];
