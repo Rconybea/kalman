@@ -19,6 +19,9 @@ namespace xo {
 	return static_cast<Direction>(1 - d);
       } /*other*/
 
+      template <typename Key, typename Vaue>
+      class RbTreeUtil;
+
       template <typename Key, typename Value>
       class Node {
       public:
@@ -36,28 +39,6 @@ namespace xo {
 	    return 0;
 	} /*tree_size*/
 
-#ifdef OBSOLETE
-	static
-	Node * insert_aux(Node * tree, Key const & k, Value const & v) {
-	  if(tree) {
-	    return tree->insert(k, v);
-	  } else {
-	    return new Node<Key, Value>(k, v);
-	  }
-	} /*insert_aux*/
-
-        /* node inserter helper function;
-	 * deals with corner case where tree=nullptr
-	 */
-	static Node * insert_aux(Node * tree, Key && k, Value && v) {
-	  if(tree) {
-	    return tree->insert(k, v);
-	  } else {
-	    return new Node<Key, Value>(k, v);
-	  }
-	} /*insert_aux*/
-#endif
-
 	static bool is_black(Node * x) {
 	  if(x)
 	    return x->is_black();
@@ -72,6 +53,526 @@ namespace xo {
 	    return false;
 	} /*is_red*/
 
+        /* replace root pointer *pp_root with x;
+         * set x parent pointer to nil
+	 */
+	static void replace_root_reparent(Node * x, Node ** pp_root)
+	{
+	  *pp_root = x;
+	  if(x)
+	    x->parent_ = nullptr;
+	} /*replace_root_reparent*/
+	  
+
+        size_t size() const { return size_; }
+	Node * parent() const { return parent_; }
+	Node * child(Direction d) const { return child_v_[d]; }
+	Node * left_child() const { return child_v_[0]; }
+	Node * right_child() const { return child_v_[1]; }
+
+	/* true if this node has 0 children */
+	bool is_leaf() const { return ((child_v_[0] == nullptr) && (child_v_[1] == nullptr)); }
+
+        /* identify which child x represents
+         * Require:
+	 * - x != nullptr
+	 * - x is either this->left_child() or this->right_child()
+	 */
+	Direction child_direction(Node * x) {
+	  if(x == this->left_child())
+	    return D_Left;
+	  else if(x == this->right_child())
+	    return D_Right;
+	  else
+	    return D_Invalid;
+	} /*child_direction*/
+
+	bool is_black() const { return this->color_ == C_Black; }
+	bool is_red() const { return this->color_ == C_Red; }
+
+	bool is_red_left() const { is_red(this->left_child()); }
+	bool is_red_right() const { is_red(this->right_child()); }
+
+	/* true if this node is red,  and either child is red */
+	bool is_red_violation() const {
+	  if(this->color_ == C_Red) {
+	    Node * left = this->left_child();
+	    Node * right = this->right_child();
+
+	    if(left && left->is_red())
+	      return true;
+
+	    if(right && right->is_red())
+	      return true;
+	  }
+
+	  return false;
+	} /*is_red_violation*/
+
+	Color color() const { return color_; }
+	Key const & key() const { return key_; }
+	Value const & value() const { return value_; }
+
+	/* recalculate size from immediate childrens' sizes */
+	void local_recalc_size() {
+	  this->size_ = (1
+			 + Node::tree_size(this->left_child())
+			 + Node::tree_size(this->right_child()));
+	} /*local_recalc_size*/
+
+      private:
+	void assign_color(Color x) { this->color_ = x; }
+	void assign_size(size_t z) { this->size_ = z; }
+
+	void assign_child_reparent(Direction d, Node * x) {
+	  Node * old_x = this->child_v_[d];
+
+	  if(old_x)
+	    old_x->parent_ = nullptr;
+	  
+	  this->child_v_[d] = x;
+
+	  if(x) {
+	    x->parent_ = this;
+	  }
+	} /*assign_child_reparent*/
+
+        /* replace child that points to x,  with child that points to x_new
+         * and return direction of the child that was replaced
+         *
+         * Require:
+         * - x is a child of *this
+         * - x_new is not a child of *this
+         *
+         * promise:
+	 * - x is nullptr or x.parent is nullptr
+	 * - x_new is nullptr or x_new.parent is this
+	 */
+	Direction replace_child_reparent(Node * x, Node * x_new) {
+	  Direction d = this->child_direction(x);
+
+	  if(d == D_Left || d == D_Right) {
+	    this->assign_child_reparent(d, x_new);
+	    return d;
+	  } else {
+	    return D_Invalid;
+	  }
+	} /*replace_child_reparent*/
+
+	friend class RbTreeUtil<Key, Value>;
+	friend class xo::tree::RedBlackTree<Key, Value>;
+	
+      private:
+	/* red | black */
+	Color color_ = C_Red;
+	/* size of subtree (#of key/value pairs) rooted at this node */
+	size_t size_ = 0;
+	/* key associated with this node */
+	Key key_;
+	/* value associated with this node */
+	Value value_;
+        /* pointer to parent node,  nullptr iff this is the root node */
+        Node * parent_ = nullptr;
+        /*
+         * .child_v[0] = left child
+         * .child_v[1] = right child
+         *
+         * invariants:
+	 * - if .child_v[x] non-null,  then .child_v[0]->parent = this
+	 * - a red node may not have red children
+	 */
+	std::array<Node *, 2> child_v_ = { nullptr, nullptr };
+      }; /*Node*/
+
+      template <typename Key, typename Value>
+      class RbTreeUtil {
+      public:
+	using RbNode = Node<Key, Value>;
+
+      public:
+	/* return #of key/vaue pairs in tree rooted at x. */
+	static size_t tree_size(RbNode * x) {
+	  if(x)
+	    return x->size();
+	  else
+	    return 0;
+	} /*tree_size*/
+
+	static bool is_black(RbNode * x) {
+	  if(x)
+	    return x->is_black();
+	  else
+	    return true;
+	} /*is_black*/
+
+	static bool is_red(RbNode * x) {
+	  if(x)
+	    return x->is_red();
+	  else
+	    return false;
+	} /*is_red*/
+
+        /* starting from x,  traverse only right children
+         * to find node with a nil right child
+         *
+         * Require:
+         * - N non-nil
+	 */
+	static RbNode * find_rightmost(RbNode * N) {
+	  for(;;) {
+	    RbNode * S = N->right_child();
+
+	    if(!S)
+	      break;
+
+	    N = S;
+	  }
+
+	  return N;
+	} /*find_rightmost*/
+
+	/* find node in x with key k */
+	static RbNode * find(RbNode * x, Key const & k)
+	{
+	  for(;;) {
+	    if (!x)
+	      return nullptr;
+
+	    if (k < x->key()) {
+	      /* search in left subtree */
+	      x = x->left_child();
+	    } else if (k == x->key()) {
+	      return x;
+	    } else /* k > x->key() */ {
+	      x = x->right_child();
+	    }
+	  }
+	} /*find*/
+
+        /* find greatest lower bound for key k in tree x,
+         * provided it's tighter than candidate h.
+         *
+         * require:
+         * if h is provided,  then x belongs to right subtree of h
+	 * (so any key k' in x satisfies k' > h->key)
+	 * 
+	 */
+	static RbNode * find_glb_aux(RbNode * x, RbNode * h, Key const & k, bool is_closed)
+	{
+	  for(;;) {
+	    if (!x)
+	      return h;
+
+	    if (x->key() < k) {
+              /* x.key is a lower bound for k */
+
+              if (x->right_child() == nullptr) {
+                /* no tighter lower bounds present in subtree rooted at x */
+
+                /* x must be better lower bound than h,
+                 * since when h is non-nil we are searching right subtree of h
+		 */
+		return x;
+              }
+
+	      /* look for better lower bound in right child */
+	      h = x;
+	      x = x->right_child();
+	      continue;
+	    } else if (is_closed && (x->key() == k)) {
+	      /* x.key is exact match */
+	      return x;
+	    } else {
+              /* x.key is an upper bound for k.  If there's a lower bound,
+               * it must be in left subtree of x
+	       */
+
+	      /* preserving h */
+	      x = x->left_child();
+	      continue;
+	    }
+	  } /*looping over tree nodes*/
+	} /*find_glb_aux*/
+
+        /* find greatest lower bound node for a key,  in this subtree
+         *
+         * is_open.  if true,  allow result with N->key = k exactly
+	 *           if false,  require N->key < k
+	 */ 
+	static RbNode * find_glb(RbNode * x, Key const & k, bool is_closed) {
+	  return find_glb_aux(x, nullptr, k, is_closed);
+	} /*find_glb*/
+
+#ifdef NOT_IN_USE
+        /* find least upper bound node for a key,  in this subtree*
+         *
+         * is_open.  if true,  allow result with N->key = k exactly
+         *           if false,  require N->key > k
+	 */
+	static RbNode * find_lub(RbNode * x, Key const & k, bool is_closed) {
+	  if(x->key() > k) {
+	    /* x.key is an upper bound for k */
+	    if(x->left_child() == nullptr) {
+	      /* no tigher upper bound present in subtree rooted at x */
+	      return x;
+	    }
+
+	    RbNode * y = find_lub(x->left_child(), k, is_closed);
+
+	    if(y) {
+	      /* found better upper bound in left subtree */
+	      return y;
+	    } else {
+	      return x;
+	    }
+	  } else if(is_closed && (x->key() == k)) {
+	    return x;
+	  } else {
+	    /* x.key is not an upper bound for k */
+	    return find_lub(x->right_child(), k, is_closed);
+	  }
+	} /*find_lub*/
+#endif
+
+        /* perform a tree rotation in direction d at node A.
+         *
+         * Require:
+         * - A is non-nil
+         * - A->child(other(d)) is non-nil
+	 *
+	 * if direction=D_Left:
+         *
+         *        G                 G
+         *        |                 |
+         * this-> A                 B  <- retval
+         *       / \               / \
+         *      R   B      ==>    A   T
+         *         / \           / \
+         *        S   T         R   S
+         *
+         * if direction=D_Right:
+         *
+	 *        G                  G
+	 *        |                  |
+	 * this-> A                  B <- retval     
+	 *       / \                / \           
+         *      B   R        ==>   T   A
+         *     / \                    / \
+	 *    T   S                  S   R
+	 */
+	static RbNode * rotate(Direction d,
+			       RbNode * A,
+			       RbNode ** pp_root)
+	{
+	  Direction other_d = other(d);
+
+	  RbNode * G = A->parent();
+	  RbNode * B = A->child(other_d);
+	  RbNode * R = A->child(d);
+	  RbNode * S = B->child(d);
+	  RbNode * T = B->child(other_d);
+
+	  if(G) {
+	    G->replace_child_reparent(A, B);
+	  } else {
+	    RbNode::replace_root_reparent(B, pp_root);
+	  }
+
+	  A->assign_child_reparent(other_d, S);
+	  A->local_recalc_size();
+
+	  B->assign_child_reparent(d, A);
+	  B->local_recalc_size();
+
+	  return B;
+	} /*rotate*/
+
+        /* assign x as new child (on side=d) and rebalance.
+         * in diagrams below, G is 'this'.
+         *
+         * 1. Note that P is new child of G after recursive descent into
+         * that subtree of G;   it may differ from current child of G
+         * because of rotations etc.
+         *
+         * 2. diagrams are for d=D_Left;
+         * mirror left-to-right to get diagram for d=D_Right
+         *
+         *             G
+         *        d-> / \ <-other_d
+         *           P   U
+         *          / \
+         *         R   S
+         *
+         * relative to prevailing black-height h:
+         * - P at h
+	 * - U at h
+	 * - may have red-red violation between G and P
+	 */
+	static void rebalance_child(Direction d,
+				    RbNode * G,
+				    RbNode ** pp_root)
+	{
+	  RbNode * P = G->child(d);
+
+	  for(;;) {
+            if (G && G->is_red_violation()) {
+              /* need to fix red-red violation at next level up
+               *
+	       *       .  (=G')
+	       *       |  (=d')
+               *       G* (=P')          
+               *  d-> / \ <-other-d
+               *     P*  U
+               *    / \
+	       *   R   S
+	       */
+	      G = G->parent();
+	      P = G;
+	      d = G->child_direction(P);
+
+	      continue;
+            }
+
+	    if (!P->is_red_violation()) {
+	      /* RB-shape restored */
+	      return;
+	    }
+
+	    if (!G) {
+              /* special case:  P is root of tree.
+               * can fix red violation by making P black
+	       */
+	      P->assign_color(C_Black);
+	      return;
+	    }
+
+	    Direction other_d = other(d);
+
+            RbNode * R = P->child(d);
+            RbNode * S = P->child(other_d);
+            RbNode * U = G->child(other_d);
+
+	    assert(is_black(G));
+	    assert(is_red(P));
+	    assert(is_red(R) || is_red(S));
+
+	    if(RbNode::is_red(U)) {
+              /* if d=D_Left:
+               *
+               *   *=red node
+               *
+	       *           .                 .  (=G')
+	       *           |                 |  (=d')
+               *           G                 G* (=P')
+               *      d-> / \               / \
+               *         P*  U*   ==>      P   U
+               *        / \               / \
+               *    (*)R   S(*)       (*)R   S(*)
+               *
+               * (*) exactly one of R or S is red (since we have a red-violation at P)
+               *
+               * Note: this transformation preserves #of black nodes along path
+               * from root to each of {T, R, S},  so it preserves the "equal
+               * black-node path" property
+               */
+              G->assign_color(C_Red);
+              P->assign_color(C_Black);
+              U->assign_color(C_Black);
+
+	      /* still need to check for red-violation at G's parent */
+	      G = G->parent();
+	      P = G;
+	      d = G->child_direction(P);
+
+	      continue;
+	    }
+
+	    assert(RbNode::is_black(U));
+
+            if (RbNode::is_red(S)) {
+              /* preparatory step: rotate P in d direction if "inner child" (S)
+               * is red inner-child = right-child of left-parent or vice versa
+               *
+               *        G                      G
+               *       / \                    / \
+               *      P*  U     ==>    (P'=) S*  U
+               *     / \                    / \
+               *    R   S*           (R'=) P*
+               *                          / \
+               *                         R
+               */
+              RbTreeUtil::rotate(d, P, pp_root);
+
+              /* (relabel S->P etc. for merged control flow below) */
+              R = P;
+              P = S;
+            }
+
+	    /*
+	     *    this->  G                P
+	     *           / \              / \
+	     *          P*  U     ==>    R*  G*
+	     *         / \                  / \
+	     *        R*  S                S   U
+	     *
+	     * ok since every path that went through previously-black G
+	     * now goes through newly-black P
+	     */
+	    P->assign_color(C_Black);
+	    G->assign_color(C_Red);
+
+	    RbTreeUtil::rotate(other_d, G, pp_root);
+	    return;
+	  } /*walk toward root until red violation fixed*/
+	} /*rebalance_child*/
+
+        /* insert key-value pair (key, value) into this subtree;
+	 * return (rebalanced) subtree root
+	 */
+	static void insert(Key const & k,
+			   Value const & v,
+			   RbNode * N,
+			   RbNode ** pp_root)
+	{
+	  Direction d = D_Invalid;
+
+	  while(N) {
+	    if(k == N->key_) {
+	      /* match on this key already present in tree -> just update assoc'd value */
+	      N->value_ = v;
+	      return;
+	    }
+
+	    d = ((k < N->key_) ? D_Left : D_Right);
+
+	    /* insert into left subtree somewhere */
+	    RbNode * C = N->child(d);
+
+	    if(!C)
+	      break;
+
+	    N = C;
+	  }
+
+	  /* invariant: N->child(d) is nil */
+
+	  if(N) {
+	    N->assign_child_reparent(d, new Node<Key, Value>(k, v));
+	    N->local_recalc_size();
+
+	    assert(is_red(N->child(d)));
+
+	    /* after adding a node,  must rebalance to restore RB-shape */
+
+	    RbTreeUtil::rebalance_child(d, N, pp_root);
+	  } else {
+	    *pp_root = new Node<Key, Value>(k, v);
+
+	    /* tree with a single node might as well be black */
+	    (*pp_root)->assign_color(C_Black);
+	  }
+	} /*insert*/
+
         /* remove a black node N with no children.
 	 * this will reduce black-height along path to N
 	 * by 1,   so will need to rebalance tree
@@ -84,21 +585,24 @@ namespace xo {
 	 * - N has no child nodes
 	 * - N->parent() != nullptr
 	 */
-        static void remove_black_leaf(Node *N, Node **pp_root) {
+        static void remove_black_leaf(RbNode *N, RbNode **pp_root) {
           assert(pp_root);
 
-          Node *P = N->parent();
-
-          delete N;
+          RbNode *P = N->parent();
 
           if (!P) {
             /* N was the root node,  tree now empty */
             *pp_root = nullptr;
+	    delete N;
             return;
           }
 
-          /* d: direction in P to immediate child N */
-          Direction d = P->replace_child(N, nullptr);
+          /* d: direction in P to immediate child N;
+           * also sets N.parent to nil
+	   */
+          Direction d = P->replace_child_reparent(N, nullptr);
+
+	  delete N;
 
           /* need to delay this assignment until
            * we've determined d
@@ -116,9 +620,9 @@ namespace xo {
            *       C   D
            */
           Direction other_d;
-          Node *S = nullptr;
-          Node *C = nullptr;
-          Node *D = nullptr;
+          RbNode *S = nullptr;
+          RbNode *C = nullptr;
+          RbNode *D = nullptr;
 
           /* table of outcomes as a function of node color
            *
@@ -251,7 +755,7 @@ namespace xo {
             assert(is_black(P));
             assert(is_black(N));
 
-            Node::rotate(d, P, pp_root);
+            RbTreeUtil::rotate(d, P, pp_root);
 
             /* after rotation d at P:
              *
@@ -352,7 +856,7 @@ namespace xo {
              * - D at h
              */
 
-            Node::rotate(other_d, S, pp_root);
+            RbTreeUtil::rotate(other_d, S, pp_root);
 
             assert(P->child(other_d) == C);
 
@@ -425,7 +929,7 @@ namespace xo {
              * - S   (+also C,D) at h
              */
 
-            Node::rotate(d, P, pp_root);
+            RbTreeUtil::rotate(d, P, pp_root);
 
             /* after rotate at P toward d: *
              *
@@ -469,359 +973,6 @@ namespace xo {
           }
         } /*remove_black_leaf*/
 
-        size_t size() const { return size_; }
-	Node * parent() const { return parent_; }
-	Node * child(Direction d) const { return child_v_[d]; }
-	Node * left_child() const { return child_v_[0]; }
-	Node * right_child() const { return child_v_[1]; }
-
-	/* true if this node has 0 children */
-	bool is_leaf() const { return ((child_v_[0] == nullptr) && (child_v_[1] == nullptr)); }
-
-        /* identify which child of this x represents
-         * Require:
-	 * - x != nullptr
-	 * - x is either this->left_child() or this->right_child()
-	 */
-	Direction child_direction(Node * x) {
-	  if(x == this->left_child())
-	    return D_Left;
-	  else if(x == this->right_child())
-	    return D_Right;
-	  else
-	    return D_Invalid;
-	} /*child_direction*/
-
-	bool is_black() const { return this->color_ == C_Black; }
-	bool is_red() const { return this->color_ == C_Red; }
-
-	bool is_red_left() const { is_red(this->left_child()); }
-	bool is_red_right() const { is_red(this->right_child()); }
-
-	/* true if this node is red,  and either child is red */
-	bool is_red_violation() const {
-	  if(this->color_ == C_Red) {
-	    Node * left = this->left_child();
-	    Node * right = this->right_child();
-
-	    if(left && left->is_red())
-	      return true;
-
-	    if(right && right->is_red())
-	      return true;
-	  }
-
-	  return false;
-	} /*is_red_violation*/
-
-        /* find greatest lower bound node for a key,  in this subtree
-         *
-         * is_open.  if true,  allow result with N->key = k exactly
-	 *           if false,  require N->key < k
-	 */ 
-	Node * find_glb(Key const & k, bool is_closed) {
-	  Node * x = this;
-
-	  if(x->key() < k) {
-	    /* x.key is a lower bound for k */
-	    if(x->right_child() == nullptr) {
-	      /* no tighter lower bounds present in subtree rooted at x */
-	      return x;
-	    }
-
-	    Node * y = x->right_child()->find_glb(k, is_closed);
-
-	    if(y) {
-	      /* found a better lower bound in right subtree */
-	      return y;
-	    } else {
-	      return x;
-	    }
-	  } else if(is_closed && (x->key() == k)) {
-	    return x;
-	  } else {
-	    /* x.key is not a lower bound for k */
-	    return this->left_child()->find_glb(k, is_closed);
-	  }
-	} /*find_glb*/
-
-        /* find least upper bound node for a key,  in this subtree*
-         *
-         * is_open.  if true,  allow result with N->key = k exactly
-         *           if false,  require N->key > k
-	 */
-	Node * find_lub(Key const & k, bool is_closed) const {
-	  Node * x = this;
-
-	  if(x->key() > k) {
-	    /* x.key is an upper bound for k */
-	    if(x->left_child() == nullptr) {
-	      /* no tigher upper bound present in subtree rooted at x */
-	      return x;
-	    }
-
-	    Node * y = this->left_child()->find_lub(k, is_closed);
-
-	    if(y) {
-	      /* found better upper bound in left subtree */
-	      return y;
-	    } else {
-	      return x;
-	    }
-	  } else if(is_closed && (x->key() == k)) {
-	    return x;
-	  } else {
-	    /* x.key is not an upper bound for k */
-	    return this->right_child()->find_lub(k, is_closed);
-	  }
-	} /*find_lub*/
-
-	Node * find_rightmost() {
-	  Node * N = this;
-
-	  for(;;) {
-	    Node * S = N->right_child();
-
-	    if(!S)
-	      break;
-
-	    N = S;
-	  }
-
-	  return N;
-	} /*find_rightmost*/
-
-        /* if direction=D_Left:
-         *
-         *        G                 G
-         *        |                 |
-         * this-> A                 B  <- retval
-         *       / \               / \
-         *      R   B      ==>    A   T
-         *         / \           / \
-         *        S   T         R   S
-         *
-         * if direction=D_Right:
-         *
-	 *        G                  G
-	 *        |                  |
-	 * this-> A                  B <- retval     
-	 *       / \                / \           
-         *      B   R        ==>   T   A
-         *     / \                    / \
-	 *    T   S                  S   R
-	 */
-	static Node * rotate(Direction d,
-			     Node * A,
-			     Node ** pp_root)
-	{
-	  Direction other_d = other(d);
-
-	  Node * G = A->parent();
-	  Node * B = A->child(other_d);
-	  Node * R = A->child(d);
-	  Node * S = B->child(d);
-	  Node * T = B->child(other_d);
-
-	  if(G) {
-	    G->replace_child(A, B);
-	  } else {
-	    *pp_root = B;
-	  }
-
-	  A->assign_child(other_d, S);
-	  A->local_recalc_size();
-
-	  B->assign_child(d, A);
-	  B->local_recalc_size();
-
-	  return B;
-	} /*rotate*/
-
-        /* assign x as new child (on side=d) and rebalance.
-         * in diagrams below, G is 'this'.
-         *
-         * 1. Note that P is new child of G after recursive descent into
-         * that subtree of G;   it may differ from current child of G
-         * because of rotations etc.
-         *
-         * 2. diagrams are for d=D_Left;
-         * mirror left-to-right to get diagram for d=D_Right
-         *
-         *             G
-         *        d-> / \ <-other_d
-         *           P   U
-         *          / \
-         *         R   S
-         *
-         * relative to prevailing black-height h:
-         * - P at h
-	 * - U at h
-	 * - may have red-red violation between G and P
-	 */
-	static void rebalance_child(Direction d,
-				    Node * G,
-				    Node ** pp_root)
-	{
-	  Node * P = G->child(d);
-
-	  for(;;) {
-            if (G && G->is_red_violation()) {
-              /* need to fix red-red violation at next level up
-               *
-	       *       .  (=G')
-	       *       |  (=d')
-               *       G* (=P')          
-               *  d-> / \ <-other-d
-               *     P*  U
-               *    / \
-	       *   R   S
-	       */
-	      G = G->parent();
-	      P = G;
-	      d = G->child_direction(P);
-
-	      continue;
-            }
-
-	    if (!P->is_red_violation()) {
-	      /* RB-shape restored */
-	      return;
-	    }
-
-	    if (!G) {
-              /* special case:  P is root of tree.
-               * can fix red violation by making P black
-	       */
-	      P->assign_color(C_Black);
-	      return;
-	    }
-
-	    Direction other_d = other(d);
-
-            Node * R = P->child(d);
-            Node * S = P->child(other_d);
-            Node * U = G->child(other_d);
-
-	    assert(is_black(G));
-	    assert(is_red(P));
-	    assert(is_red(R) || is_red(S));
-
-	    if(Node::is_red(U)) {
-              /* if d=D_Left:
-               *
-               *   *=red node
-               *
-	       *           .                 .  (=G')
-	       *           |                 |  (=d')
-               *           G                 G* (=P')
-               *      d-> / \               / \
-               *         P*  U*   ==>      P   U
-               *        / \               / \
-               *    (*)R   S(*)       (*)R   S(*)
-               *
-               * (*) exactly one of R or S is red (since we have a red-violation at P)
-               *
-               * Note: this transformation preserves #of black nodes along path
-               * from root to each of {T, R, S},  so it preserves the "equal
-               * black-node path" property
-               */
-              G->assign_color(C_Red);
-              P->assign_color(C_Black);
-              U->assign_color(C_Black);
-
-	      /* still need to check for red-violation at G's parent */
-	      G = G->parent();
-	      P = G;
-	      d = G->child_direction(P);
-
-	      continue;
-	    }
-
-	    assert(Node::is_black(U));
-
-            if (Node::is_red(S)) {
-              /* preparatory step: rotate P in d direction if "inner child" (S)
-               * is red inner-child = right-child of left-parent or vice versa
-               *
-               *        G                      G
-               *       / \                    / \
-               *      P*  U     ==>    (P'=) S*  U
-               *     / \                    / \
-               *    R   S*           (R'=) P*
-               *                          / \
-               *                         R
-               */
-              Node::rotate(d, P, pp_root);
-
-              /* (relabel S->P etc. for merged control flow below) */
-              R = P;
-              P = S;
-            }
-
-	    /*
-	     *    this->  G                P
-	     *           / \              / \
-	     *          P*  U     ==>    R*  G*
-	     *         / \                  / \
-	     *        R*  S                S   U
-	     *
-	     * ok since every path that went through previously-black G
-	     * now goes through newly-black P
-	     */
-	    P->assign_color(C_Black);
-	    G->assign_color(C_Red);
-
-	    Node::rotate(other_d, G, pp_root);
-	    return;
-	  } /*walk toward root until red violation fixed*/
-	} /*rebalance_child*/
-
-        /* insert key-value pair (key, value) into this subtree;
-	 * return (rebalanced) subtree root
-	 */
-	static void insert(Key const & k,
-			   Value const & v,
-			   Node * N,
-			   Node ** pp_root)
-	{
-	  Direction d = D_Invalid;
-
-	  while(N) {
-	    if(k == N->key_) {
-	      /* match on this key already present in tree -> just update assoc'd value */
-	      N->value_ = v;
-	      return;
-	    }
-
-	    d = ((k < N->key_) ? D_Left : D_Right);
-
-	    /* insert into left subtree somewhere */
-	    Node * C = N->child(d);
-
-	    if(!C)
-	      break;
-
-	    N = C;
-	  }
-
-	  if(N) {
-	    N->assign_child(d, new Node<Key, Value>(k, v));
-	    N->local_recalc_size();
-
-	    assert(is_red(N->child(d)));
-
-	    /* after adding a node,  must rebalance to restore RB-shape */
-
-	    Node::rebalance_child(d, N, pp_root);
-	  } else {
-	    *pp_root = new Node<Key, Value>(k, v);
-
-	    /* tree with a single node might as well be black */
-	    (*pp_root)->assign_color(C_Black);
-	  }
-	} /*insert*/
-
         /* returns subtree with node k removed.
          *
          * Require:
@@ -830,7 +981,7 @@ namespace xo {
 	 *
 	 * TODO: return success/fail flag also
 	 */
-	static bool remove_aux(Key const & k, Node * N, Node ** pp_root) {
+	static bool remove_aux(Key const & k, RbNode * N, RbNode ** pp_root) {
           /*
            * here the triangle ascii art indicates a tree structure,
            * of arbitrary size
@@ -844,7 +995,7 @@ namespace xo {
            *   o---R
 	   */
 
-	  N = N->find_glb(k, true /*is_closed*/);
+	  N = RbTreeUtil::find_glb(N, k, true /*is_closed*/);
 
 	  if(!N || (N->key() != k)) {
 	    /* no node with .key = k present,  so cannot remove it */
@@ -855,14 +1006,14 @@ namespace xo {
            * a node with 0 or 1 children.
 	   */
 
-	  Node * X = N->left_child();
+	  RbNode * X = N->left_child();
 
 	  if(X == nullptr) {
 	    /* N has 0 or 1 children */
 	    ;
 	  } else {
 	    /* R will be 'replacement node' for N */
-	    Node * R = X->find_rightmost();
+	    RbNode * R = RbTreeUtil::find_rightmost(X);
 
             /* R->right_child() is nil by definition
              *
@@ -896,7 +1047,7 @@ namespace xo {
 	     */
 	  }
 
-	  Node * P = N->parent();
+	  RbNode * P = N->parent();
 
           /* N has 0 or 1 children
            *
@@ -919,7 +1070,7 @@ namespace xo {
               /* replace pointer to N with nil in N's parent. */
 	      
 	      if(P) {
-		P->replace_child(N, nullptr);
+		P->replace_child_reparent(N, nullptr);
 	      } else {
 		/* N was sole root node;  tree will be empty after removing it */
 		*pp_root = nullptr;
@@ -934,7 +1085,7 @@ namespace xo {
 	       */
 	    }
 	  } else /*N->is_black()*/ {
-	    Node * R = N->left_child();
+	    RbNode * R = N->left_child();
 
 	    if(!R)
 	      R = N->right_child();
@@ -949,7 +1100,7 @@ namespace xo {
 	      R->assign_color(C_Black);
 
 	      if(P) {
-		P->replace_child(N, R);
+		P->replace_child_reparent(N, R);
 	      } else {
 		/* N was root node */
 		*pp_root = R;
@@ -967,82 +1118,21 @@ namespace xo {
 
 		delete N;
 	      }
-		
-	      Node::remove_black_leaf(N, pp_root);
+	      
+	      RbTreeUtil::remove_black_leaf(N, pp_root);
 	    }
 	  }
 
 	  return true;
 	} /*remove_aux*/
-
-	Color color() const { return color_; }
-	Key const & key() const { return key_; }
-	Value const & value() const { return value_; }
-
-	/* recalculate size from immediate childrens' sizes */
-	void local_recalc_size() {
-	  this->size_ = (1
-			 + Node::tree_size(this->left_child())
-			 + Node::tree_size(this->right_child()));
-	} /*local_recalc_size*/
-
-      private:
-	void assign_color(Color x) { this->color_ = x; }
-	void assign_size(size_t z) { this->size_ = z; }
-
-	void assign_child(Direction d, Node * x) {
-	  this->child_v_[d] = x;
-	  if(x) {
-	    x->parent_ = this;
-	  }
-	}
-
-        /* update child in place,  and return direction of the child that
-         * was replaced
-         *
-	 * Require:
-	 * - x is a child of *this
-	 */
-	Direction replace_child(Node * x, Node * x_new) {
-	  if(this->child_v_[D_Left] == x) {
-	    this->child_v_[D_Left] = x_new;
-	    return D_Left;
-	  } else if(this->child_v_[D_Right] == x) {
-	    this->child_v_[D_Right] = x_new;
-	    return D_Right;
-	  } else {
-	    return D_Invalid;
-	  }
-	} /*replace_child*/
-
-	friend class xo::tree::RedBlackTree<Key, Value>;
-	
-      private:
-	/* red | black */
-	Color color_ = C_Red;
-	/* size of subtree (#of key/value pairs) rooted at this node */
-	size_t size_ = 0;
-	/* key associated with this node */
-	Key key_;
-	/* value associated with this node */
-	Value value_;
-        /* pointer to parent node,  nullptr iff this is the root node */
-        Node * parent_ = nullptr;
-        /*
-         * .child_v[0] = left child
-         * .child_v[1] = right child
-         *
-         * invariants:
-	 * - if .child_v[x] non-null,  then .child_v[0]->parent = this
-	 * - a red node may not have red children
-	 */
-	std::array<Node *, 2> child_v_ = { nullptr, nullptr };
-      }; /*Node*/
+      }; /*RbTreeUtil*/
     } /*namespace detail*/
 
     template<typename Key, typename Value>
     class RedBlackTree {
+      using RbTreeUtil = detail::RbTreeUtil<Key, Value>;
       using RbNode = detail::Node<Key, Value>;
+      using Direction = detail::Direction;
 
     public:
       RedBlackTree() = default;
@@ -1050,15 +1140,15 @@ namespace xo {
       size_t size() const { return size_; }
 
       void insert(Key const & k, Value const & v) {
-	RbNode::insert(k, v, this->root_, &(this->root_));
+	RbTreeUtil::insert(k, v, this->root_, &(this->root_));
       } /*insert*/
       
       void insert(Key && k, Value && v) {
-	RbNode::insert(k, v, this->root_, &(this->root_));
+	RbTreeUtil::insert(k, v, this->root_, &(this->root_));
       } /*insert*/
 
       bool remove(Key const & k) {
-	return RbNode::remove_aux(k, this->root_, &(this->root_));
+	return RbTreeUtil::remove_aux(k, this->root_, &(this->root_));
       } /*remove*/
 
       /* verify class invariants
@@ -1074,6 +1164,7 @@ namespace xo {
       bool verify_ok() const {
       } /*verify_ok*/
 
+    private:
     private:
       /* #of key/value pairs in this tree */
       size_t size_ = 0;
