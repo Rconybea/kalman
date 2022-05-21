@@ -1,6 +1,9 @@
 /* @file junk.cpp */
 
 #include "KalmanConfig.h"
+#include "redblacktree/RedBlackTree.hpp"
+#include "statistics/Histogram.hpp"
+#include "statistics/SampleStatistics.hpp"
 #include "process/BrownianMotion.hpp"
 #include "distribution/Normal.hpp"
 #include "random/Uniform.hpp"
@@ -14,12 +17,56 @@
 #include <Eigen/Dense>
 #include <iostream>
 
+namespace xo {
+  using xo::process::BrownianMotion;
+  using xo::time::utc_nanos;
+  using xo::time::days;
+
+  /* (*p_v)[i_lo] and (*p_v)[i_hi]
+   * already populated
+   */
+  template <uint32_t N>
+  void
+  fill_interior_samples(utc_nanos t0,
+			uint32_t i_lo,
+			uint32_t i_hi,
+			BrownianMotion *p_bm,
+			std::array<double, N> *p_v)
+  {
+    if (i_lo == i_hi)
+      return;
+
+    if (i_lo + 1 == i_hi)
+      return;
+
+    utc_nanos t_lo = t0 + days(i_lo);
+    utc_nanos t_hi = t0 + days(i_hi);
+
+    uint32_t i_mid = i_lo + (i_hi - i_lo) / 2;
+    utc_nanos t_mid = t0 + days(i_mid);
+
+    /* sample B(t_mid) for v[i_mid];
+     * this will be interior sample using B(t_lo), B(t_hi);
+     */
+    (*p_v)[i_mid] = p_bm->interior_sample(t_mid,
+					  BrownianMotion::event_type(t_lo, (*p_v)[i_lo]),
+					  BrownianMotion::event_type(t_hi, (*p_v)[i_hi]));
+
+    fill_interior_samples<N>(t0, i_lo, i_mid, p_bm, p_v);
+    fill_interior_samples<N>(t0, i_mid, i_hi, p_bm, p_v);
+  } /*fill_interior_samples*/
+} /*namespace xo*/
+
 int
 main(int argc, char **argv)
 {
   // see:
   //   https: // eigen.tuxfamily.org/dox/GettingStarted.html
 
+  using xo::tree::RedBlackTree;
+  using xo::statistics::Histogram;
+  using xo::statistics::Bucket;
+  using xo::statistics::SampleStatistics;
   using xo::process::BrownianMotion;
   using xo::random::UnitIntervalGen;
   using xo::random::TwoPointGen;
@@ -120,9 +167,11 @@ main(int argc, char **argv)
     C_Exponential,
     C_Normal,
     C_BrownianMotion,
+    C_Histogram,
+    C_RedBlackTree,
   };
 
-  Cmd cmd = C_BrownianMotion;
+  Cmd cmd = C_RedBlackTree;
 
   if(cmd == C_NormalDistribution) {
     constexpr size_t c_n = 500;
@@ -137,7 +186,7 @@ main(int argc, char **argv)
       std::cout << xi << " " << yi << std::endl;
     }
   } else if(cmd == C_UnitIntRandom) {
-    auto rgen = UnitIntervalGen::make(time(nullptr) /*seed*/);
+    auto rgen = UnitIntervalGen<xo::random::xoshiro256>::make(time(nullptr) /*seed*/);
 
     for(size_t i=0; i<10; ++i) {
       double xi = rgen();
@@ -212,6 +261,51 @@ main(int argc, char **argv)
 
       lscope.log(TAG(i), " ", TAG(v[i]));
     }
+
+    lscope.log("using interior_sample");
+
+    xo::fill_interior_samples<n>(t0, 0, n-1, &bm, &v);
+
+    for(uint32_t i=1; i<n; ++i) {
+      lscope.log(TAG(i), " ", TAG(v[i]));
+    }
+  } else if(cmd == C_Histogram) {
+    Histogram hist(100 /*n_interior_bucket*/,
+		   0.0 /*lo_bucket*/,
+		   1.0 /*hi_bucket*/);
+
+    SampleStatistics sample;
+
+    auto rgen = UnitIntervalGen<xo::random::xoshiro256>::make(time(nullptr) /*seed*/);
+
+    /* generate samples */
+    for(uint32_t i=0; i<1000; ++i) {
+      /* generate U(0,1) random value */
+      double xi = rgen();
+
+      hist.include_sample(xi);
+      sample.include_sample(xi);
+    } 
+
+    lscope.log("histogram of U(0,1) psuedorandom vars");
+    lscope.log(TAG2("sample-mean", sample.mean()));
+    lscope.log(TAG2("sample-variance", sample.sample_variance()));
+
+    lscope.log("bucket, n, mean");
+    for(uint32_t i=0; i<hist.n_bucket(); ++i) {
+      Bucket const & bucket = hist.lookup(i);
+
+      lscope.log(hist.bucket_hi_edge(i),
+		 " ", bucket.n_sample(),
+		 " ", bucket.mean());
+    }
+  } else if(cmd == C_RedBlackTree) {
+    RedBlackTree<int, double> rbtree;
+
+    rbtree.insert(1,   10.0);
+    rbtree.insert(17, 170.0);
+    rbtree.insert(3,   30.0);
+    rbtree.remove(17);
   }
 
 #ifdef NOT_IN_USE
