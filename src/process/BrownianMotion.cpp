@@ -127,7 +127,7 @@ namespace xo {
       /* scale for variance of B(ts) */
       double dx = ::sqrt(vars) * xs;
 
-      double x = mean_dx + dx;
+      double x = lo_x + mean_dx + dx;
 
       return x;
     } /*interior_sample*/

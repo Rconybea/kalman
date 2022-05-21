@@ -32,6 +32,16 @@ namespace process {
     {}
     virtual ~BrownianMotion() = default;
 
+    /* t0.  start time,
+     * sdev.  annual sqrt volatility
+     * seed.  initialize pseudorandom-number generator
+     */
+    static BrownianMotion * make(utc_nanos t0,
+				 double sdev,
+				 uint64_t seed) {
+      return new BrownianMotion(t0, sdev, seed);
+    } /*make*/
+
     /* compute variance that accumulates over time interval dt
      * for this brownian motion
      */
@@ -41,13 +51,14 @@ namespace process {
 
     virtual utc_nanos t0() const override { return t0_; }
     /* sample this process at time t,
-     * given glb sample for this process of lo
+     * given glb sample for this process lo={t_lo, x_lo}, t>t_lo
      */
     virtual value_type exterior_sample(utc_nanos t,
 				       event_type const & lo) override;
     /* sample this process at time t,
-     * given glb sample for this process of lo,
-     * and lub sample for this process of hi
+     * given glb sample for this process lo={t_lo, x_lo},
+     * and lub sample for this process of hi={t_hi, x_hi},
+     * t_lo<t<t_hi
      */
     virtual value_type interior_sample(utc_nanos t,
 				       event_type const & lo,
