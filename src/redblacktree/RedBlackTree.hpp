@@ -526,14 +526,19 @@ namespace xo {
 	  } /*walk toward root until red violation fixed*/
 	} /*rebalance_child*/
 
-        /* insert key-value pair (key, value) into this subtree;
-	 * return (rebalanced) subtree root
+        /* insert key-value pair (key, value) into *pp_root.
+         * on exit *pp_root contains new tree with (key, value) inserted
+         *
+         * Require:
+         * - pp_root is non-nil  (*pp_root may be nullptr -> empty tree)
+	 * - *pp_root is in RB-shape
 	 */
-	static void insert(Key const & k,
-			   Value const & v,
-			   RbNode * N,
-			   RbNode ** pp_root)
+	static void insert_aux(Key const & k,
+			       Value const & v,
+			       RbNode ** pp_root)
 	{
+	  RbNode * N = *pp_root;
+
 	  Direction d = D_Invalid;
 
 	  while(N) {
@@ -571,7 +576,7 @@ namespace xo {
 	    /* tree with a single node might as well be black */
 	    (*pp_root)->assign_color(C_Black);
 	  }
-	} /*insert*/
+	} /*insert_aux*/
 
         /* remove a black node N with no children.
 	 * this will reduce black-height along path to N
@@ -973,15 +978,19 @@ namespace xo {
           }
         } /*remove_black_leaf*/
 
-        /* returns subtree with node k removed.
+        /* remove node with key k from tree rooted at *pp_root.
+         * on exit *pp_root contains new tree root.
          *
          * Require:
-         * - this is an immediate child of P
-         * - if P is nil,  then this is the root of RB tree
-	 *
-	 * TODO: return success/fail flag also
+         * - pp_root is non-null.  (*pp_root can be null -> tree is empty)
+         * - *pp_root is in RB-shape
+         *
+	 * return true if a node was removed;  false otherwise.
 	 */
-	static bool remove_aux(Key const & k, RbNode * N, RbNode ** pp_root) {
+	static bool remove_aux(Key const & k, RbNode ** pp_root)
+	{
+	  RbNode * N = *pp_root;
+	  
           /*
            * here the triangle ascii art indicates a tree structure,
            * of arbitrary size
@@ -1140,15 +1149,15 @@ namespace xo {
       size_t size() const { return size_; }
 
       void insert(Key const & k, Value const & v) {
-	RbTreeUtil::insert(k, v, this->root_, &(this->root_));
+	RbTreeUtil::insert_aux(k, v, &(this->root_));
       } /*insert*/
       
       void insert(Key && k, Value && v) {
-	RbTreeUtil::insert(k, v, this->root_, &(this->root_));
+	RbTreeUtil::insert_aux(k, v, &(this->root_));
       } /*insert*/
 
       bool remove(Key const & k) {
-	return RbTreeUtil::remove_aux(k, this->root_, &(this->root_));
+	return RbTreeUtil::remove_aux(k, &(this->root_));
       } /*remove*/
 
       /* verify class invariants
