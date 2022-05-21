@@ -43,4 +43,11 @@
    $ nix-shell -A path/to/kalman
    $ cd path/to/kalman/build
    $ cmake -DEXPORT_COMPILE_COMMANDS=1 ../src
-   
+
+  subsequently can use:
+   $ make -C path/to/kalman/build
+
+  or
+   $ make VERBOSE=1 -C path/to/kalman/build
+  to see exact command log
+  
