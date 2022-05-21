@@ -6,7 +6,7 @@ let
   mkDerivation = import ./kalman.nix pkgs;
 
   attrs = {
-    devInputs = [ emacs ripgrep ps git ];
+    devInputs = [ emacs ripgrep ps git gnuplot ];
     shellHook = ''
       alias ll='ls -l'
       source $setup
