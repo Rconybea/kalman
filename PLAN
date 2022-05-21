@@ -1,0 +1,9 @@
+1.
+* write stochastic process generator (see kloeden+platen ?)
+  - e.g. realization of brownian motion
+  - can use to generate time series of underlying prices
+* write black-scholes pricer for options
+  - maybe also PDE pricer... 
+* write generator for family of related options
+* simulate order flow!   random price-taking orders
+
