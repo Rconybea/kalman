@@ -4,6 +4,7 @@
 
 #include "tag.hpp"
 
+#include <stdexcept>
 #include <iostream>
 #include <sstream>
 #include <cstdint>
@@ -84,6 +85,19 @@ namespace logutil {
     s << std::endl;
     return s;
   } /*tosn*/
+
+  // tostr(args..) writes arguments to temporary stingstream,
+  // returns its contents
+  //
+  template<typename... Tn>
+  std::string tostr(Tn&&... args) {
+    std::stringstream ss;
+    tos(ss, args...);
+    return ss.str();
+  } /*tostr*/
+
+  /* throw exception if condition not met*/
+#define XO_EXPECT(f,msg) if(!(f)) { throw std::runtime_error(msg); }
 
   // nesting logger
   //

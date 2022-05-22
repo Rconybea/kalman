@@ -283,6 +283,9 @@ namespace logutil {
 
     /* now write entire contents of *sbuf2 to clog */
     std::clog.rdbuf()->sputn(sbuf2->lo(), sbuf2->pos());
+
+    /* reset streams for next message */
+    this->reset_stream();
   } /*flush2clog*/
 
   /* keep logging state separately for each thread */
