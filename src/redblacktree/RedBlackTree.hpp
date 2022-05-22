@@ -2,6 +2,8 @@
 
 #pragma once
 
+#include "logutil/scope.hpp"
+#include "logutil/pad.hpp"
 #include <array>
 #include <cassert>
 
@@ -212,6 +214,27 @@ namespace xo {
 	    return false;
 	} /*is_red*/
 
+        /* for every node n in tree, call fn(n, d').
+         * d' is the depth of the node n relative to starting point x,
+         * not counting red nodes.
+         * make calls in increasing key order (i.e. inorder traversal)
+	 * argument d is the black-height of tree above x
+	 */
+	template<typename Fn>
+	static void
+	inorder_node_visitor(RbNode const * x, uint32_t d, Fn && fn)
+	{
+	  if(x) {
+	    /* dd: black depth of child subtrees*/
+	    uint32_t dd = (x->is_black() ? d+1 : d);
+
+	    inorder_node_visitor(x->left_child(), dd, fn);
+	    /* black-depth should count this node x */
+	    fn(x, dd);
+	    inorder_node_visitor(x->right_child(), dd, fn);
+	  }
+	} /*inorder_node_visitor*/
+
         /* starting from x,  traverse only right children
          * to find node with a nil right child
          *
@@ -390,11 +413,7 @@ namespace xo {
         /* assign x as new child (on side=d) and rebalance.
          * in diagrams below, G is 'this'.
          *
-         * 1. Note that P is new child of G after recursive descent into
-         * that subtree of G;   it may differ from current child of G
-         * because of rotations etc.
-         *
-         * 2. diagrams are for d=D_Left;
+         * diagrams are for d=D_Left;
          * mirror left-to-right to get diagram for d=D_Right
          *
          *             G
@@ -412,10 +431,34 @@ namespace xo {
 				    RbNode * G,
 				    RbNode ** pp_root)
 	{
+	  using logutil::scope;
+	  using logutil::xtag;
+
+	  constexpr char const * c_self = "RbTreeUtil::rebalance_child";
+
+	  scope lscope(c_self);
+
 	  RbNode * P = G->child(d);
 
-	  for(;;) {
+	  for(uint32_t iter = 0; ; ++iter) {
+            if (G) {
+              lscope.log(c_self, ": consider node G with d-child P",
+                         xtag("iter", iter),
+                         xtag("G.col", ((G->color() == C_Red) ? "r" : "B")),
+                         xtag("G.key", G->key()),
+                         xtag("P.col", ((P->color() == C_Red) ? "r" : "B")),
+                         xtag("P.key", P->key()));
+            } else {
+	      lscope.log(c_self, ": consider root P",
+			 xtag("iter", iter),
+                         xtag("P.col", ((P->color() == C_Red) ? "r" : "B")),
+                         xtag("P.key", P->key()));
+	    }
+
             if (G && G->is_red_violation()) {
+              lscope.log(c_self,
+			 ": red-red violation at G - defer");
+
               /* need to fix red-red violation at next level up
                *
 	       *       .  (=G')
@@ -426,19 +469,25 @@ namespace xo {
                *    / \
 	       *   R   S
 	       */
-	      G = G->parent();
 	      P = G;
+	      G = G->parent();
 	      d = G->child_direction(P);
 
 	      continue;
             }
 
-	    if (!P->is_red_violation()) {
+            if (!P->is_red_violation()) {
+	      lscope.log(c_self,
+			 ": red-shape ok at {G,P}");
+
 	      /* RB-shape restored */
 	      return;
 	    }
 
 	    if (!G) {
+	      lscope.log(c_self,
+			 ": make P black to fix red-shape at root");
+
               /* special case:  P is root of tree.
                * can fix red violation by making P black
 	       */
@@ -527,13 +576,15 @@ namespace xo {
 	} /*rebalance_child*/
 
         /* insert key-value pair (key, value) into *pp_root.
-         * on exit *pp_root contains new tree with (key, value) inserted
+         * on exit *pp_root contains new tree with (key, value) inserted.
+	 * returns true if node was inserted,  false if instead an existing node with the
+	 * same key was replaced.
          *
          * Require:
          * - pp_root is non-nil  (*pp_root may be nullptr -> empty tree)
 	 * - *pp_root is in RB-shape
 	 */
-	static void insert_aux(Key const & k,
+	static bool insert_aux(Key const & k,
 			       Value const & v,
 			       RbNode ** pp_root)
 	{
@@ -545,7 +596,7 @@ namespace xo {
 	    if(k == N->key_) {
 	      /* match on this key already present in tree -> just update assoc'd value */
 	      N->value_ = v;
-	      return;
+	      return false;
 	    }
 
 	    d = ((k < N->key_) ? D_Left : D_Right);
@@ -576,6 +627,8 @@ namespace xo {
 	    /* tree with a single node might as well be black */
 	    (*pp_root)->assign_color(C_Black);
 	  }
+
+	  return true;
 	} /*insert_aux*/
 
         /* remove a black node N with no children.
@@ -1134,6 +1187,121 @@ namespace xo {
 
 	  return true;
 	} /*remove_aux*/
+
+	/* verify that subtree at N is in RB-shape */
+	static void verify_subtree_ok(RbNode const * N,
+				      int32_t *p_black_height)
+	{
+	  using logutil::scope;
+	  using logutil::xtag;
+
+	  constexpr char const * c_self = "RbTreeUtil::verify_subtree_ok";
+
+	  //scope lscope(c_self);
+
+	  size_t i_node = 0;
+	  Key const * last_key = nullptr;
+	  /* inorder node index when establishing black_height */
+	  size_t i_black_height = 0;
+	  /* establish on first leaf node encountered */
+	  int32_t black_height = 0;
+	  
+	  auto verify_fn = [c_self,
+			    &i_node,
+			    &last_key,
+			    &i_black_height,
+			    &black_height](RbNode const * x,
+					   uint32_t bd)
+	  {
+	    /* 2. if c=x->child(d), then c->parent()=x */
+
+	    if(x->left_child()) {
+	      XO_EXPECT(x == x->left_child()->parent(),
+			tostr(c_self,
+			      ": expect symmetric child/parent pointers",
+			      xtag("i", i_node),
+			      xtag("key[i]", x->key_),
+			      xtag("child.key", x->left_child()->key_)));
+	    }
+
+	    if(x->right_child()) {
+	      XO_EXPECT(x == x->right_child()->parent(),
+			tostr(c_self,
+			      ": expect symmetric child/parent pointers",
+			      xtag("i", i_node),
+			      xtag("key[i]", x->key_),
+			      xtag("child.key", x->right_child()->key_)));
+	    }
+
+	    if(last_key) {
+	      XO_EXPECT((*last_key) < x->key_,
+			tostr(c_self,
+			      ": expect inorder traversal to visit keys"
+			      " in strictly increasing order",
+			      xtag("i", i_node),
+			      xtag("key[i-1]", *last_key),
+			      xtag("key[i]", x->key_)));
+	    }
+
+	    last_key = &(x->key_);
+
+	    /* 3. all nodes have the same black-height */
+
+	    if(x->is_leaf()) {
+	      if(black_height == 0) {
+		black_height = bd;
+	      } else {
+		XO_EXPECT(black_height == bd,
+			  tostr(c_self,
+				": expect all RB-tree nodes to have the same black-height",
+				xtag("i1", i_black_height),
+				xtag("i2", bd),
+				xtag("blackheight(i1)", black_height),
+				xtag("blackheight(i2)", bd)));
+	      }
+	    }
+
+	    ++i_node;
+	  };
+
+	  RbTreeUtil::inorder_node_visitor(N, 0 /*d*/, verify_fn);
+
+	  *p_black_height = black_height;
+	} /*verify_subtree_ok*/
+	  
+
+        /* display tree structure,  1 line per node.
+         * indent by node depth + d
+	 */
+	static void display_aux(Direction side,
+				RbNode const * N,
+				uint32_t d,
+				logutil::scope * p_scope)
+	{
+	  using logutil::pad;
+	  using logutil::xtag;
+
+	  if(N) {
+	    p_scope->log(pad(d),
+			 xtag("side", ((side == D_Left) ? "L" : (side == D_Right) ? "R" : "root")),
+			 xtag("col", N->is_black() ? "B" : "r"),
+			 xtag("key", N->key()),
+			 xtag("value", N->value()));
+	    display_aux(D_Left, N->left_child(), d+1, p_scope);
+	    display_aux(D_Right, N->right_child(), d+1, p_scope);
+	  } 
+	} /*display_aux*/
+
+	static void display(RbNode const * N, uint32_t d)
+	{
+	  using logutil::scope;
+
+	  constexpr const char * c_self = "RbTreeUtil::display";
+
+	  scope lscope(c_self);
+
+	  display_aux(D_Invalid, N, d, &lscope);
+	} /*display*/
       }; /*RbTreeUtil*/
     } /*namespace detail*/
 
@@ -1148,21 +1316,51 @@ namespace xo {
 
       size_t size() const { return size_; }
 
-      void insert(Key const & k, Value const & v) {
-	RbTreeUtil::insert_aux(k, v, &(this->root_));
+      bool insert(Key const & k, Value const & v) {
+	bool retval = RbTreeUtil::insert_aux(k, v, &(this->root_));
+
+	if(retval)
+	  ++(this->size_);
+
+	return retval;
       } /*insert*/
       
-      void insert(Key && k, Value && v) {
-	RbTreeUtil::insert_aux(k, v, &(this->root_));
+      bool insert(Key && k, Value && v) {
+	using logutil::scope;
+	using logutil::xtag;
+
+	constexpr const char * c_self = "RedBlackTree::insert";
+
+	scope lscope(c_self);
+
+	bool retval = RbTreeUtil::insert_aux(k, v, &(this->root_));
+
+	if(retval)
+	  ++(this->size_);
+
+	lscope.log(c_self, ": after insert",
+		   xtag("key", k),
+		   xtag("value", v),
+		   xtag("tree.size", root_->size()),
+		   xtag("retval", retval));
+
+	return retval;
       } /*insert*/
 
       bool remove(Key const & k) {
-	return RbTreeUtil::remove_aux(k, &(this->root_));
+	bool retval = RbTreeUtil::remove_aux(k, &(this->root_));
+
+	if(retval)
+	  --(this->size_);
+
+	return retval;
       } /*remove*/
 
       /* verify class invariants
-       * 1. if root node is non-nil,  then root->parent() is nil.
-       * 2. if N = P->child(d),  then N->parent() == P
+       * 0. if root node is nil then .size is 0
+       * 1. if root node is non-nil,  then root->parent() is nil,
+       *    and .size = root->size
+       * 2. if N = P->child(d),  then N->parent()=P
        * 3. all paths to leaves have the same black height
        * 4. no red node has a red parent
        * 5. inorder traversal visits keys in monotonically increasing order
@@ -1171,15 +1369,62 @@ namespace xo {
        * 7. RedBlackTree.size() equals the #of nodes in tree
        */
       bool verify_ok() const {
+	using logutil::scope;
+	using logutil::tostr;
+	using logutil::xtag;
+
+	constexpr const char * c_self = "RedBlackTree::verify_ok";
+
+	scope lscope(c_self);
+
+	/* 0. */
+	if(root_ == nullptr) {
+	  XO_EXPECT(size_ == 0,
+		    tostr(c_self, ": expect .size=0 with null root", xtag("size", size_)));
+	}
+
+	/* 1. */
+	if(root_ != nullptr) {
+	  XO_EXPECT(root_->parent_ == nullptr,
+		    tostr(c_self,
+			  ": expect root->parent=nullptr",
+			  xtag("parent", root_->parent_)));
+	  XO_EXPECT(root_->size_ == this->size_,
+		    tostr(c_self,
+			  ": expect self.size=root.size",
+			  xtag("self.size", size_),
+			  xtag("root.size", root_->size_)));
+	}
+
+	/* height (counting only black nodes) of tree */
+	int32_t black_height = 0;
+
+	RbTreeUtil::verify_subtree_ok(this->root_, &black_height);
+
+	lscope.log(xtag("size", this->size_), xtag("blackheight", black_height));
+
+	return true;
       } /*verify_ok*/
 
-    private:
+      void display() const {
+	RbTreeUtil::display(this->root_, 0);
+      }
+
     private:
       /* #of key/value pairs in this tree */
       size_t size_ = 0;
       /* root of red/black tree */
       RbNode * root_ = nullptr;
     }; /*RedBlackTree*/
+
+    template<typename Key, typename Value>
+    std::ostream &
+    operator<<(std::ostream & os, RedBlackTree<Key, Value> const & tree)
+    {
+      tree.display();
+      return os;
+    } /*operator<<*/
+
   } /*namespace tree*/
 } /*namespace xo*/
 
