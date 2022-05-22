@@ -17,9 +17,9 @@ namespace logutil {
   // will print like
   //   :name value
   //*/
-  template <typename Name, typename Value>
-  struct tag {
-    tag(Name const & n, Value const & v)
+  template <bool PrefixSpace, typename Name, typename Value>
+  struct tag_impl {
+    tag_impl(Name const & n, Value const & v)
       : name_{n}, value_{v} {}
 
     Name const & name() const { return name_; }
@@ -28,28 +28,45 @@ namespace logutil {
   private:
     Name name_;
     Value value_;
-  }; /*tag*/
+  }; /*tag_impl*/
 
   /* deduce tag template-type from arguments */
   template<typename Name, typename Value>
-  tag<Name, Value>
+  tag_impl<false, Name, Value>
   make_tag(Name && n, Value && v)
   {
-    return tag<Name, Value>(n, v);
+    return tag_impl<false, Name, Value>(n, v);
   } /*make_tag*/
 
   template<typename Value>
-  tag<char const *, Value>
+  tag_impl<false, char const *, Value>
   make_tag(char const * n, Value && v) {
-    return tag<char const *, Value>(n, v);
+    return tag_impl<false, char const *, Value>(n, v);
   } /*make_tag*/
 
-  template <typename Name, typename Value>
+  template<typename Name, typename Value>
+  tag_impl<true, Name, Value>
+  xtag(Name && n, Value && v)
+  {
+    return tag_impl<true, Name, Value>(n, v);
+  } /*xtag*/
+
+  template<typename Value>
+  tag_impl<true, char const *, Value>
+  xtag(char const * n, Value && v) {
+    return tag_impl<true, char const *, Value>(n, v);
+  } /*xtag*/
+
+  template <bool PrefixSpace, typename Name, typename Value>
   inline std::ostream &
   operator<<(std::ostream &s,
-	     tag<Name, Value> const & tag)
+	     tag_impl<PrefixSpace, Name, Value> const & tag)
   {
-    s << ":" << tag.name() << " " << tag.value();
+    if(PrefixSpace)
+      s << " ";
+
+    s << ":" << tag.name()
+      << " " << tag.value();
 
     return s;
   } /*operator<<*/
