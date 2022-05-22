@@ -302,10 +302,26 @@ main(int argc, char **argv)
   } else if(cmd == C_RedBlackTree) {
     RedBlackTree<int, double> rbtree;
 
+    rbtree.verify_ok();
     rbtree.insert(1,   10.0);
+    lscope.log("after insert(1,10)");
+    rbtree.display();
+    rbtree.verify_ok();
+
     rbtree.insert(17, 170.0);
+    lscope.log("after insert(17,170)");
+    rbtree.display();
+    rbtree.verify_ok();
+
     rbtree.insert(3,   30.0);
+    lscope.log("after insert(3,30)");
+    rbtree.display();
+    rbtree.verify_ok();
+
     rbtree.remove(17);
+    lscope.log("after remove(17)");
+    rbtree.display();
+    rbtree.verify_ok();
   }
 
 #ifdef NOT_IN_USE
