@@ -28,8 +28,14 @@ add_subdirectory(distribution)
 add_subdirectory(random)
 add_subdirectory(logutil)
 
+# add unittest subdirectories
+add_subdirectory(redblacktree/utest)
+
 # add the executable
 add_executable(example junk.cpp)
+
+# ----------------------------------------------------------------
+# generic project dependency
 
 # PROJECT_SOURCE_DIR:
 #   so we can for example write
@@ -44,7 +50,8 @@ target_include_directories(example PUBLIC
 			   ${PROJECT_BINARY_DIR})
 
 # ----------------------------------------------------------------
-# internal dependency: logutil
+# internal dependencies: process, logutil, ..
+
 target_link_libraries(example PUBLIC process)
 target_link_libraries(example PUBLIC logutil)
 
@@ -76,6 +83,12 @@ find_package(Boost REQUIRED)
 
 target_include_directories(example PUBLIC
  		           ${Boost_INCLUDE_DIR})
+
+# ----------------------------------------------------------------
+# 3rd party dependency: catch2:
+# (adding this here temporarily so we can observe effect on kalman/build/CmakeCache.txt)
+#
+# find_package(Catch2 2 REQUIRED)
 
 # ----------------------------------------------------------------
 # make standard directories for std:: includes explicit
