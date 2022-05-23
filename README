@@ -1,6 +1,6 @@
 * Introduction
   project to implement extended kalman filter;
-  subsidiary goals: get familiar with cmake, eigen, pybind11, python.
+  subsidiary goals: get familiar with cmake, eigen, pybind11, python, catch2.
 
 ** Tools
    - nix    provides reproducible build/development environment
@@ -10,7 +10,8 @@
             see: https://www.freecodecamp.org/news/git-cheat-sheet-and-best-practices-c6ce5321f52/
 
 ** Libraries
-   - eigen  linear algebra library
+   - catch2 unit test framework for c++
+   - eigen  linear algebra library for c++
 
 * Directory Layout
   kalman
@@ -27,6 +28,7 @@
      +- CmakeLists.txt     configure cmake build
      +- KalmanConfig.h.in  configuration file template;  generates kalman/build/KalmanConfig.h
      +- matrix/
+     +- redblacktree/
 
 * To build this project using nix:
    $ nix-build -A path/to/kalman
@@ -50,4 +52,59 @@
   or
    $ make VERBOSE=1 -C path/to/kalman/build
   to see exact command log
+
+* to add a library dependency foo
+
+  1. find nix package for the dependency
+     $ nix-env -qaP foo
+
+  2. add depedency to kalman/kalman.nix, see buildInputs
+
+     # kalman.nix
+     ..
+     buildInputs = localcxxdev ++ [ pkg-config eigen .. foo ];
+
+  3. re-enter nix-shell to pickup kalman.nix changes
+
+      $ cd proj/kalman
+      $ nix-shell
+
+     if package provides target directories,  then nix-shell will
+     have added them to shell variables:
+     - include/ directory   -> added to INCLUDEPATH
+     - bin/ directory       -> added to PATH
+     - pkgconfig/ directory -> added to PKG_CONFIG_PATH
+     - lib/cmake directory  -> added to CMAKE_{INCLUDE,PREFIX,LIBRARY}_PATH
+
+     (see kalman/setup.sh.  not sure how the cmake environment variables get set)
+
+  4a. if new dependency has cmake integration:
+
+      # path/to/subdir/CmakeLists.txt
+      find_package(Foo REQUIRED)
+     or
+      find_package(Foo 2 REQUIRED) # to require version >= 2
+
+     also need something like:
+      target_include_directories(mytarget PUBLIC ${Foo_INCLUDE_DIRS})
+
+     to get include paths to appear in kalman/build/compile_commands.json
+
+  4b. if new dependency has pkgconfig integration:
+
+      # path/to/subdir/CMakeLists.txt
+      pkg_check_modules(FOO REQUIRED foo)
+      target_include_directories(mytarget PUBLIC ${FOO_INCLUDE_DIRS})
+      target_compile_options(mytarget PUBLIC ${FOO_CFLAGS_OTHER})
+
+     here 'FOO' is prefix for cmake-generated make variables,
+     and 'foo' is the package name to use with pkg-config,  e.g.
+
+      $ pkg-config --cflags foo
+
+     reports compiler flags using .pc files found in PKG_CONFIG_PATH
+
+     (NOTE: can review cmake-generated make variables
+            by inspecting kalman/build/CMakeCache.txt)
+     
   
