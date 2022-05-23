@@ -14,6 +14,9 @@ namespace xo {
      */
     class xoshiro256 {
     public:
+      using result_type = uint64_t;
+
+    public:
       xoshiro256(uint64_t seed)
       {
 	this->s_[0] = 0;
