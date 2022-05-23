@@ -128,6 +128,7 @@ namespace logutil {
   class scope {
   public:
     scope(char const * fn);
+    scope(char const * fn, bool enabled_flag);
     ~scope();
 
     template<typename... Tn>

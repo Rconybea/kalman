@@ -324,18 +324,24 @@ namespace logutil {
     logstate->flush2clog(); 
   } /*flush2clog*/
 
-  scope::scope(char const * fn) : name_(fn)
+  scope::scope(char const * fn, bool enabled_flag)
+    : name_(fn),
+      finalized_(!enabled_flag)
   {
-    state_impl * logstate = scope::require_thread_local_state();
+    if(enabled_flag) {
+      state_impl * logstate = scope::require_thread_local_state();
 
-    logstate->preamble(this->name_);
-    logstate->flush2clog();
+      logstate->preamble(this->name_);
+      logstate->flush2clog();
 
-    ///* next call to scope::log() can reset to beginning of buffer space */
-    //logstate->ss().seekp(0);
+      ///* next call to scope::log() can reset to beginning of buffer space */
+      //logstate->ss().seekp(0);
 
-    logstate->incr_nesting();
+      logstate->incr_nesting();
+    }
   } /*ctor*/
+
+  scope::scope(char const * fn) : scope(fn, true /*enabled_flag*/) {}
 
   void
   scope::end_scope()
