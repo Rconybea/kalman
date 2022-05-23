@@ -55,6 +55,14 @@ namespace xo {
 	    return false;
 	} /*is_red*/
 
+	static Direction child_direction(Node * p, Node * n) {
+	  if(p) {
+	    return p->child_direction(n);
+	  } else {
+	    return D_Invalid;
+	  }
+	} /*child_direction*/
+
         /* replace root pointer *pp_root with x;
          * set x parent pointer to nil
 	 */
@@ -126,16 +134,19 @@ namespace xo {
 	void assign_color(Color x) { this->color_ = x; }
 	void assign_size(size_t z) { this->size_ = z; }
 
-	void assign_child_reparent(Direction d, Node * x) {
+	void assign_child_reparent(Direction d, Node * new_x) {
 	  Node * old_x = this->child_v_[d];
 
-	  if(old_x)
+	  // trying to fix old_x can be counterproductive,
+	  // since old_x->parent_ may already have been corrected,
+	  // 
+	  if(old_x && (old_x->parent_ == this))
 	    old_x->parent_ = nullptr;
 	  
-	  this->child_v_[d] = x;
+	  this->child_v_[d] = new_x;
 
-	  if(x) {
-	    x->parent_ = this;
+	  if(new_x) {
+	    new_x->parent_ = this;
 	  }
 	} /*assign_child_reparent*/
 
@@ -367,7 +378,7 @@ namespace xo {
          *
          *        G                 G
          *        |                 |
-         * this-> A                 B  <- retval
+         *        A                 B  <- retval
          *       / \               / \
          *      R   B      ==>    A   T
          *         / \           / \
@@ -377,7 +388,7 @@ namespace xo {
          *
 	 *        G                  G
 	 *        |                  |
-	 * this-> A                  B <- retval     
+	 *        A                  B <- retval     
 	 *       / \                / \           
          *      B   R        ==>   T   A
          *     / \                    / \
@@ -387,6 +398,13 @@ namespace xo {
 			       RbNode * A,
 			       RbNode ** pp_root)
 	{
+	  using logutil::scope;
+	  using logutil::xtag;
+
+	  constexpr char const * c_self = "RbTreeUtil::rotate";
+	  constexpr bool c_logging_enabled = false;
+	  scope lscope(c_self, c_logging_enabled);
+
 	  Direction other_d = other(d);
 
 	  RbNode * G = A->parent();
@@ -395,23 +413,52 @@ namespace xo {
 	  RbNode * S = B->child(d);
 	  RbNode * T = B->child(other_d);
 
-	  if(G) {
-	    G->replace_child_reparent(A, B);
-	  } else {
-	    RbNode::replace_root_reparent(B, pp_root);
+	  if (c_logging_enabled) {
+	    lscope.log(c_self, ": rotate-", (d == D_Left) ? "left" : "right",
+		       " at",
+		       xtag("A", A), xtag("A.key", A->key_),
+		       xtag("B", B), xtag("B.key", B->key_));
+
+            if (G) {
+              lscope.log(c_self, ": with G", xtag("G", G),
+                         xtag("G.key", G->key_));
+              // display_aux(D_Invalid /*side*/, G, 0, &lscope);
+            } else {
+              lscope.log(c_self, ": with A at root");
+              // display_aux(D_Invalid /*side*/, A, 0, &lscope);
+            }
 	  }
 
+          /* note: this will set A's old child B to have null parent ptr */
 	  A->assign_child_reparent(other_d, S);
 	  A->local_recalc_size();
 
 	  B->assign_child_reparent(d, A);
 	  B->local_recalc_size();
 
+	  if(G) {
+	    G->replace_child_reparent(A, B);
+	    assert(B->parent() == G);
+
+	    /* note: G.size not affected by rotation */
+	  } else {
+	    RbNode::replace_root_reparent(B, pp_root);
+	  }
+
 	  return B;
 	} /*rotate*/
 
-        /* assign x as new child (on side=d) and rebalance.
-         * in diagrams below, G is 'this'.
+        /* fixup size in N and all ancestors of N,
+         * after insert/remove affecting N
+	 */
+	static void fixup_ancestor_size(RbNode * N) {
+	  while(N) {
+	    N->local_recalc_size();
+	    N = N->parent();
+	  }
+	} /*fixup_ancestor_size*/
+
+        /* rebalance to fix possible red-red violation at node G or G->child(d).
          *
          * diagrams are for d=D_Left;
          * mirror left-to-right to get diagram for d=D_Right
@@ -424,40 +471,58 @@ namespace xo {
          *
          * relative to prevailing black-height h:
          * - P at h
-	 * - U at h
-	 * - may have red-red violation between G and P
+         * - U at h
+         * - may have red-red violation between G and P
+         *
+         * Require:
+         * - tree is in RB-shape,  except for possible red-red violation
+	 *   between {G,P} or {P,R|S}
+         * Promise:
+	 * - tree is in RB-shape
 	 */
-	static void rebalance_child(Direction d,
+	static void fixup_red_shape(Direction d,
 				    RbNode * G,
 				    RbNode ** pp_root)
 	{
 	  using logutil::scope;
 	  using logutil::xtag;
 
-	  constexpr char const * c_self = "RbTreeUtil::rebalance_child";
+	  constexpr char const * c_self = "RbTreeUtil::fixup_red_shape";
+	  constexpr bool c_logging_enabled = false;
+	  constexpr bool c_excessive_verify_enabled = false;
 
-	  scope lscope(c_self);
+	  scope lscope(c_self, c_logging_enabled);
 
 	  RbNode * P = G->child(d);
 
-	  for(uint32_t iter = 0; ; ++iter) {
-            if (G) {
-              lscope.log(c_self, ": consider node G with d-child P",
-                         xtag("iter", iter),
-                         xtag("G.col", ((G->color() == C_Red) ? "r" : "B")),
-                         xtag("G.key", G->key()),
-                         xtag("P.col", ((P->color() == C_Red) ? "r" : "B")),
-                         xtag("P.key", P->key()));
-            } else {
-	      lscope.log(c_self, ": consider root P",
-			 xtag("iter", iter),
-                         xtag("P.col", ((P->color() == C_Red) ? "r" : "B")),
-                         xtag("P.key", P->key()));
-	    }
+          for (uint32_t iter = 0; ; ++iter) {
+	    if(c_excessive_verify_enabled)
+	      RbTreeUtil::verify_subtree_ok(G, nullptr /*&black_height*/);
+
+            if (c_logging_enabled) {
+              if (G) {
+                lscope.log(c_self, ": consider node G with d-child P",
+                           xtag("iter", iter),
+			   xtag("G", G),
+                           xtag("G.col", ((G->color() == C_Red) ? "r" : "B")),
+                           xtag("G.key", G->key()),
+			   xtag("d", (d == D_Left) ? "L" : "R"),
+			   xtag("P", P),
+                           xtag("P.col", ((P->color() == C_Red) ? "r" : "B")),
+                           xtag("P.key", P->key()));
+              } else {
+                lscope.log(c_self, ": consider root P", xtag("iter", iter),
+			   xtag("P", P),
+                           xtag("P.col", ((P->color() == C_Red) ? "r" : "B")),
+                           xtag("P.key", P->key()));
+              }
+	      RbTreeUtil::display_aux(D_Invalid /*side*/, G ? G : P, 0 /*d*/, &lscope);
+            } /*if logging enabled*/
 
             if (G && G->is_red_violation()) {
-              lscope.log(c_self,
-			 ": red-red violation at G - defer");
+	      if (c_logging_enabled)
+		lscope.log(c_self,
+			   ": red-red violation at G - defer");
 
               /* need to fix red-red violation at next level up
                *
@@ -471,22 +536,27 @@ namespace xo {
 	       */
 	      P = G;
 	      G = G->parent();
-	      d = G->child_direction(P);
+	      d = RbNode::child_direction(G, P);
 
 	      continue;
             }
 
+	    if(c_logging_enabled)
+	      lscope.log(c_self, ": check for red violation at P");
+
             if (!P->is_red_violation()) {
-	      lscope.log(c_self,
-			 ": red-shape ok at {G,P}");
+	      if (c_logging_enabled)
+		lscope.log(c_self,
+			   ": red-shape ok at {G,P}");
 
 	      /* RB-shape restored */
 	      return;
 	    }
 
 	    if (!G) {
-	      lscope.log(c_self,
-			 ": make P black to fix red-shape at root");
+	      if (c_logging_enabled)
+		lscope.log(c_self,
+			   ": make P black to fix red-shape at root");
 
               /* special case:  P is root of tree.
                * can fix red violation by making P black
@@ -501,7 +571,27 @@ namespace xo {
             RbNode * S = P->child(other_d);
             RbNode * U = G->child(other_d);
 
-	    assert(is_black(G));
+	    if(c_logging_enabled) {
+              lscope.log(c_self, ": got R,S,U", xtag("R", R), xtag("S", S),
+                         xtag("U", U));
+              if (R) {
+                lscope.log(c_self, ": with",
+                           xtag("R.col", (R->color_ == C_Black ? "B" : "r")),
+                           xtag("R.key", R->key_));
+              }
+              if (S) {
+                lscope.log(c_self, ": with",
+                           xtag("S.col", (S->color_ == C_Black ? "B" : "r")),
+                           xtag("S.key", S->key_));
+              }
+              if (U) {
+                lscope.log(c_self, ": with",
+                           xtag("U.col", (U->color_ == C_Black ? "B" : "r")),
+                           xtag("U.key", U->key_));
+              }
+	    }
+
+            assert(is_black(G));
 	    assert(is_red(P));
 	    assert(is_red(R) || is_red(S));
 
@@ -528,10 +618,13 @@ namespace xo {
               P->assign_color(C_Black);
               U->assign_color(C_Black);
 
+	      if(c_logging_enabled)
+		lscope.log(c_self, ": fixed red violation at P, retry 1 level higher");
+
 	      /* still need to check for red-violation at G's parent */
-	      G = G->parent();
 	      P = G;
-	      d = G->child_direction(P);
+	      G = G->parent();
+	      d = RbNode::child_direction(G, P);
 
 	      continue;
 	    }
@@ -539,30 +632,41 @@ namespace xo {
 	    assert(RbNode::is_black(U));
 
             if (RbNode::is_red(S)) {
-              /* preparatory step: rotate P in d direction if "inner child" (S)
-               * is red inner-child = right-child of left-parent or vice versa
-               *
-               *        G                      G
-               *       / \                    / \
-               *      P*  U     ==>    (P'=) S*  U
-               *     / \                    / \
-               *    R   S*           (R'=) P*
-               *                          / \
-               *                         R
-               */
-              RbTreeUtil::rotate(d, P, pp_root);
+	      if(c_logging_enabled) {
+                lscope.log(c_self, ": rotate-",
+                           (d == D_Left) ? "left" : "right", " at P",
+                           xtag("P", P), xtag("P.key", P->key_), xtag("S", S),
+                           xtag("S.key", S->key_));
+	      }
 
-              /* (relabel S->P etc. for merged control flow below) */
-              R = P;
-              P = S;
+                /* preparatory step: rotate P in d direction if "inner child"
+                 * (S) is red inner-child = right-child of left-parent or vice
+                 * versa
+                 *
+                 *        G                      G
+                 *       / \                    / \
+                 *      P*  U     ==>    (P'=) S*  U
+                 *     / \                    / \
+                 *    R   S*           (R'=) P*
+                 *                          / \
+                 *                         R
+                 */
+                RbTreeUtil::rotate(d, P, pp_root);
+
+                if (c_excessive_verify_enabled)
+                  RbTreeUtil::verify_subtree_ok(S, nullptr /*&black_height*/);
+
+                /* (relabel S->P etc. for merged control flow below) */
+                R = P;
+                P = S;
             }
 
 	    /*
-	     *    this->  G                P
-	     *           / \              / \
-	     *          P*  U     ==>    R*  G*
-	     *         / \                  / \
-	     *        R*  S                S   U
+	     *        G                P
+	     *       / \              / \
+	     *      P*  U     ==>    R*  G*
+	     *     / \                  / \
+	     *    R*  S                S   U
 	     *
 	     * ok since every path that went through previously-black G
 	     * now goes through newly-black P
@@ -570,10 +674,33 @@ namespace xo {
 	    P->assign_color(C_Black);
 	    G->assign_color(C_Red);
 
-	    RbTreeUtil::rotate(other_d, G, pp_root);
-	    return;
+	    if(c_logging_enabled) {
+              lscope.log(c_self, ": rotate-",
+                         (other_d == D_Left) ? "left" : "right", " at G",
+                         xtag("G", G), xtag("G.key", G->key_));
+	    }
+
+            RbTreeUtil::rotate(other_d, G, pp_root);
+
+            if (c_excessive_verify_enabled) {
+              RbNode *GG = G ? G->parent() : G;
+              if (!GG)
+                GG = P;
+
+              if (c_logging_enabled) {
+                lscope.log(c_self, ": verify subtree at GG", xtag("GG", GG),
+                           xtag("GG.key", GG->key_));
+
+		RbTreeUtil::verify_subtree_ok(GG, nullptr /*&black_height*/);
+		RbTreeUtil::display_aux(D_Invalid, GG, 0 /*depth*/, &lscope);
+
+		lscope.log(c_self, ": fixup complete");
+	      }
+            }
+
+            return;
 	  } /*walk toward root until red violation fixed*/
-	} /*rebalance_child*/
+	} /*fixup_red_shape*/
 
         /* insert key-value pair (key, value) into *pp_root.
          * on exit *pp_root contains new tree with (key, value) inserted.
@@ -614,18 +741,22 @@ namespace xo {
 
 	  if(N) {
 	    N->assign_child_reparent(d, new Node<Key, Value>(k, v));
-	    N->local_recalc_size();
 
 	    assert(is_red(N->child(d)));
 
+	    /* recalculate Node sizes on path [root .. N] */
+	    RbTreeUtil::fixup_ancestor_size(N);
 	    /* after adding a node,  must rebalance to restore RB-shape */
-
-	    RbTreeUtil::rebalance_child(d, N, pp_root);
+	    RbTreeUtil::fixup_red_shape(d, N, pp_root);
 	  } else {
 	    *pp_root = new Node<Key, Value>(k, v);
 
 	    /* tree with a single node might as well be black */
 	    (*pp_root)->assign_color(C_Black);
+
+            /* Node.size will be correct for tree,  since
+             * new node is only node in the tree
+	     */
 	  }
 
 	  return true;
@@ -644,6 +775,14 @@ namespace xo {
 	 * - N->parent() != nullptr
 	 */
         static void remove_black_leaf(RbNode *N, RbNode **pp_root) {
+	  using logutil::scope;
+	  using logutil::xtag;
+
+	  constexpr char const * c_self = "RbTreeUtil::remove_black_leaf";
+	  constexpr bool c_logging_enabled = false;
+
+	  scope lscope(c_self, c_logging_enabled);
+
           assert(pp_root);
 
           RbNode *P = N->parent();
@@ -666,6 +805,11 @@ namespace xo {
            * we've determined d
            */
           N = nullptr;
+
+          /* fixup sizes on path root..P
+	   * subsequent rebalancing rotations will preserve correct .size values
+	   */
+	  RbTreeUtil::fixup_ancestor_size(P);
 
           /* other_d, S, C, D will be assigned by loop below
            *
@@ -703,7 +847,7 @@ namespace xo {
            */
 
           while (true) {
-            assert(is_black(N));
+            assert(is_black(N)); /* reminder: nil is black too */
 
             /* Invariant:
              * - either:
@@ -736,51 +880,66 @@ namespace xo {
             C = S->child(d);
             D = S->child(other_d);
 
-            if (is_black(P) && is_black(S) && is_black(C) && is_black(D)) {
-              /* Case(1) */
+	    if (c_logging_enabled) {
+              lscope.log(c_self,
+                         ": rebalance at parent P of curtailed subtree N",
+                         xtag("P", P),
+                         xtag("P.col", P->color() == C_Black ? "B" : "r"),
+                         xtag("P.key", P->key()));
+              lscope.log(c_self, ": with sibling S, nephews C,D", xtag("S", S),
+                         xtag("S.col", S->color() == C_Black ? "B" : "r"),
+                         xtag("C", C), xtag("D", D));
+	    }
 
-              /* diagram with d=D_Left: flip left-to-right for d=D_Right
-               *    =black
-               *   *=red
-               *   _=red or black
-               *
-               *     P
-               *    / \
-               *   N   S
-               *      / \
-               *     C   D
-               *
-               * relative to prevailing black-height h:
-               * - N at h-1
-               * - C at h
-               * - D at h
-               */
+              if (is_black(P) && is_black(S) && is_black(C) && is_black(D)) {
+                /* Case(1) */
 
-              S->assign_color(C_Red);
+                if (c_logging_enabled) {
+                  lscope.log(c_self,
+                             "P,S,C,D all black: mark S red + go up 1 level");
+                }
 
-              /* now have:
-               *
-               *    G (=P')
-               *    |
-               *    P (=N')
-               *   / \
-               *  N   S*
-               *     / \
-               *    C   D
-               *
-               * relative to prevailing black-height h:
-               * - N at h-1
-               * - C at h-1
-               * - D at h-1
-               *
-               * relabel to one level higher in tree
-               */
-              N = P;
-              P = P->parent();
-              if (P)
-                d = P->child_direction(N);
+                /* diagram with d=D_Left: flip left-to-right for d=D_Right
+                 *    =black
+                 *   *=red
+                 *   _=red or black
+                 *
+                 *     P
+                 *    / \
+                 *   N   S
+                 *      / \
+                 *     C   D
+                 *
+                 * relative to prevailing black-height h:
+                 * - N at h-1
+                 * - C at h
+                 * - D at h
+                 */
 
-              continue;
+                S->assign_color(C_Red);
+
+                /* now have:
+                 *
+                 *    G (=P')
+                 *    |
+                 *    P (=N')
+                 *   / \
+                 *  N   S*
+                 *     / \
+                 *    C   D
+                 *
+                 * relative to prevailing black-height h:
+                 * - N at h-1
+                 * - C at h-1
+                 * - D at h-1
+                 *
+                 * relabel to one level higher in tree
+                 */
+                N = P;
+                P = P->parent();
+                d = RbNode::child_direction(P, N);
+
+                continue;
             } else {
               break;
             }
@@ -788,6 +947,17 @@ namespace xo {
 
           if (is_red(S)) {
             /* Case(3) */
+
+            if (c_logging_enabled) {
+              lscope.log(
+                  "case 3: S red, P,C,D black -> rotate at P to promote S");
+              lscope.log("case 3: + make P red instead of S");
+              lscope.log("case 3: with", xtag("P", P),
+                         xtag("P.col", P->color() == C_Black ? "B" : "r"),
+                         xtag("P.key", P->key()), xtag("S", S),
+                         xtag("S.col", S->color() == C_Black ? "B" : "r"),
+                         xtag("S.key", S->key()));
+            }
 
             /* since S is red, {P,C,D} are all black
              *
@@ -848,12 +1018,25 @@ namespace xo {
 
             /* now relabel for subsequent cases */
             S = C;
+	    C = S ? S->child(d) : nullptr;
+	    D = S ? S->child(other_d) : nullptr;
           }
 
           assert(is_black(S));
 
           if (is_red(P) && is_black(C) && is_black(D)) {
             /* Case(4) */
+
+            if (c_logging_enabled) {
+              lscope.log("case 4: P red, N,S,C,D black -> recolor and finish");
+              lscope.log("case 4: with", xtag("P", P),
+                         xtag("P.col", P->color() == C_Black ? "B" : "r"),
+                         xtag("P.key", P->key()), xtag("S", S),
+                         xtag("S.col", S->color() == C_Black ? "B" : "r"),
+                         xtag("S.key", S->key()));
+            }
+
+            assert(is_black(N));
 
             /* diagram with d=D_Left: flip left-to-right for d=D_Right*
              *    =black
@@ -896,6 +1079,10 @@ namespace xo {
           assert(is_black(S) && (is_black(P) || is_red(C) || is_red(D)));
 
           if (is_red(C) && is_black(D)) {
+	    if (c_logging_enabled) {
+	      lscope.log("case 5: C red, S,D black -> rotate at S");
+	    }
+
             /* diagram with d=D_Left;  flip left-to-right for d=D_Right
              *
              *    =black
@@ -967,6 +1154,10 @@ namespace xo {
           }
 
           if (is_red(D)) {
+	    if (c_logging_enabled) {
+	      lscope.log("case 6: S black, D red -> rotate at P and finish");
+	    }
+
             /* diagram with d=D_Left;  flip left-to-right for d=D_Right
              *
              * Sibling is black,  and distant child is red
@@ -1026,7 +1217,6 @@ namespace xo {
              *
              * RB-shape has been restored
              */
-
             return;
           }
         } /*remove_black_leaf*/
@@ -1042,8 +1232,19 @@ namespace xo {
 	 */
 	static bool remove_aux(Key const & k, RbNode ** pp_root)
 	{
+	  using logutil::scope;
+	  using logutil::xtag;
+
+	  constexpr char const * c_self = "RbTreeUtil::remove_aux";
+	  constexpr bool c_logging_enabled = false;
+
+	  scope lscope(c_self, c_logging_enabled);
+
 	  RbNode * N = *pp_root;
 	  
+	  if(c_logging_enabled)
+	    lscope.log(c_self, ": enter", xtag("N", N));
+
           /*
            * here the triangle ascii art indicates a tree structure,
            * of arbitrary size
@@ -1063,6 +1264,10 @@ namespace xo {
 	    /* no node with .key = k present,  so cannot remove it */
 	    return false;
 	  }
+
+	  if(c_logging_enabled)
+	    lscope.log(c_self, ": got lower bound",
+		       xtag("N", N), xtag("N.key", N->key_));
 
           /* first step is to simplify problem so that we're removing
            * a node with 0 or 1 children.
@@ -1090,7 +1295,7 @@ namespace xo {
 
             /* now relabel N as new R (R'),
              * and relabel R as new N (N').
-             * Then got to work on reduced problem of deleting N'.
+             * Then go to work on reduced problem of deleting N'.
              * Problem is redueced since now  N' has 0 or 1 child.
              *
              * (Doesn't matter that N' contains key,values of R,
@@ -1133,11 +1338,14 @@ namespace xo {
 	      
 	      if(P) {
 		P->replace_child_reparent(N, nullptr);
+		RbTreeUtil::fixup_ancestor_size(P);
 	      } else {
 		/* N was sole root node;  tree will be empty after removing it */
 		*pp_root = nullptr;
 	      }
 
+	      if(c_logging_enabled)
+		lscope.log(c_self, ": delete node", xtag("addr", N));
 	      delete N;
 	    } else {
 	      assert(false);
@@ -1163,25 +1371,31 @@ namespace xo {
 
 	      if(P) {
 		P->replace_child_reparent(N, R);
+		RbTreeUtil::fixup_ancestor_size(P);
 	      } else {
 		/* N was root node */
-		*pp_root = R;
+		RbNode::replace_root_reparent(R, pp_root);
 	      }
 	      
+	      if(c_logging_enabled)
+		lscope.log(c_self, ": delete node", xtag("addr", N));
 	      delete N;
 	    } else {
               /* N is black with no children,
                * may need rebalance here
 	       */
 
-	      if(!P) {
+	      if(P) {
+		RbTreeUtil::remove_black_leaf(N, pp_root);
+	      } else {
 		/* N was root node */
 		*pp_root = nullptr;
 
+		if(c_logging_enabled)
+		  lscope.log(c_self, ": delete node", xtag("addr", N));
 		delete N;
 	      }
 	      
-	      RbTreeUtil::remove_black_leaf(N, pp_root);
 	    }
 	  }
 
@@ -1220,8 +1434,11 @@ namespace xo {
 			tostr(c_self,
 			      ": expect symmetric child/parent pointers",
 			      xtag("i", i_node),
+			      xtag("node[i]", x),
 			      xtag("key[i]", x->key_),
-			      xtag("child.key", x->left_child()->key_)));
+			      xtag("child", x->left_child()),
+			      xtag("child.key", x->left_child()->key_),
+			      xtag("child.parent", x->left_child()->parent_)));
 	    }
 
 	    if(x->right_child()) {
@@ -1229,8 +1446,11 @@ namespace xo {
 			tostr(c_self,
 			      ": expect symmetric child/parent pointers",
 			      xtag("i", i_node),
+			      xtag("node[i]", x),
 			      xtag("key[i]", x->key_),
-			      xtag("child.key", x->right_child()->key_)));
+			      xtag("child", x->right_child()),
+			      xtag("child.key", x->right_child()->key_),
+			      xtag("child.parent", x->right_child()->parent_)));
 	    }
 
 	    if(last_key) {
@@ -1255,18 +1475,41 @@ namespace xo {
 			  tostr(c_self,
 				": expect all RB-tree nodes to have the same black-height",
 				xtag("i1", i_black_height),
-				xtag("i2", bd),
+				xtag("i2", i_node),
 				xtag("blackheight(i1)", black_height),
 				xtag("blackheight(i2)", bd)));
 	      }
 	    }
+
+	    /* 4. a red node may not have a red parent
+	     *    (conversely,  a red node may not have a red child)
+	     */
+
+	    RbNode * red_child
+	      = ((x->left_child() && x->left_child()->is_red())
+		 ? x->left_child()
+		 : ((x->right_child() && x->right_child()->is_red())
+		    ? x->right_child()
+		    : nullptr));
+
+	    XO_EXPECT(x->is_red_violation() == false,
+		      tostr(c_self,
+			    ": expect RB-shape tree to have no red violations but red y is child of red x",
+			    xtag("i", i_node),
+			    xtag("x.addr", x),
+			    xtag("x.col", (x->color_ == C_Black) ? "B" : "r"),
+			    xtag("x.key", x->key_),
+			    xtag("y.addr", red_child),
+			    xtag("y.col", (red_child->color_ == C_Black) ? "B" : "r"),
+			    xtag("y.key", red_child->key_)));
 
 	    ++i_node;
 	  };
 
 	  RbTreeUtil::inorder_node_visitor(N, 0 /*d*/, verify_fn);
 
-	  *p_black_height = black_height;
+	  if(p_black_height)
+	    *p_black_height = black_height;
 	} /*verify_subtree_ok*/
 	  
 
@@ -1283,10 +1526,13 @@ namespace xo {
 
 	  if(N) {
 	    p_scope->log(pad(d),
+			 xtag("addr", N),
+			 xtag("par", N->parent()),
 			 xtag("side", ((side == D_Left) ? "L" : (side == D_Right) ? "R" : "root")),
 			 xtag("col", N->is_black() ? "B" : "r"),
 			 xtag("key", N->key()),
-			 xtag("value", N->value()));
+			 xtag("value", N->value()),
+			 xtag("wt", N->size()));
 	    display_aux(D_Left, N->left_child(), d+1, p_scope);
 	    display_aux(D_Right, N->right_child(), d+1, p_scope);
 	  } 
@@ -1331,18 +1577,18 @@ namespace xo {
 
 	constexpr const char * c_self = "RedBlackTree::insert";
 
-	scope lscope(c_self);
+	constexpr bool c_logging_enabled = false;
+	scope lscope(c_self, c_logging_enabled);
 
 	bool retval = RbTreeUtil::insert_aux(k, v, &(this->root_));
 
 	if(retval)
 	  ++(this->size_);
 
-	lscope.log(c_self, ": after insert",
-		   xtag("key", k),
-		   xtag("value", v),
-		   xtag("tree.size", root_->size()),
-		   xtag("retval", retval));
+	if(c_logging_enabled) {
+          lscope.log(c_self, ": after insert", xtag("key", k), xtag("value", v),
+                     xtag("tree.size", root_->size()), xtag("retval", retval));
+	}
 
 	return retval;
       } /*insert*/
@@ -1374,8 +1620,9 @@ namespace xo {
 	using logutil::xtag;
 
 	constexpr const char * c_self = "RedBlackTree::verify_ok";
+	constexpr bool c_logging_enabled = false;
 
-	scope lscope(c_self);
+	scope lscope(c_self, c_logging_enabled);
 
 	/* 0. */
 	if(root_ == nullptr) {
@@ -1401,14 +1648,15 @@ namespace xo {
 
 	RbTreeUtil::verify_subtree_ok(this->root_, &black_height);
 
-	lscope.log(xtag("size", this->size_), xtag("blackheight", black_height));
+	if (c_logging_enabled)
+	  lscope.log(xtag("size", this->size_), xtag("blackheight", black_height));
 
 	return true;
       } /*verify_ok*/
 
       void display() const {
 	RbTreeUtil::display(this->root_, 0);
-      }
+      } /*display*/
 
     private:
       /* #of key/value pairs in this tree */
