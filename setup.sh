@@ -4,8 +4,9 @@
 
 unset PATH
 unset PKG_CONFIG_PATH
+unset INCLUDEPATH
 
-# establish PATH, PKG_CONFIG_PATH based on explicitly-listed project dependencies
+# establish PATH, INCLUDEPATH, PKG_CONFIG_PATH based on explicitly-listed project dependencies
 for p in ${buildInputs} ${baseInputs} ${devInputs}; do
     if [[ -d ${p}/bin ]]; then
 	PATH=${p}/bin${PATH:+:}${PATH}

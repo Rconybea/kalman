@@ -23,7 +23,7 @@ pkgs: attrs:
       # when ./builder.sh runs, value will be the nix store location for nixpkgs.${x},
       # which will typically be the build artifact for a nix derivation
       #
-      buildInputs = localcxxdev ++ [ pkg-config eigen cmake boost which ];
+      buildInputs = localcxxdev ++ [ pkg-config eigen cmake boost which catch2 ];
       devInputs = [];
     };
 
