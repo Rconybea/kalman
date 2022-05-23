@@ -15,7 +15,9 @@
 #include "logutil/tag.hpp"
 #include "reflect/demangle.hpp"
 #include <Eigen/Dense>
+#include <algorithm>
 #include <iostream>
+#include <stdlib.h>
 
 namespace xo {
   using xo::process::BrownianMotion;
@@ -79,14 +81,17 @@ main(int argc, char **argv)
   using xo::time::days;
   using xo::time::hours;
   using logutil::scope;
-
+  using logutil::tostr;
+  using logutil::xtag;
   using Eigen::MatrixXd;
   using Eigen::DiagonalMatrix;
   using Eigen::VectorXd;
   using std::cout;
   using std::endl;
 
-  scope lscope("main");
+  constexpr char const * c_self = "main";
+
+  scope lscope(c_self);
 #ifdef NOT_IN_USE
   lscope.log("Hello world");
   lscope.log("Hi");
@@ -302,26 +307,64 @@ main(int argc, char **argv)
   } else if(cmd == C_RedBlackTree) {
     RedBlackTree<int, double> rbtree;
 
-    rbtree.verify_ok();
-    rbtree.insert(1,   10.0);
-    lscope.log("after insert(1,10)");
-    rbtree.display();
-    rbtree.verify_ok();
+    uint64_t seed = 14950349842636922572UL;
+    //uint64_t seed = static_cast<uint64_t>(time(nullptr));
+    //arc4random_buf(&seed, sizeof(seed));
 
-    rbtree.insert(17, 170.0);
-    lscope.log("after insert(17,170)");
-    rbtree.display();
-    rbtree.verify_ok();
+    lscope.log(c_self, ": using rng seed from /dev/urandom", xtag("seed", seed));
 
-    rbtree.insert(3,   30.0);
-    lscope.log("after insert(3,30)");
-    rbtree.display();
-    rbtree.verify_ok();
+    auto rgen = xo::random::xoshiro256(seed);
 
-    rbtree.remove(17);
-    lscope.log("after remove(17)");
-    rbtree.display();
-    rbtree.verify_ok();
+    /* generate a random series of inserts and removes,  with increasing scale */
+
+    for(uint32_t n=1; n<1024; n *= 2) {
+      /* n random inserts */
+      rbtree.verify_ok();
+      
+      /* n keys 0..n-1 */
+      std::vector<uint32_t> u(n);
+
+      for(uint32_t i=0; i<n; ++i)
+	u[i] = i;
+      /* generate random permutation of u[0]..u[n-1] */
+      std::shuffle(u.begin(), u.end(), rgen);
+
+      {
+        uint32_t i = 1;
+        for (uint32_t x : u) {
+          lscope.log(c_self, ": ", i, "/", n, ": insert key", xtag("x", x));
+          rbtree.insert(x, 10 * x);
+          rbtree.display();
+          rbtree.verify_ok();
+          ++i;
+        }
+      }
+
+      XO_EXPECT(rbtree.size() == n,
+		tostr(c_self,
+		      ": expect tree.size=n after n distinct inserts",
+		      xtag("n", n)));
+
+      /* n random removals */
+      /* generate new random permutation of u[0]..u[n-1] */
+      std::shuffle(u.begin(), u.end(), rgen);
+
+      {
+	uint32_t i = 1;
+        for (uint32_t x : u) {
+          lscope.log(c_self, ": ", i, "/", n, ": remove key", xtag("x", x));
+          rbtree.remove(x);
+          rbtree.display();
+          rbtree.verify_ok();
+	  ++i;
+        }
+      }
+
+      XO_EXPECT(rbtree.size() == 0,
+		tostr(c_self,
+		      ": expect tree.size=0 after n distinct removes"));
+    }
+
   }
 
 #ifdef NOT_IN_USE
