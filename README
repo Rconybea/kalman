@@ -28,7 +28,7 @@
      +- CmakeLists.txt     configure cmake build
      +- KalmanConfig.h.in  configuration file template;  generates kalman/build/KalmanConfig.h
      +- matrix/
-     +- redblacktree/
+     +- tree/              red-black tree
 
 * To build this project using nix:
    $ nix-build -A path/to/kalman

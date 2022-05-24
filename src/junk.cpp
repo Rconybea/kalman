@@ -66,6 +66,7 @@ main(int argc, char **argv)
   //   https: // eigen.tuxfamily.org/dox/GettingStarted.html
 
   using xo::tree::RedBlackTree;
+  using xo::tree::OrdinalReduce;
   using xo::statistics::Histogram;
   using xo::statistics::Bucket;
   using xo::statistics::SampleStatistics;
@@ -305,7 +306,7 @@ main(int argc, char **argv)
 		 " ", bucket.mean());
     }
   } else if(cmd == C_RedBlackTree) {
-    RedBlackTree<int, double> rbtree;
+    RedBlackTree<int, double, OrdinalReduce<int>> rbtree;
 
     uint64_t seed = 14950349842636922572UL;
     //uint64_t seed = static_cast<uint64_t>(time(nullptr));

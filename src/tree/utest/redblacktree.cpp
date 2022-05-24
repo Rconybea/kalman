@@ -5,6 +5,7 @@
 #include "catch2/catch.hpp"
 
 using xo::tree::RedBlackTree;
+using xo::tree::NullReduce;
 
 namespace {
 
@@ -14,7 +15,7 @@ namespace {
 void
 random_inserts(uint32_t n,
 	       xo::random::xoshiro256 * p_rgen,
-	       RedBlackTree<int, double> * p_rbtree)
+	       RedBlackTree<int, double, NullReduce<int>> * p_rbtree)
 {
   REQUIRE(p_rbtree->verify_ok());
 
@@ -44,7 +45,7 @@ random_inserts(uint32_t n,
  */
 void
 random_removes(xo::random::xoshiro256 * p_rgen,
-	       RedBlackTree<int, double> * p_rbtree)
+	       RedBlackTree<int, double, NullReduce<int>> * p_rbtree)
 {
   REQUIRE(p_rbtree->verify_ok());
 
@@ -73,7 +74,7 @@ random_removes(xo::random::xoshiro256 * p_rgen,
 } /*namespace*/
 
 TEST_CASE("rbtree", "[redblacktree]") {
-  RedBlackTree<int, double> rbtree;
+  RedBlackTree<int, double, NullReduce<int>> rbtree;
 
   uint64_t seed = 14950349842636922572UL;
   /* can reseed from /dev/urandom with: */
