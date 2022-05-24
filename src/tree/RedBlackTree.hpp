@@ -1796,6 +1796,17 @@ namespace tree {
       Iterator(IteratorLocation loc, RbNode * n) : location_(loc), node_(n) {}
       Iterator(Iterator const & x) = default;
 
+      /* note: it's forbidden to assign to .first here */
+      std::pair<Key const, Value> & operator*() {
+	this->check_regular();
+	return this->node_->contents();
+      } /*operator**/
+
+      std::pair<Key, Value> const & operator*() const {
+	this->check_regular();
+	return this->node_->contents();
+      } /*operator**/
+
       /* pre-increment */
       Iterator & operator++() {
 	switch(this->location_) {
@@ -1863,6 +1874,15 @@ namespace tree {
 
 	return retval;
       } /*operator--(int)*/
+
+    private:
+      void check_regular() {
+	using logutil::tostr;
+
+	if(this->location_ != IL_Regular)
+	  throw std::runtime_error(tostr("rbtree iterator: cannot deref iterator"
+					 " in non-regular state"));
+      } /*check_regular*/
 
     private:
       /* IL_BeforeBegin, IL_Regular, IL_AfterEnd */
