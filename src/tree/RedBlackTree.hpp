@@ -112,10 +112,10 @@ namespace tree {
 
     public:
       Node() = default;
-      Node(Key const &k, Value const &v)
-          : color_(C_Red), size_(1), key_(k), value_(v) {}
-      Node(Key &&k, Value &&v)
-          : color_(C_Red), size_(1), key_(std::move(k)), value_(std::move(v)) {}
+      Node(Key const & k, Value const &v)
+	: color_(C_Red), size_(1), contents_(k, v) {}
+      Node(Key && k, Value && v)
+	: color_(C_Red), size_(1), contents_{std::move(k), std::move(v)} {}
 
       /* return #of key/vaue pairs in tree rooted at x. */
       static size_t tree_size(Node *x) {
@@ -218,8 +218,8 @@ namespace tree {
       } /*is_red_violation*/
 
       Color color() const { return color_; }
-      Key const &key() const { return key_; }
-      Value const &value() const { return value_; }
+      Key const & key() const { return contents_.first; }
+      Value const & value() const { return contents_.second; }
 
       /* recalculate size from immediate childrens' sizes
        * editor bait: recalc_local_size()
@@ -229,7 +229,7 @@ namespace tree {
                        Node::tree_size(this->right_child()));
 
 	this->reduced_ = reduce(reduce(Node::reduced(reduce, this->left_child()),
-				       this->key_),
+				       this->key()),
 				Node::reduced(reduce, this->right_child()));
       } /*local_recalc_size*/
 
@@ -283,10 +283,10 @@ namespace tree {
       Color color_ = C_Red;
       /* size of subtree (#of key/value pairs) rooted at this node */
       size_t size_ = 0;
-      /* key associated with this node */
-      Key key_;
-      /* value associated with this node */
-      Value value_;
+      /* .first  = key   associated with this node
+       * .second = value associated with this node
+       */
+      std::pair<Key, Value> contents_;
       /* accumulator for some binary function of Keys.
        * must be associative.
        * examples:
@@ -631,12 +631,12 @@ namespace tree {
 
         if (c_logging_enabled) {
           lscope.log(c_self, ": rotate-", (d == D_Left) ? "left" : "right",
-                     " at", xtag("A", A), xtag("A.key", A->key_), xtag("B", B),
-                     xtag("B.key", B->key_));
+                     " at", xtag("A", A), xtag("A.key", A->key()), xtag("B", B),
+                     xtag("B.key", B->key()));
 
           if (G) {
             lscope.log(c_self, ": with G", xtag("G", G),
-                       xtag("G.key", G->key_));
+                       xtag("G.key", G->key()));
             // display_aux(D_Invalid /*side*/, G, 0, &lscope);
           } else {
             lscope.log(c_self, ": with A at root");
@@ -787,17 +787,17 @@ namespace tree {
             if (R) {
               lscope.log(c_self, ": with",
                          xtag("R.col", (R->color_ == C_Black ? "B" : "r")),
-                         xtag("R.key", R->key_));
+                         xtag("R.key", R->key()));
             }
             if (S) {
               lscope.log(c_self, ": with",
                          xtag("S.col", (S->color_ == C_Black ? "B" : "r")),
-                         xtag("S.key", S->key_));
+                         xtag("S.key", S->key()));
             }
             if (U) {
               lscope.log(c_self, ": with",
                          xtag("U.col", (U->color_ == C_Black ? "B" : "r")),
-                         xtag("U.key", U->key_));
+                         xtag("U.key", U->key()));
             }
           }
 
@@ -846,8 +846,8 @@ namespace tree {
           if (RbNode::is_red(S)) {
             if (c_logging_enabled) {
               lscope.log(c_self, ": rotate-", (d == D_Left) ? "left" : "right",
-                         " at P", xtag("P", P), xtag("P.key", P->key_),
-                         xtag("S", S), xtag("S.key", S->key_));
+                         " at P", xtag("P", P), xtag("P.key", P->key()),
+                         xtag("S", S), xtag("S.key", S->key()));
             }
 
             /* preparatory step: rotate P in d direction if "inner child"
@@ -888,7 +888,7 @@ namespace tree {
           if (c_logging_enabled) {
             lscope.log(c_self, ": rotate-",
                        (other_d == D_Left) ? "left" : "right", " at G",
-                       xtag("G", G), xtag("G.key", G->key_));
+                       xtag("G", G), xtag("G.key", G->key()));
           }
 
           RbTreeUtil::rotate(other_d, G, reduce_fn, pp_root);
@@ -900,7 +900,7 @@ namespace tree {
 
             if (c_logging_enabled) {
               lscope.log(c_self, ": verify subtree at GG", xtag("GG", GG),
-                         xtag("GG.key", GG->key_));
+                         xtag("GG.key", GG->key()));
 
               RbTreeUtil::verify_subtree_ok(GG, nullptr /*&black_height*/);
               RbTreeUtil::display_aux(D_Invalid, GG, 0 /*depth*/, &lscope);
@@ -930,14 +930,14 @@ namespace tree {
         Direction d = D_Invalid;
 
         while (N) {
-          if (k == N->key_) {
+          if (k == N->key()) {
             /* match on this key already present in tree -> just update assoc'd
              * value */
-            N->value_ = v;
+            N->contents_.second = v;
             return false;
           }
 
-          d = ((k < N->key_) ? D_Left : D_Right);
+          d = ((k < N->key()) ? D_Left : D_Right);
 
           /* insert into left subtree somewhere */
           RbNode *C = N->child(d);
@@ -1481,7 +1481,7 @@ namespace tree {
 
         if (c_logging_enabled)
           lscope.log(c_self, ": got lower bound", xtag("N", N),
-                     xtag("N.key", N->key_));
+                     xtag("N.key", N->key()));
 
         /* first step is to simplify problem so that we're removing
          * a node with 0 or 1 children.
@@ -1503,8 +1503,7 @@ namespace tree {
            * represented by R.
            */
 
-          N->key_ = R->key_;
-          N->value_ = R->value_;
+          N->contents_ = R->contents_;
           /* (preserving N->parent_, N->child_v_[]) */
 
           /* now relabel N as new R (R'),
@@ -1654,9 +1653,9 @@ namespace tree {
             XO_EXPECT(x == x->left_child()->parent(),
                       tostr(c_self, ": expect symmetric child/parent pointers",
                             xtag("i", i_node), xtag("node[i]", x),
-                            xtag("key[i]", x->key_),
+                            xtag("key[i]", x->key()),
                             xtag("child", x->left_child()),
-                            xtag("child.key", x->left_child()->key_),
+                            xtag("child.key", x->left_child()->key()),
                             xtag("child.parent", x->left_child()->parent_)));
           }
 
@@ -1664,9 +1663,9 @@ namespace tree {
             XO_EXPECT(x == x->right_child()->parent(),
                       tostr(c_self, ": expect symmetric child/parent pointers",
                             xtag("i", i_node), xtag("node[i]", x),
-                            xtag("key[i]", x->key_),
+                            xtag("key[i]", x->key()),
                             xtag("child", x->right_child()),
-                            xtag("child.key", x->right_child()->key_),
+                            xtag("child.key", x->right_child()->key()),
                             xtag("child.parent", x->right_child()->parent_)));
           }
 
@@ -1704,22 +1703,22 @@ namespace tree {
                     "red y is child of red x",
                     xtag("i", i_node), xtag("x.addr", x),
                     xtag("x.col", (x->color_ == C_Black) ? "B" : "r"),
-                    xtag("x.key", x->key_), xtag("y.addr", red_child),
+                    xtag("x.key", x->key()), xtag("y.addr", red_child),
                     xtag("y.col", (red_child->color_ == C_Black) ? "B" : "r"),
-                    xtag("y.key", red_child->key_)));
+                    xtag("y.key", red_child->key())));
 
 	  /* RB5.  inorder traversal visits nodes in strictly increasing key order */
 
           if (last_key) {
-            XO_EXPECT((*last_key) < x->key_,
+            XO_EXPECT((*last_key) < x->key(),
                       tostr(c_self,
                             ": expect inorder traversal to visit keys"
                             " in strictly increasing order",
                             xtag("i", i_node), xtag("key[i-1]", *last_key),
-                            xtag("key[i]", x->key_)));
+                            xtag("key[i]", x->key())));
           }
 
-          last_key = &(x->key_);
+          last_key = &(x->key());
 
           /* RB6. Node::size reports the size of the subtree reachable from that
            *      node by child pointers.
@@ -1729,7 +1728,8 @@ namespace tree {
 				  + tree_size(x->right_child())),
 		    tostr(c_self,
 			  ": expect Node::size to be 1 + sum of childrens' size",
-			  xtag("i", i_node), xtag("key[i]", x->key_),
+			  xtag("i", i_node),
+			  xtag("key[i]", x->key()),
 			  xtag("left.size", tree_size(x->left_child())),
 			  xtag("right.size", tree_size(x->right_child()))));
 		    
@@ -1866,7 +1866,7 @@ namespace tree {
 
     private:
       /* IL_BeforeBegin, IL_Regular, IL_AfterEnd */
-      IteratorLocation location_;
+      IteratorLocation location_ = IL_AfterEnd;
       /* location = IL_BeforeBegin: .node is leftmost node in tree
        * location = IL_Regular:     .node is some node in tree,
        *                            iterator refers to that node.
@@ -1919,8 +1919,8 @@ namespace tree {
       scope lscope(c_self, c_logging_enabled);
 
       bool retval = RbUtil::insert_aux(k, v,
-					   this->reduce_fn_,
-					   &(this->root_));
+				       this->reduce_fn_,
+				       &(this->root_));
 
       if (retval)
         ++(this->size_);
