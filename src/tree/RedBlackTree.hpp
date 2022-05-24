@@ -8,6 +8,7 @@
 #include "logutil/scope.hpp"
 #include "logutil/pad.hpp"
 #include <concepts>
+#include <iterator>
 #include <array>
 #include <cassert>
 
@@ -306,6 +307,27 @@ namespace tree {
       std::array<Node *, 2> child_v_ = {nullptr, nullptr};
     }; /*Node*/
 
+    /* specify iterator location relative to Iterator::node.
+     * using this to make it possible to correctly decrement an
+     * iterator at RedBlackTree::end().
+     *
+     * IL_BeforeBegin.    if non-empty tree, .node is the first node
+     *                    in the tree (the one with smallest key),
+     *                    and iterator refers to the location
+     *                    "one before" that first node.
+     * IL_Regular.        iterator refers to member of the tree
+     *                    given by Iterator::node
+     * IL_AfterEnd.       if non-empty tree, .node is the last node
+     *                    in the tree (the one with largest key),
+     *                    and iterator refers the the location
+     *                    "one after" that last node.
+     */
+    enum IteratorLocation {
+      IL_BeforeBegin,
+      IL_Regular,
+      IL_AfterEnd,
+    }; /*IteratorLocation*/
+
     template <typename Key,
 	      typename Value,
               typename Reduce>
@@ -355,14 +377,101 @@ namespace tree {
         }
       } /*inorder_node_visitor*/
 
+      /* starting from x,  traverse only left children
+       * to find node with a nil left child.
+       *
+       * This node has the smallest key in subtree N
+       */
+      static RbNode * find_leftmost(RbNode * N) {
+	while(N) {
+	  RbNode * S = N->left_child();
+
+	  if(!S)
+	    break;
+
+	  N = S;
+	}
+
+	return N;
+      } /*find_leftmost*/
+
+      /* return node containing the next key after N->key_ in the tree
+       * containing N.  This will be either a descendant of N, 
+       * or an ancestor of N.
+       * returns nil if x.key is the largest key in tree containing x.
+       */
+      static RbNode * next_inorder_node(RbNode * N) {
+	if(!N)
+	  return nullptr;
+
+	if(N->right_child())
+	  return find_leftmost(N->right_child());
+
+        /* N has no right child -->
+         * successor is the nearest ancestor with a left child
+	 * on path to N
+	 */
+
+	RbNode * x = N;
+
+	while(x) {
+	  RbNode * P = x->parent();
+
+	  if(P && P->left_child() == x) {
+	    return P;
+	  }
+
+          /* path P..N traverses only right-child pointers) */
+	  x = P;
+	}
+
+        /* no ancestor of N with a left child,  so N has the largest key
+	 * in the tree
+	 */
+	return nullptr;
+      } /*next_inorder_node*/
+
+      /* return node containing the key before N->key_ in the tree containing N.
+       * This will be either a descendant of N, or an ancestor of N
+       */
+      static RbNode * prev_inorder_node(RbNode * N) {
+	if(!N)
+	  return nullptr;
+
+	if(N->left_child())
+	  return find_rightmost(N->left_child());
+
+        /* N has no left child -->
+         * predecessor is the nearest ancestor with a right child
+         * on path to N
+	 */
+
+	RbNode * x = N;
+
+	while(x) {
+	  RbNode * P = x->parent();
+
+	  if(P && (P->right_child() == x)) {
+	    return P;
+	  }
+
+	  /* path P..N traverses only left-child pointers */
+	  x = P;
+	}
+
+        /* no ancestor of N with a right child,  so N has the smallest key
+         * in tree that containing it.
+	 */
+	return nullptr;
+      } /*prev_inorder_node*/
+
       /* starting from x,  traverse only right children
        * to find node with a nil right child
        *
-       * Require:
-       * - N non-nil
+       * This node has the largest key in subtree N
        */
       static RbNode *find_rightmost(RbNode *N) {
-        for (;;) {
+        while(N) {
           RbNode *S = N->right_child();
 
           if (!S)
@@ -1664,6 +1773,108 @@ namespace tree {
         display_aux(D_Invalid, N, d, &lscope);
       } /*display*/
     };  /*RbTreeUtil*/
+
+    /* xo::tree::detail::Iterator
+     *
+     * inorder iterator over nodes in a red-black tree.
+     * invalidated on insert or remove operations on the parent tree.
+     *
+     * satisfies the std::bidirectional_iterator concept
+     */
+    template <typename Key,
+	      typename Value,
+	      typename Reduce>
+    class Iterator {
+    public:
+      using iterator_concept = std::bidirectional_iterator_tag;
+      
+      using RbNode = Node<Key, Value, Reduce>;
+      using RbUtil = RbTreeUtil<Key, Value, Reduce>;
+      
+    public:
+      Iterator() = default;
+      Iterator(IteratorLocation loc, RbNode * n) : location_(loc), node_(n) {}
+      Iterator(Iterator const & x) = default;
+
+      /* pre-increment */
+      Iterator & operator++() {
+	switch(this->location_) {
+	case IL_BeforeBegin:
+	  /* .node is first node in tree */
+	  this->location_ = IL_Regular;
+	  break;
+	case IL_Regular:
+	  {
+	    RbNode * next_node = RbUtil::next_inorder_node(this->node_);
+
+	    if(next_node) {
+	      this->node_ = next_node;
+	    } else {
+	      this->location_ = IL_AfterEnd;
+	    }
+	  }
+	  break;
+	case IL_AfterEnd:
+	  break;
+	}
+
+	return *this;
+      } /*operator++*/
+
+      /* post-increment */
+      Iterator operator++(int) {
+	Iterator retval = *this;
+
+	++(*this);
+
+	return retval;
+      } /*operator++(int)*/
+
+      /* pre-decrement */
+      Iterator & operator--() {
+	switch(this->location_) {
+	case IL_BeforeBegin:
+	  break;
+	case IL_Regular:
+	  {
+	    RbNode * prev_node = RbUtil::prev_inorder_node(this->node_);
+
+	    if(prev_node) {
+	      this->node_ = prev_node;
+	    } else {
+	      this->location_ = IL_BeforeBegin;
+	    }
+	  }
+	  break;
+	case IL_AfterEnd:
+	  /* .node is already last node in tree */
+	  this->location_ = IL_Regular;
+	  break;
+	}
+
+	return *this;
+      } /*operator--*/
+
+      /* post-decrement */
+      Iterator operator--(int) {
+	Iterator retval = *this;
+
+	--(*this);
+
+	return retval;
+      } /*operator--(int)*/
+
+    private:
+      /* IL_BeforeBegin, IL_Regular, IL_AfterEnd */
+      IteratorLocation location_;
+      /* location = IL_BeforeBegin: .node is leftmost node in tree
+       * location = IL_Regular:     .node is some node in tree,
+       *                            iterator refers to that node.
+       * location = IL_AfterEnd:    .node is rightmost node in tree
+       */
+      RbNode * node_ = nullptr;
+    }; /*Iterator*/
+
   } /*namespace detail*/
 
   template <typename Key, typename Value, typename Reduce>
@@ -1671,17 +1882,26 @@ namespace tree {
     static_assert(ReduceConcept<Reduce, Key>);
     //static_assert(requires(Reduce r) { r.nil(); }, "missing .nil() method");
 
-    using RbTreeUtil = detail::RbTreeUtil<Key, Value, Reduce>;
+    using RbUtil = detail::RbTreeUtil<Key, Value, Reduce>;
     using RbNode = detail::Node<Key, Value, Reduce>;
     using Direction = detail::Direction;
+    using iterator = detail::Iterator<Key, Value, Reduce>;
 
   public:
     RedBlackTree() = default;
 
-    size_t size() const { return size_; }
+    std::size_t size() const { return size_; }
+
+    iterator begin() {
+      return iterator(RbUtil::find_leftmost(this->root_));
+    } /*begin*/
+
+    iterator end() {
+      return iterator();
+    }      
 
     bool insert(Key const &k, Value const &v) {
-      bool retval = RbTreeUtil::insert_aux(k, v, &(this->root_));
+      bool retval = RbUtil::insert_aux(k, v, &(this->root_));
 
       if (retval)
         ++(this->size_);
@@ -1698,7 +1918,7 @@ namespace tree {
       constexpr bool c_logging_enabled = false;
       scope lscope(c_self, c_logging_enabled);
 
-      bool retval = RbTreeUtil::insert_aux(k, v,
+      bool retval = RbUtil::insert_aux(k, v,
 					   this->reduce_fn_,
 					   &(this->root_));
 
@@ -1714,9 +1934,9 @@ namespace tree {
     } /*insert*/
 
     bool remove(Key const &k) {
-      bool retval = RbTreeUtil::remove_aux(k,
-					   this->reduce_fn_,
-					   &(this->root_));
+      bool retval = RbUtil::remove_aux(k,
+				       this->reduce_fn_,
+				       &(this->root_));
 
       if (retval)
         --(this->size_);
@@ -1766,7 +1986,7 @@ namespace tree {
       /* height (counting only black nodes) of tree */
       int32_t black_height = 0;
 
-      RbTreeUtil::verify_subtree_ok(this->root_, &black_height);
+      RbUtil::verify_subtree_ok(this->root_, &black_height);
 
       if (c_logging_enabled)
         lscope.log(xtag("size", this->size_),
@@ -1775,7 +1995,7 @@ namespace tree {
       return true;
     } /*verify_ok*/
 
-    void display() const { RbTreeUtil::display(this->root_, 0); } /*display*/
+    void display() const { RbUtil::display(this->root_, 0); } /*display*/
 
   private:
     /* #of key/value pairs in this tree */
