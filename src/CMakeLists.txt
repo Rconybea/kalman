@@ -29,7 +29,7 @@ add_subdirectory(random)
 add_subdirectory(logutil)
 
 # add unittest subdirectories
-add_subdirectory(redblacktree/utest)
+add_subdirectory(tree/utest)
 
 # add the executable
 add_executable(example junk.cpp)

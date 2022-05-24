@@ -1,7 +1,7 @@
 /* @file junk.cpp */
 
 #include "KalmanConfig.h"
-#include "redblacktree/RedBlackTree.hpp"
+#include "tree/RedBlackTree.hpp"
 #include "statistics/Histogram.hpp"
 #include "statistics/SampleStatistics.hpp"
 #include "process/BrownianMotion.hpp"

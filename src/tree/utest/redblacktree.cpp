@@ -1,6 +1,6 @@
 /* @file redblacktree.cpp */
 
-#include "redblacktree/RedBlackTree.hpp"
+#include "tree/RedBlackTree.hpp"
 #include "random/xoshiro256.hpp"
 #include "catch2/catch.hpp"
 
