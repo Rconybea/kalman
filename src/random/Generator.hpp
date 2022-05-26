@@ -16,7 +16,7 @@ namespace xo {
 	: engine_{e},
 	  distribution_{d} {}
       Generator(Engine && e, Distribution && d)
-	: engine_{std::move(d)},
+	: engine_{std::move(e)},
 	  distribution_{std::move(d)} {}
 
       static Generator make(Engine && e, Distribution && d) {
