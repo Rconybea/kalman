@@ -1,0 +1,7 @@
+code-coverage.cmake
+
+copied from George Cave's StableCode cmake scripts.
+See
+  $ git clone git@github.com:StableCoder/cmake-scripts.git
+
+subject to apache 2.0 license.

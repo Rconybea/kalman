@@ -1,5 +1,16 @@
 cmake_minimum_required(VERSION 3.10)
 
+# ----------------------------------------------------------------
+# set the project name.
+
+# NOTE: this needs to come before c++ compiler settings
+
+project(kalman VERSION 0.1)
+enable_language(CXX)
+
+# ----------------------------------------------------------------
+# c++ compiler
+
 # introduce a variable to hold c++ compiler flags
 SET(PROJECT_CXX_FLAGS "--std=c++20")
 
@@ -13,14 +24,21 @@ set(CMAKE_CXX_STANDARD_REQUIRED True)
 # always write compile_commands.json
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON CACHE INTERNAL "")
 
+#message ("CMAKE_CXX_COMPILER=${CMAKE_CXX_COMPILER}")
+#message ("CMAKE_CXX_COMPILER_ID=${CMAKE_CXX_COMPILER_ID}")
+#message ("CMAKE_COMPILER_IS_GNUCXX=${CMAKE_COMPILER_IS_GNUCXX}")
+
+# ----------------------------------------------------------------
+
 # ability to configure dependencies given in pkg-config (.pc) files
 include(FindPkgConfig)
-
-# set the project name
-project(kalman VERSION 0.1)
+include(cmake/code-coverage.cmake)
 
 # propagate version info to c++
 configure_file(KalmanConfig.h.in KalmanConfig.h)
+
+# activate code coverage for all executables + libraries (when -DCODE_COVERAGE=ON ?)
+add_code_coverage()
 
 # add process/, logutil/ subdirectory
 add_subdirectory(process)
