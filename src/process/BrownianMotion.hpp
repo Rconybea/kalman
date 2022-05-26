@@ -42,6 +42,9 @@ namespace process {
       return new BrownianMotion(t0, sdev, seed);
     } /*make*/
 
+    /* brownian motion with constant volatility at this level */
+    double volatility() const { return volatility_; }
+
     /* compute variance that accumulates over time interval dt
      * for this brownian motion
      */
