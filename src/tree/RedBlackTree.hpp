@@ -74,7 +74,9 @@ namespace tree {
     { r(a, a) } -> std::same_as<typename T::value_type>;
   };
 
-  /* require:
+  /* red-black tree with order statistics
+   *
+   * require:
    * - Key is equality comparable
    * - Key, Value, Reduce are copyable and null-constructible
    * - Reduce.value_type = Accumulator
@@ -381,6 +383,29 @@ namespace tree {
           inorder_node_visitor(x->right_child(), dd, fn);
         }
       } /*inorder_node_visitor*/
+
+      /* return the i'th inorder node (counting from 0)
+       * belonging to the subtree rooted at N.
+       *
+       * behavior not defined if subtree at N contains less than
+       * (i + 1) nodes
+       */
+      static RbNode * find_ith(RbNode * N, uint32_t i) {
+	if(!N)
+	  return nullptr;
+
+	RbNode * L = N->left_child();
+	uint32_t n_left = tree_size(L);
+
+	if(i < n_left)
+	  return find_ith(L, i);
+	else if(i == n_left)
+	  return N;
+	else if(i < N->size_)
+	  return find_ith(N->right_child(), i - (n_left + 1));
+	else
+	  return nullptr;
+      } /*find_ith*/
 
       /* starting from x,  traverse only left children
        * to find node with a nil left child.
@@ -1777,7 +1802,7 @@ namespace tree {
 
         display_aux(D_Invalid, N, d, &lscope);
       } /*display*/
-    };  /*RbTreeUtil*/
+    }; /*RbTreeUtil*/
 
     /* xo::tree::detail::IteratorBase
      * 
@@ -2077,6 +2102,8 @@ namespace tree {
     }; /*ConstIterator*/
   } /*namespace detail*/
 
+  /* red-black tree with order statistics
+   */
   template <typename Key, typename Value, typename Reduce>
   class RedBlackTree {
     static_assert(ReduceConcept<Reduce, Key>);
@@ -2108,6 +2135,53 @@ namespace tree {
     iterator end() {
       return iterator::end_aux(RbUtil::find_rightmost(this->root_));
     } /*end*/
+
+    /* if i in [0 .. .size], return iterator referring to ith inorder node in tree
+     * otherwise return this->end()
+     */
+    const_iterator find_ith(uint32_t i) const {
+      RbNode * node = RbUtil::find_ith(this->root_, i);
+
+      if(node) {
+	return const_iterator(detail::IL_Regular, node);
+      } else {
+	return this->end();
+      }
+    } /*find_ith*/
+
+    iterator find_ith(uint32_t i) {
+      RbNode * node = RbUtil::find_ith(this->root_, i);
+
+      if(node) {
+	return iterator(detail::IL_Regular, node);
+      } else {
+	return this->end();
+      }
+    } /*find_ith*/
+
+    /* find node with key equal to x in this tree.
+     * on success,  return iterator ix with ix->first = x.
+     * on failure,  return this->end()
+     */
+    const_iterator find(Key const & x) const {
+      RbNode * node = RbUtil::find(this->root_, x);
+	
+      if(node) {
+	return const_iterator(detail::IL_Regular, node);
+      } else {
+	return this->end();
+      }
+    } /*find*/
+
+    iterator find(Key const & x) {
+      RbNode * node = RbUtil::find(this->root_, x);
+
+      if(node) {
+	return const_iterator(detail::IL_Regular, node);
+      } else {
+	return this->end();
+      }
+    } /*find*/
 
     bool insert(Key const &k, Value const &v) {
       bool retval = RbUtil::insert_aux(k, v, &(this->root_));
