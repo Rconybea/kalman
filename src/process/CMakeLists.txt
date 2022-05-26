@@ -1,6 +1,19 @@
-# build library 'process'
-add_library(process BrownianMotion.cpp Realization.cpp)
+# process/CMakeLists.txt
 
+# build shared library 'process'
+add_library(process SHARED BrownianMotion.cpp Realization.cpp)
+
+set_target_properties(process PROPERTIES
+ 			      VERSION ${PROJECT_VERSION}
+ 			      SOVERSION 1
+ 			      PUBLIC_HEADER BrownianMotion.hpp)
+
+# ----------------------------------------------------------------
+# all the warnings!
+#
+target_compile_options(process PRIVATE -Werror -Wall -Wextra)
+
+# ----------------------------------------------------------------
 # PROJECT_SOURCE_DIR:
 #   so we can for example write
 #     #include "logutil/scope.hpp"
