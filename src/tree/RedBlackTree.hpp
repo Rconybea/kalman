@@ -266,6 +266,13 @@ namespace tree {
        * editor bait: recalc_local_size()
        */
       void local_recalc_size(Reduce const & reduce_fn) {
+	using logutil::scope;
+	using logutil::xtag;
+
+	constexpr char const * c_self = "Node::local_recalc_size";
+	constexpr bool c_logging_enabled = false;
+	scope lscope(c_self, c_logging_enabled);
+
         this->size_ = (1
 		       + Node::tree_size(this->left_child())
 		       + Node::tree_size(this->right_child()));
@@ -275,6 +282,12 @@ namespace tree {
 						     this->value()),
 					   Node::reduced(reduce_fn,
 							 this->right_child()));
+
+        if (c_logging_enabled) {
+          lscope.log(c_self, ": done recalc for key k, value v, reduced r",
+                     xtag("k", this->key()), xtag("v", this->value()),
+                     xtag("r", this->reduced()));
+        }
       } /*local_recalc_size*/
 
     private:
@@ -785,9 +798,9 @@ namespace tree {
       /* fixup size in N and all ancestors of N,
        * after insert/remove affecting N
        */
-      static void fixup_ancestor_size(Reduce const & reduce, RbNode *N) {
+      static void fixup_ancestor_size(Reduce const & reduce_fn, RbNode *N) {
         while (N) {
-          N->local_recalc_size(reduce);
+          N->local_recalc_size(reduce_fn);
           N = N->parent();
         }
       } /*fixup_ancestor_size*/
@@ -1096,12 +1109,14 @@ namespace tree {
         /* invariant: N->child(d) is nil */
 
         if (N) {
-          N->assign_child_reparent(d, new RbNode(k, v));
+	  RbNode * new_node = new RbNode(k, v);
+
+          N->assign_child_reparent(d, new_node);
 
           assert(is_red(N->child(d)));
 
-          /* recalculate Node sizes on path [root .. N] */
-          RbTreeUtil::fixup_ancestor_size(reduce_fn, N);
+          /* recalculate Node sizes on path [root .. new_node] */
+          RbTreeUtil::fixup_ancestor_size(reduce_fn, new_node);
           /* after adding a node,  must rebalance to restore RB-shape */
           RbTreeUtil::fixup_red_shape(d, N, reduce_fn, pp_root);
 
@@ -1111,6 +1126,8 @@ namespace tree {
 
           /* tree with a single node might as well be black */
           (*pp_root)->assign_color(C_Black);
+
+	  (*pp_root)->local_recalc_size(reduce_fn);
 
           /* Node.size will be correct for tree,  since
            * new node is only node in the tree
@@ -1897,15 +1914,18 @@ namespace tree {
 	   *      where: L is reduced-value for left child,
 	   *             R is reduced-value for right child
 	   */
-	  XO_EXPECT(reduce_fn.is_equal
-		    (x->reduced(),
-		     reduce_fn.combine(reduce_fn(RbNode::reduced(reduce_fn, x->left_child()),
+	  auto reduce_expr
+	    = reduce_fn.combine(reduce_fn(RbNode::reduced(reduce_fn, x->left_child()),
 						 x->value()),
-				       RbNode::reduced(reduce_fn, x->right_child()))),
+				RbNode::reduced(reduce_fn, x->right_child()));
+
+	  XO_EXPECT(reduce_fn.is_equal
+		    (x->reduced(), reduce_expr),
 		    tostr(c_self,
 			  ": expect Node::reduced to be reduce_fn applied to L, "
 			  ".value, .R",
-			  xtag("node.reduced", x->reduced())));
+			  xtag("node.reduced", x->reduced()),
+			  xtag("reduce_expr", reduce_expr)));
 
 	  ++i_node;
         };
@@ -1933,7 +1953,8 @@ namespace tree {
                                                          : "root")),
                        xtag("col", N->is_black() ? "B" : "r"),
                        xtag("key", N->key()), xtag("value", N->value()),
-                       xtag("wt", N->size()));
+                       xtag("wt", N->size()),
+		       xtag("reduced", N->reduced()));
           display_aux(D_Left, N->left_child(), d + 1, p_scope);
           display_aux(D_Right, N->right_child(), d + 1, p_scope);
         }
