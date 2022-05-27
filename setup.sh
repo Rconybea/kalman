@@ -6,8 +6,56 @@ unset PATH
 unset PKG_CONFIG_PATH
 unset INCLUDEPATH
 
+PATH=${coreutils}/bin
+
+# findInputs() adapted from
+#  https://github.com/NixOS/nixpkgs/blob/6675f0a52c0962042a1000c7f20e887d0d26ae25/pkgs/stdenv/generic/setup.sh#L60-L73
+
+# Recursively find all build inputs.
+#
+#   findInputs ${pkg}
+#
+# adds direct-and-indirect dependencies of ${pkg} to shell variable ${pkgs}
+#
+function findInputs() {
+    >&2 echo "findInputs: pkg=$1"
+
+    local pkg=$1
+
+    case ${pkgs} in
+        *\ $pkg\ *)
+            return 0
+            ;;
+    esac
+
+    pkgs="${pkgs} $pkg "
+
+    # stdenv runs setup hooks.
+    # setup hooks are triggering errors here,  which we wilfully ignore
+    #
+    if test -f $pkg/nix-support/setup-hook; then
+    	>&2 echo "findInputs: willfully skipping [${pkg}/nix-support/setup-hook]"
+    #        source $pkg/nix-support/setup-hook
+    fi
+
+    if [[ -f ${pkg}/nix-support/propagated-build-inputs ]]; then
+	>&2 echo "findInputs: consider [${pkg}/nix-support/propagated-build-inputs"
+        for i in $(cat $pkg/nix-support/propagated-build-inputs); do
+	    >&2 echo "findInputs: pickup propagated build input [${i}] on behalf of [${pkg}]"
+            findInputs $i
+        done
+    fi
+}
+
+pkgs=""
+for i in ${buildInputs} ${baseInputs} ${devInputs}; do
+    findInputs $i
+done
+
+# end copied
+
 # establish PATH, INCLUDEPATH, PKG_CONFIG_PATH based on explicitly-listed project dependencies
-for p in ${buildInputs} ${baseInputs} ${devInputs}; do
+for p in ${pkgs}; do
     if [[ -d ${p}/bin ]]; then
 	PATH=${p}/bin${PATH:+:}${PATH}
     fi
@@ -17,7 +65,6 @@ for p in ${buildInputs} ${baseInputs} ${devInputs}; do
 	INCLUDEPATH="${p}/include${INCLUDEPATH:+:}${INCLUDEPATH}"
     fi
 done
-
 
 export PATH
 export PKG_CONFIG_PATH
