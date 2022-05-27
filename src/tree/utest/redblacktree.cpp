@@ -6,6 +6,7 @@
 
 using xo::tree::RedBlackTree;
 using xo::tree::NullReduce;
+using xo::random::xoshiro256;
 
 namespace {
   using logutil::scope;
@@ -110,37 +111,73 @@ random_inserts(uint32_t n,
     REQUIRE(i == 0);
   } /*check_bidirectional_iterator*/
 
-/* Require:
- * - *p_rbtree has keys [0..n-1], where n=p_rbtree->size()
- */
-void
-random_removes(xo::random::xoshiro256 * p_rgen,
-	       RedBlackTree<int, double, NullReduce<int>> * p_rbtree)
-{
-  REQUIRE(p_rbtree->verify_ok());
+  /* generate random permutation of integers [0.. n-1] */
+  std::vector<uint32_t>
+  random_permutation(uint32_t n,
+		     xoshiro256 * p_rgen)
+  {
+    std::vector<uint32_t> u(n);
+    for(uint32_t i=0; i<n; ++i)
+      u[i] = i;
 
-  /* n keys 0..n-1 */
-  uint32_t n = p_rbtree->size();
-  std::vector<uint32_t> u(n);
-  for(uint32_t i=0; i<n; ++i)
-    u[i] = i;
+    /* shuffle to get unpredictable permutation */
+    std::shuffle(u.begin(), u.end(), *p_rgen);
 
-  /* shuffle to get unpredictable insert order */
-  std::shuffle(u.begin(), u.end(), *p_rgen);
+    return u;
+  } /*random_permutation*/
 
-  /* remove keys according to permutation u */
-  uint32_t i = 1;
-  for (uint32_t x : u) {
-    //lscope.log(c_self, ": ", i, "/", n, ": remove key", xtag("x", x));
-    p_rbtree->remove(x);
-    //rbtree.display();
+  /* Require:
+   * - *p_rbtree has keys [0..n-1],  where n=rbtree.size()
+   * - for each key k,  associated value is 10*k
+   */
+  void
+  random_lookups(RedBlackTree<int, double, NullReduce<int>> const & rbtree,
+		 xoshiro256 * p_rgen)
+  {
+    REQUIRE(rbtree.verify_ok());
+
+    size_t n = rbtree.size();
+    std::vector<uint32_t> u
+      = random_permutation(n, p_rgen);
+
+    /* lookup keys in permutation order */
+    uint32_t i = 1;
+    for (uint32_t x : u) {
+      INFO(tostr(xtag("i", i), xtag("n", n), xtag("x", x)));
+
+      REQUIRE(rbtree[x] == x*10);
+      REQUIRE(rbtree.verify_ok());
+      ++i;
+    }
+
+    REQUIRE(rbtree.size() == n);
+  } /*random_lookups*/
+
+  /* Require:
+   * - *p_rbtree has keys [0..n-1], where n=p_rbtree->size()
+   */
+  void
+  random_removes(xoshiro256 * p_rgen,
+		 RedBlackTree<int, double, NullReduce<int>> * p_rbtree)
+  {
     REQUIRE(p_rbtree->verify_ok());
-    ++i;
-  }
 
-  REQUIRE(p_rbtree->size() == 0);
-} /*random_removes*/
+    /* random permutation of keys in *p_rbtree */
+    std::vector<uint32_t> u
+      = random_permutation(p_rbtree->size(), p_rgen);
 
+    /* remove keys in permutation order */
+    uint32_t i = 1;
+    for (uint32_t x : u) {
+      // lscope.log(c_self, ": ", i, "/", n, ": remove key", xtag("x", x));
+      p_rbtree->remove(x);
+      // rbtree.display();
+      REQUIRE(p_rbtree->verify_ok());
+      ++i;
+    }
+
+    REQUIRE(p_rbtree->size() == 0);
+  } /*random_removes*/
 } /*namespace*/
 
 TEST_CASE("rbtree", "[redblacktree]") {
@@ -156,8 +193,17 @@ TEST_CASE("rbtree", "[redblacktree]") {
   check_bidirectional_iterator(rbtree);
 
   for(uint32_t n=1; n<=1024; n*=2) {
+    /* insert [0..n-1] in random order */
     random_inserts(n, &rgen, &rbtree);
+    /* check iterator traverses [0..n-1] in both directions */
     check_bidirectional_iterator(rbtree);
+    /* verify behavior of read-only variant of operator[] */
+    random_lookups(rbtree, &rgen);
+    /* verify that lookups didn't disturb tree contents */
+    check_bidirectional_iterator(rbtree);
+    /* verify update via read/write operator[] */
+    random_updates(rbtree, &rgen);
+    /* verify behavior of read/write variant of operator[] */
     random_removes(&rgen, &rbtree);
   }
 } /*TEST_CASE(rbtree)*/

@@ -15,62 +15,72 @@
 namespace xo {
 namespace tree {
 
-  template<typename Key>
+  template<typename Value>
   struct NullReduce {
     using value_type = struct {};
 
     value_type nil() const { return value_type(); }
     value_type operator()(value_type x,
-			  Key const & key) const { return nil(); }
+			  Value const & value) const { return nil(); }
     value_type operator()(value_type x,
 			  value_type y) const { return nil(); }
   }; /*NullReduce*/
 
-  template <typename Key>
+  /* just counts #of distinct values;
+   * redundant,  same as detail::Node<>::size_.
+   * providing for completeness' sake
+   */
+  template <typename Value>
   class OrdinalReduce {
   public:
     using value_type = std::size_t;
 
   public:
+    static constexpr bool is_monotonic() { return true; }
+
     value_type nil() const { return 0; }
 
-    //value_type operator()(Key const &key) const { return 1; }
-
-    value_type operator()(value_type acc, Key const &key) const {
+    value_type operator()(value_type acc,
+			  Value const & key) const {
+      /* counts #of values */
       return acc + 1;
     }
 
-    value_type operator()(value_type x, value_type y) const { return x + y; }
+    value_type combine(value_type x, value_type y) const { return x + y; }
   }; /*OrdinalReduce*/
 
-  /* reduction for computing cumulative distribution.
-   * computes sum of key-values for each subtree
+  /* reduction for inverting the integral of a non-negative discrete function
+   * computes sum of values for each subtree
    */
-  template<typename Key>
-  struct CdfReduce {
-    using value_type = Key;
+  template<typename Value>
+  struct SumReduce {
+    using value_type = Value;
+
+    static constexpr bool is_monotonic() { return true; }
 
     value_type nil() const { return 0; }
     value_type operator()(value_type const & x,
 			  value_type const & y) { return x + y; }
-  }; /*CdfReduce*/
+  }; /*SumReduce*/
 
-  /* e.g.
+  /* concept for the 'Reduce' argument to RedBlackTree<...>
+   * 
+   * e.g.
    *   struct ReduceCountAndSum {
    *     using value_type = std::pair<uint32_t, int64_t>:
    *
    *     value_type nil() { return value_type(0, 0); }
-   *     value_type operator()(value_type const & acc, int64_t key)
-   *       { return acc + key; }
+   *     value_type operator()(value_type const & acc, int64_t val)
+   *       { return value_type(acc.first + val.first, acc.second + val.second); }
    *     value_type operator()(value_type const & a1, value_type const & a2)
-   *       { return a1 + a2; }
+   *       { return value_type(a1.first + a2.first, a1.second + a2.second); }
    *   };
    */
-  template <class T, typename Key>
-  concept ReduceConcept = requires(T r, Key k, typename T::value_type a) { 
+  template <class T, typename Value>
+  concept ReduceConcept = requires(T r, Value v, typename T::value_type a) { 
     typename T::value_type;
     { r.nil() } -> std::same_as<typename T::value_type>;
-    { r(a, k) } -> std::same_as<typename T::value_type>;
+    { r(a, v) } -> std::same_as<typename T::value_type>;
     { r(a, a) } -> std::same_as<typename T::value_type>;
   };
 
@@ -232,12 +242,15 @@ namespace tree {
        * editor bait: recalc_local_size()
        */
       void local_recalc_size(Reduce const & reduce) {
-        this->size_ = (1 + Node::tree_size(this->left_child()) +
-                       Node::tree_size(this->right_child()));
+        this->size_ = (1
+		       + Node::tree_size(this->left_child())
+		       + Node::tree_size(this->right_child()));
 
-	this->reduced_ = reduce(reduce(Node::reduced(reduce, this->left_child()),
-				       this->key()),
-				Node::reduced(reduce, this->right_child()));
+	this->reduced_ = reduce(reduce(Node::reduced(reduce,
+						     this->left_child()),
+				       this->value()),
+				Node::reduced(reduce,
+					      this->right_child()));
       } /*local_recalc_size*/
 
     private:
@@ -335,6 +348,9 @@ namespace tree {
       IL_AfterEnd,
     }; /*IteratorLocation*/
 
+    /* require:
+     * - Reduce::value_type
+     */
     template <typename Key,
 	      typename Value,
               typename Reduce>
@@ -495,12 +511,58 @@ namespace tree {
 	return nullptr;
       } /*prev_inorder_node*/
 
+      /* find largest key k such that
+       *   reduce({node j in subtree(N)) | j.key <= k}) < p
+       *
+       *   ^
+       * 1 |           xxxx
+       *   |         xx
+       * p |....... x
+       *   |       x
+       *   |     xx .
+       *   | xxxx   .
+       * 0 +----------------> 
+       *            ^
+       *            find_cum_glb(p)
+       *
+       * here Key is a sample value,
+       * Value counts #of samples with that key.
+       *
+       * find_cum_glb() computes inverse for a monotonically increasing function,
+       * if reduce(S) = sum {j.value | j in S}
+       * 
+       * Require:
+       * - Reduce is sum (e.g. CdfReduce)
+       *   (for example: if Value is non-negative and Reduce is CdfReduce<Value>)
+       */
+      static RbNode * find_sum_glb(Reduce const & reduce_fn,
+				   RbNode * N,
+				   typename Reduce::value_type p) {
+	if(!N)
+	  return nullptr;
+
+	typename Reduce::value_type left_sum
+	  = reduced(reduce_fn, N->left_child());
+	typename Reduce::value_type right_sum
+	  = reduced(reduce_fn, N->right_child());
+
+	if(p < left_sum) {
+	  return find_sum_glb(reduce_fn, N->left_child(), p);
+	} else if(p < N->reduced() - right_sum || !N->right_child()) {
+	  /* since N.reduced = reduce(left_sum, N.value, right_sum) */
+	  return N;
+	} else  {
+	  /* find bound in non-null right subtree */
+	  return find_sum_glb(reduce_fn, N->right_child(), p - N->reduced() + right_sum);
+	}
+      } /*find_sum_glb*/
+
       /* starting from x,  traverse only right children
        * to find node with a nil right child
        *
        * This node has the largest key in subtree N
        */
-      static RbNode *find_rightmost(RbNode *N) {
+      static RbNode * find_rightmost(RbNode *N) {
         while(N) {
           RbNode *S = N->right_child();
 
@@ -951,20 +1013,46 @@ namespace tree {
        * Require:
        * - pp_root is non-nil  (*pp_root may be nullptr -> empty tree)
        * - *pp_root is in RB-shape
+       *
+       * allow_replace_flag.   if true,  v will replace an existing value
+       *                       associated with key k.
+       *                       if false,  preserve existing value.
+       *                       when k already exists in *pp_root.
+       *
+       * return pair<f,n> with:
+       * - f=true for new node (k did not exist in tree before this call)
+       * - f=false for existing node (k already in tree before this call)
+       * - n=node containing key k
        */
-      static bool insert_aux(Key const &k, Value const &v,
-			     Reduce const & reduce_fn,
-			     RbNode **pp_root) {
+      static std::pair<bool, RbNode *>
+      insert_aux(Key const & k,
+		 Value const & v,
+		 bool allow_replace_flag,
+		 Reduce const & reduce_fn,
+		 RbNode ** pp_root)
+      {
         RbNode *N = *pp_root;
 
         Direction d = D_Invalid;
 
         while (N) {
           if (k == N->key()) {
-            /* match on this key already present in tree -> just update assoc'd
-             * value */
-            N->contents_.second = v;
-            return false;
+	    if(allow_replace_flag) {
+	      /* match on this key already present in tree
+	       *  -> just update assoc'd value
+	       */
+	      N->contents_.second = v;
+	    }
+
+	    /* after modifying a node n,  must recalculate reductions
+	     * along path [root .. n]
+	     */
+	    RbTreeUtil::fixup_ancestor_size(reduce_fn, N);
+
+	    /* since we didn't change the set of nodes,
+	     * tree is still in RB-shape,  don't need to call fixup_red_shape()
+	     */
+            return std::make_pair(false, N);
           }
 
           d = ((k < N->key()) ? D_Left : D_Right);
@@ -989,6 +1077,8 @@ namespace tree {
           RbTreeUtil::fixup_ancestor_size(reduce_fn, N);
           /* after adding a node,  must rebalance to restore RB-shape */
           RbTreeUtil::fixup_red_shape(d, N, reduce_fn, pp_root);
+
+	  return std::make_pair(true, N->child(d));
         } else {
           *pp_root = new RbNode(k, v);
 
@@ -998,9 +1088,10 @@ namespace tree {
           /* Node.size will be correct for tree,  since
            * new node is only node in the tree
            */
+
+	  return std::make_pair(true, *pp_root);
         }
 
-        return true;
       } /*insert_aux*/
 
       /* remove a black node N with no children.
@@ -1804,6 +1895,100 @@ namespace tree {
       } /*display*/
     }; /*RbTreeUtil*/
 
+    /* xo::tree::detail::RedBlackTreeLhsBase
+     *
+     * use for const version of RedBlackTree::operator[].
+     *
+     * Require: RbNode is either
+     *   RedBlackTree::RbNode
+     * or
+     *   RedBlackTree::RbNode const
+     */
+    template <class RedBlackTree, class RbNode>
+    class RedBlackTreeLhsBase {
+    public:
+      using value_type = typename RedBlackTree::value_type;
+      using RbUtil = typename RedBlackTree::RbUtil;
+
+    public:
+      RedBlackTreeLhsBase() = default;
+      RedBlackTreeLhsBase(RedBlackTree * tree, RbNode * node)
+	: p_tree_(tree), node_(node)
+      {}
+
+      operator value_type const & () const {
+	using logutil::tostr;
+
+	if(!this->node_) {
+	  throw std::runtime_error
+	    (tostr("rbtree: attempt to use empty lhs object as rvalue"));
+	}
+
+	return this->node_->contents().second;
+      } /*operator value_type const &*/
+
+    private:
+      RedBlackTree * p_tree_ = nullptr;
+      /* invariant: if non-nil, .node belongs to .*p_tree */
+      RbNode * node_ = nullptr;
+    }; /*RedBlackTreeLhsBase*/
+
+    template<class RedBlackTree>
+    class RedBlackTreeConstLhs : public RedBlackTreeLhsBase<RedBlackTree const,
+							    typename RedBlackTree::RbNode const>
+    {
+    public:
+      RedBlackTreeConstLhs() = default;
+      RedBlackTreeConstLhs(RedBlackTree const * tree,
+			   typename RedBlackTree::RbNode const * node)
+	: RedBlackTreeLhsBase<RedBlackTree const,
+			      typename RedBlackTree::RbNode const>(tree, node) {}
+    }; /*RedBlackTreeConstLhs*/
+
+    /* xo::tree::detail::RedBlackTreeLhs
+     *
+     * use for RedBlackTree::operator[].
+     * can't return a regular lvalue,
+     * because assignment within a Node N invalidates partial sums along
+     * the path from tree root to N.
+     *
+     * instead interpolate instance of this class,   that can intercept
+     * asasignments.
+     */
+    template <class RedBlackTree>
+    class RedBlackTreeLhs : public RedBlackTreeLhsBase<RedBlackTree,
+						       typename RedBlackTree::RbNode>
+    {
+    public:
+      using value_type = typename RedBlackTree::value_type;
+      using RbUtil = typename RedBlackTree::RbUtil;
+      using RbNode = typename RedBlackTree::RbNode;
+
+    public:
+      RedBlackTreeLhs() = default;
+      RedBlackTreeLhs(RedBlackTree * tree, typename RedBlackTree::RbNode * node)
+	: RedBlackTreeLhsBase<RedBlackTree, RbNode>(tree, node) {}
+      
+      RedBlackTreeLhs & operator=(value_type const & v) {
+	using logutil::tostr;
+	
+	if(this->p_tree_ && this->node_) {
+	  this->node_->contents_.second_ = v;
+
+	  /* after modifying a node n,
+	   * must recalculate reductions along path [root .. n]
+	   */
+	  RbUtil::fixup_ancestor_size(this->p_tree_->reduce_fn(),
+				      this->node_);
+	} else {
+	  throw std::runtime_error
+	    (tostr("rbtree: attempt to assign through empty lhs object"));
+	}
+
+	return *this;
+      } /*operator=*/
+    }; /*RedBlackTreeLhs*/
+
     /* xo::tree::detail::IteratorBase
      * 
      * shared between const & and non-const red-black-tree iterators
@@ -2106,9 +2291,14 @@ namespace tree {
    */
   template <typename Key, typename Value, typename Reduce>
   class RedBlackTree {
-    static_assert(ReduceConcept<Reduce, Key>);
+    static_assert(ReduceConcept<Reduce, Value>);
     //static_assert(requires(Reduce r) { r.nil(); }, "missing .nil() method");
 
+  public:
+    using key_type = Key;
+    using value_type = Value;
+    using RbTreeLhs = detail::RedBlackTreeLhs<RedBlackTree<Key, Value, Reduce>>;
+    using RbTreeConstLhs = detail::RedBlackTreeConstLhs<RedBlackTree<Key, Value, Reduce>>;
     using RbUtil = detail::RbTreeUtil<Key, Value, Reduce>;
     using RbNode = detail::Node<Key, Value, Reduce>;
     using Direction = detail::Direction;
@@ -2119,6 +2309,7 @@ namespace tree {
     RedBlackTree() = default;
 
     std::size_t size() const { return size_; }
+    Reduce const & reduce_fn() const { return reduce_fn_; }
 
     const_iterator begin() const {
       return const_iterator::begin_aux(RbUtil::find_leftmost(this->root_));
@@ -2183,13 +2374,66 @@ namespace tree {
       }
     } /*find*/
 
-    bool insert(Key const &k, Value const &v) {
-      bool retval = RbUtil::insert_aux(k, v, &(this->root_));
+    /* RbTreeConstLhs provides rvalue-substitute for lookup-only in const RedBlackTree
+     * instances
+     */
+    RbTreeConstLhs operator[](Key const & k) const
+    {
+      RbNode const * node = RbUtil::find(this->root_, k);
 
-      if (retval)
+      return RbTreeConstLhs(this, node);
+    } /*operator[]*/
+
+    /* RbTreeLhs defers assignment,  so that rbtree can update values of
+     * Node::reduce along path from root to Node n with n.key = k
+     *
+     * 
+     * Note:
+     * 1. return value remains valid across subsequent inserts and assignments,
+     *    so this is legal:
+     *      RbTree rbtree = ...;
+     *      auto v = rbtree[key1];
+     *
+     *      rbtree[key2] = ...;
+     *      rbtree.insert(key3, value3);
+     *
+     *      v = ...;
+     *
+     * 2. return value is not valid across removes,  even of distinct keys,
+     *    so this is ILLEGAL:
+     *      RbTree rbtree = ...;
+     *      auto v = rbtree[key1];
+     *
+     *      assert(key1 != key2);
+     *
+     *      rbtree.remove(key2);
+     *
+     *      v = ...;   // undefined behavior,
+     *                 // v.node contents may have been copied and v.node deleted
+     */
+    RbTreeLhs operator[](Key const & k) {
+      std::pair<bool, RbNode *> insert_result
+	= RbUtil::insert_aux(k,
+			     Value() /*used iff creating new node */,
+			     false /*allow_replace_flag*/,
+			     this->reduce_fn_,
+			     &(this->root_));
+
+      return RbTreeLhs(this, insert_result.second);
+    } /*operator[]*/
+
+    bool insert(Key const & k, Value const & v) {
+      std::pair<bool, RbNode *> insert_result
+	= RbUtil::insert_aux(k,
+			     v,
+			     true /*allow_replace_flag*/,
+			     this->reduce_fn_,
+			     &(this->root_));
+
+      if (insert_result.first)
         ++(this->size_);
 
-      return retval;
+      return insert_result.first;
     } /*insert*/
 
     bool insert(Key &&k, Value &&v) {
@@ -2201,19 +2445,22 @@ namespace tree {
       constexpr bool c_logging_enabled = false;
       scope lscope(c_self, c_logging_enabled);
 
-      bool retval = RbUtil::insert_aux(k, v,
-				       this->reduce_fn_,
-				       &(this->root_));
+      std::pair<bool, RbNode *> insert_result
+	= RbUtil::insert_aux(k,
+			     v,
+			     true /*allow_replace_flag*/,
+			     this->reduce_fn_,
+			     &(this->root_));
 
-      if (retval)
+      if (insert_result.first)
         ++(this->size_);
 
       if (c_logging_enabled) {
         lscope.log(c_self, ": after insert", xtag("key", k), xtag("value", v),
-                   xtag("tree.size", root_->size()), xtag("retval", retval));
+                   xtag("tree.size", root_->size()), xtag("retval", insert_result.first));
       }
 
-      return retval;
+      return insert_result.first;
     } /*insert*/
 
     bool remove(Key const &k) {
