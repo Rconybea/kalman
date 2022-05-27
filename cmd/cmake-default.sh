@@ -1,0 +1,1 @@
+cmake -DEXPORT_COMPILE_COMMANDS=1 ../src
