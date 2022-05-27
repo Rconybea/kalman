@@ -17,13 +17,30 @@ pkgs: attrs:
       setup = ./setup.sh;
       srcdir = ./src;
 
-      localcxxdev = (if builtins.currentSystem == "aarch64-darwin" then [ libcxx.dev ] else []);
-
-      # inherit $x -> shell variable ${x} will be defined
-      # when ./builder.sh runs, value will be the nix store location for nixpkgs.${x},
-      # which will typically be the build artifact for a nix derivation
+      # want shell variable ${coreutils},
+      # so we can get basic utilites (like cat) into $PATH,  before we try to
+      # do things like run
+      #   cat some/nix/pkg/nix-support/propagated-build-inputs
+      # in setup.sh
       #
+      inherit coreutils;
+
+      # when ./builder.sh runs, value will be the nix store location for nixpkgs.${x},
+      # which will typically be the build artifact for a nix derivation.
+      #
+      # libcxxdev: if omitted, we get linking problems for -lstdc++
+      # llvmPackages.libcxx llvmPackages_13.llvm:
+      #            tried adding for llvm-cov.   Unfortunately collides with clang-11,  which is
+      #            being forced somewhere else (not sure where).
+      #		   for non-darwin build expect to use gcc/gcov/lcov
+      #            see also localgcc in mkderivation.nix,  presumably llvm+clang versions
+      #            should coordinate      		   
+      #
+      #localcxxdev = (if builtins.currentSystem == "aarch64-darwin" then [ libcxx.dev llvmPackages_13.llvm ] else []);
+      #localcxxdev = (if builtins.currentSystem == "aarch64-darwin" then [ llvmPackages_13.libcxx llvmPackages_13.llvm ] else []);
+      localcxxdev = (if builtins.currentSystem == "aarch64-darwin" then [ llvm ] else []);
       buildInputs = localcxxdev ++ [ pkg-config eigen cmake boost which catch2 ];
+
       devInputs = [];
     };
 
