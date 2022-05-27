@@ -14,17 +14,31 @@
 
 namespace xo {
 namespace tree {
+  struct null_reduce_value {};
 
+  /* for null reduce,  just have it return 0;
+   * otherwise breaks verification (e.g. verify_subtree_ok() below)
+   */
   template<typename Value>
   struct NullReduce {
-    using value_type = struct {};
+    static constexpr bool is_null_reduce() { return true; }
+
+    using value_type = null_reduce_value;
 
     value_type nil() const { return value_type(); }
     value_type operator()(value_type x,
 			  Value const & value) const { return nil(); }
-    value_type operator()(value_type x,
-			  value_type y) const { return nil(); }
+    value_type combine(value_type x,
+		       value_type y) const { return nil(); }
+    bool is_equal(value_type x, value_type y) const { return true; }
   }; /*NullReduce*/
+
+  inline std::ostream & operator<<(std::ostream & os,
+				   null_reduce_value x)
+  {
+    os << "{}";
+    return os;
+  } /*operator<<*/
 
   /* just counts #of distinct values;
    * redundant,  same as detail::Node<>::size_.
@@ -47,6 +61,7 @@ namespace tree {
     }
 
     value_type combine(value_type x, value_type y) const { return x + y; }
+    bool is_equal(value_type x, value_type y) const { return x == y; }
   }; /*OrdinalReduce*/
 
   /* reduction for inverting the integral of a non-negative discrete function
@@ -61,6 +76,7 @@ namespace tree {
     value_type nil() const { return 0; }
     value_type operator()(value_type const & x,
 			  value_type const & y) { return x + y; }
+    bool is_equal(value_type const & x, value_type const & y) { return x == y; }
   }; /*SumReduce*/
 
   /* concept for the 'Reduce' argument to RedBlackTree<...>
@@ -81,7 +97,7 @@ namespace tree {
     typename T::value_type;
     { r.nil() } -> std::same_as<typename T::value_type>;
     { r(a, v) } -> std::same_as<typename T::value_type>;
-    { r(a, a) } -> std::same_as<typename T::value_type>;
+    { r.combine(a, a) } -> std::same_as<typename T::value_type>;
   };
 
   /* red-black tree with order statistics
@@ -184,8 +200,16 @@ namespace tree {
       size_t size() const { return size_; }
       /* const access */
       std::pair<Key, Value> const & contents() const { return contents_; }
-      /* non-const value access */
-      std::pair<Key const, Value> & contents() { return contents_; }
+      /* non-const value access.   
+       *
+       * editorial: would prefer to return
+       *   std::pair<Key const, Value> &
+       * here,  so that tree[k].first = newk
+       * prohibited,  but std::pair<Key const, Value>
+       * is considered unrelated to std::pair<Key, Value>,
+       * so l-value conversion not allowed
+       */
+      std::pair<Key, Value> & contents() { return contents_; }
 
       Node *parent() const { return parent_; }
       Node *child(Direction d) const { return child_v_[d]; }
@@ -241,16 +265,16 @@ namespace tree {
       /* recalculate size from immediate childrens' sizes
        * editor bait: recalc_local_size()
        */
-      void local_recalc_size(Reduce const & reduce) {
+      void local_recalc_size(Reduce const & reduce_fn) {
         this->size_ = (1
 		       + Node::tree_size(this->left_child())
 		       + Node::tree_size(this->right_child()));
 
-	this->reduced_ = reduce(reduce(Node::reduced(reduce,
-						     this->left_child()),
-				       this->value()),
-				Node::reduced(reduce,
-					      this->right_child()));
+	this->reduced_ = reduce_fn.combine(reduce_fn(Node::reduced(reduce_fn,
+								   this->left_child()),
+						     this->value()),
+					   Node::reduced(reduce_fn,
+							 this->right_child()));
       } /*local_recalc_size*/
 
     private:
@@ -386,6 +410,9 @@ namespace tree {
        * not counting red nodes.
        * make calls in increasing key order (i.e. inorder traversal)
        * argument d is the black-height of tree above x
+       *
+       * Require:
+       * - fn(x, d)
        */
       template <typename Fn>
       static void inorder_node_visitor(RbNode const *x, uint32_t d, Fn &&fn) {
@@ -803,7 +830,7 @@ namespace tree {
 
         for (uint32_t iter = 0;; ++iter) {
           if (c_excessive_verify_enabled)
-            RbTreeUtil::verify_subtree_ok(G, nullptr /*&black_height*/);
+            RbTreeUtil::verify_subtree_ok(reduce_fn, G, nullptr /*&black_height*/);
 
           if (c_logging_enabled) {
             if (G) {
@@ -957,7 +984,7 @@ namespace tree {
             RbTreeUtil::rotate(d, P, reduce_fn, pp_root);
 
             if (c_excessive_verify_enabled)
-              RbTreeUtil::verify_subtree_ok(S, nullptr /*&black_height*/);
+              RbTreeUtil::verify_subtree_ok(reduce_fn, S, nullptr /*&black_height*/);
 
             /* (relabel S->P etc. for merged control flow below) */
             R = P;
@@ -994,7 +1021,7 @@ namespace tree {
               lscope.log(c_self, ": verify subtree at GG", xtag("GG", GG),
                          xtag("GG.key", GG->key()));
 
-              RbTreeUtil::verify_subtree_ok(GG, nullptr /*&black_height*/);
+              RbTreeUtil::verify_subtree_ok(reduce_fn, GG, nullptr /*&black_height*/);
               RbTreeUtil::display_aux(D_Invalid, GG, 0 /*depth*/, &lscope);
 
               lscope.log(c_self, ": fixup complete");
@@ -1745,8 +1772,17 @@ namespace tree {
        * RB5. inorder traversal visits keys in monotonically increasing order
        * RB6. Node::size reports the size of the subtree reachable from that node
        *      via child pointers
+       * RB7. Node::reduced reports the value of
+       *       f(f(L, Node::value), R)
+       *      where: L is reduced-value for left child,
+       *             R is reduced-value for right child
+       *
+       * returns the #of nodes in subtree rooted at N.
        */
-      static void verify_subtree_ok(RbNode const *N, int32_t *p_black_height) {
+      static size_t verify_subtree_ok(Reduce const & reduce_fn,
+				      RbNode const * N,
+				      int32_t * p_black_height)
+      {
         using logutil::scope;
         using logutil::xtag;
 
@@ -1754,6 +1790,7 @@ namespace tree {
 
         // scope lscope(c_self);
 
+	/* counts #of nodes in subtree rooted at N */
         size_t i_node = 0;
         Key const *last_key = nullptr;
         /* inorder node index when establishing black_height */
@@ -1762,6 +1799,7 @@ namespace tree {
         int32_t black_height = 0;
 
         auto verify_fn = [c_self,
+			  &reduce_fn,
 			  &i_node,
 			  &last_key,
 			  &i_black_height,
@@ -1853,14 +1891,31 @@ namespace tree {
 			  xtag("key[i]", x->key()),
 			  xtag("left.size", tree_size(x->left_child())),
 			  xtag("right.size", tree_size(x->right_child()))));
-		    
-          ++i_node;
+
+	  /* RB7. Node::reduced reports the value of
+	   *       f(f(L, Node::value), R)
+	   *      where: L is reduced-value for left child,
+	   *             R is reduced-value for right child
+	   */
+	  XO_EXPECT(reduce_fn.is_equal
+		    (x->reduced(),
+		     reduce_fn.combine(reduce_fn(RbNode::reduced(reduce_fn, x->left_child()),
+						 x->value()),
+				       RbNode::reduced(reduce_fn, x->right_child()))),
+		    tostr(c_self,
+			  ": expect Node::reduced to be reduce_fn applied to L, "
+			  ".value, .R",
+			  xtag("node.reduced", x->reduced())));
+
+	  ++i_node;
         };
 
         RbTreeUtil::inorder_node_visitor(N, 0 /*d*/, verify_fn);
 
         if (p_black_height)
           *p_black_height = black_height;
+
+	return i_node;
       } /*verify_subtree_ok*/
 
       /* display tree structure,  1 line per node.
@@ -1927,7 +1982,7 @@ namespace tree {
 	return this->node_->contents().second;
       } /*operator value_type const &*/
 
-    private:
+    protected:
       RedBlackTree * p_tree_ = nullptr;
       /* invariant: if non-nil, .node belongs to .*p_tree */
       RbNode * node_ = nullptr;
@@ -1973,7 +2028,7 @@ namespace tree {
 	using logutil::tostr;
 	
 	if(this->p_tree_ && this->node_) {
-	  this->node_->contents_.second_ = v;
+	  this->node_->contents().second = v;
 
 	  /* after modifying a node n,
 	   * must recalculate reductions along path [root .. n]
@@ -2327,6 +2382,20 @@ namespace tree {
       return iterator::end_aux(RbUtil::find_rightmost(this->root_));
     } /*end*/
 
+    /* visit tree contents in increasing key order
+     *
+     * Require:
+     * - Fn(std::pair<Key, Value> const &)
+     */
+    template<typename Fn>
+    void visit_inorder(Fn && fn) {
+      auto visitor_fn = [&fn](RbNode const * x, uint32_t d) { fn(x->contents()); };
+
+      RbUtil::inorder_node_visitor(this->root_,
+				   0 /*depth -- will be ignored*/,
+				   visitor_fn);
+    } /*visit_inorder*/
+
     /* if i in [0 .. .size], return iterator referring to ith inorder node in tree
      * otherwise return this->end()
      */
@@ -2484,7 +2553,11 @@ namespace tree {
      * RB5. inorder traversal visits keys in monotonically increasing order
      * RB6. Node::size reports the size of the subtree reachable from that node
      *      via child pointers
-     * RB7. RedBlackTree.size() equals the #of nodes in tree
+     * RB7. Node::reduced reports the value of
+     *       f(f(L, Node::value), R)
+     *      where: L is reduced-value for left child,
+     *             R is reduced-value for right child
+     * RB8. RedBlackTree.size() equals the #of nodes in tree
      */
     bool verify_ok() const {
       using logutil::scope;
@@ -2516,7 +2589,16 @@ namespace tree {
       /* height (counting only black nodes) of tree */
       int32_t black_height = 0;
 
-      RbUtil::verify_subtree_ok(this->root_, &black_height);
+      /* n_node: #of nodes in this->root_ */
+      size_t n_node = RbUtil::verify_subtree_ok(this->reduce_fn_,
+						this->root_,
+						&black_height);
+
+      /* RB8. RedBlackTree.size() equals #of nodes in tree */
+      XO_EXPECT(n_node == this->size_,
+		tostr(c_self, ": expect self.size={#of nodes n in tree}",
+		      xtag("self.size", size_),
+		      xtag("n", n_node)));
 
       if (c_logging_enabled)
         lscope.log(xtag("size", this->size_),
