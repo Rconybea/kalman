@@ -48,6 +48,25 @@ random_inserts(uint32_t n,
 } /*random_inserts*/
 
   /* Require:
+   * - rbtree has keys [0..n-1] where n=rbtree.size(),
+   * - rbtree value at key k is dvalue+10*k
+   */
+  void
+  check_ordinal_lookup(uint32_t dvalue,
+		       RbTree const & rbtree)
+  {
+    size_t const n = rbtree.size();
+    size_t i = 0; 
+
+    for(size_t i=0; i<n; ++i) {
+      RbTree::const_iterator ix = rbtree.find_ith(i);
+
+      REQUIRE(ix != rbtree.end());
+      REQUIRE(ix->first == i);
+    }
+  } /*check_ordinal_lookup*/
+
+  /* Require:
    * - rbtree has keys [0..n-1], where n=rbtree.size()
    * - rbtree values at key k is dvalue+10*k
    */
@@ -290,14 +309,17 @@ TEST_CASE("rbtree", "[redblacktree]") {
     /* insert [0..n-1] in random order */
     random_inserts(n, &rgen, &rbtree);
     /* check iterator traverses [0..n-1] in both directions */
+    check_ordinal_lookup(0, rbtree);
     check_bidirectional_iterator(0, rbtree);
     /* verify behavior of read-only variant of operator[] */
     random_lookups(rbtree, &rgen);
     /* verify that lookups didn't disturb tree contents */
+    check_ordinal_lookup(0, rbtree);
     check_bidirectional_iterator(0, rbtree);
     /* verify update via read/write operator[] */
     random_updates(10000, &rbtree, &rgen);
     /* verify that updates changed tree contents in expected way */
+    check_ordinal_lookup(10000, rbtree);
     check_bidirectional_iterator(10000, rbtree);
     /* verify behavior of read/write variant of operator[] */
     random_removes(&rgen, &rbtree);
