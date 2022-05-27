@@ -318,7 +318,7 @@ main(int argc, char **argv)
 
     /* generate a random series of inserts and removes,  with increasing scale */
 
-    for(uint32_t n=1; n<1024; n *= 2) {
+    for(uint32_t n=1; n<64; n *= 2) {
       /* n random inserts */
       rbtree.verify_ok();
       
