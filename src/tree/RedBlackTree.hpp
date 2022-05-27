@@ -14,6 +14,17 @@
 
 namespace xo {
 namespace tree {
+  template<typename A, typename B, typename C>
+  struct triple : public std::pair<A,B>
+  {
+    triple(A const & a, B const & b, C const & c)
+      : std::pair<A,B>(a, b), third(c) {};
+    triple(A && a, B && b, C && c)
+      : std::pair<A,B>(std::forward(a), std::forward(b)), third(std::move(c)) {};
+
+    C third;
+  };
+
   struct null_reduce_value {};
 
   /* for null reduce,  just have it return 0;
@@ -140,10 +151,10 @@ namespace tree {
 
     public:
       Node() = default;
-      Node(Key const & k, Value const &v)
-	: color_(C_Red), size_(1), contents_(k, v) {}
-      Node(Key && k, Value && v)
-	: color_(C_Red), size_(1), contents_{std::move(k), std::move(v)} {}
+      Node(Key const & k, Value const &v, ReducedValue const & r)
+	: color_(C_Red), size_(1), contents_(k, v, r) {}
+      Node(Key && k, Value && v, ReducedValue && r)
+	: color_(C_Red), size_(1), contents_{std::move(k), std::move(v), std::move(r)} {}
 
       /* return #of key/vaue pairs in tree rooted at x. */
       static size_t tree_size(Node *x) {
@@ -188,6 +199,25 @@ namespace tree {
 	}
       } /*reduced*/
 
+      static ReducedValue reduced3(Reduce const & reduce_fn,
+				   ReducedValue const & left,
+				   Value const & v,
+				   ReducedValue const & right)
+      {
+	return reduce_fn.combine(reduce_fn(left,
+					   v),
+				 right);
+      } /*reduced3*/
+
+      static ReducedValue reduced_leaf(Reduce const & reduce_fn,
+				       Value const & v)
+      {
+	return reduced3(reduce_fn,
+			reduced(reduce_fn, nullptr) /*left*/,
+			v,
+			reduced(reduce_fn, nullptr) /*right*/);
+      } /*reduced_leaf*/
+
       /* replace root pointer *pp_root with x;
        * set x parent pointer to nil
        */
@@ -199,7 +229,7 @@ namespace tree {
 
       size_t size() const { return size_; }
       /* const access */
-      std::pair<Key, Value> const & contents() const { return contents_; }
+      triple<Key, Value, ReducedValue> const & contents() const { return contents_; }
       /* non-const value access.   
        *
        * editorial: would prefer to return
@@ -209,13 +239,13 @@ namespace tree {
        * is considered unrelated to std::pair<Key, Value>,
        * so l-value conversion not allowed
        */
-      std::pair<Key, Value> & contents() { return contents_; }
+      triple<Key, Value, ReducedValue> & contents() { return contents_; }
 
       Node *parent() const { return parent_; }
       Node *child(Direction d) const { return child_v_[d]; }
       Node *left_child() const { return child_v_[0]; }
       Node *right_child() const { return child_v_[1]; }
-      ReducedValue const & reduced() const { return reduced_; }
+      ReducedValue const & reduced() const { return contents_.third; }
 
       /* true if this node has 0 children */
       bool is_leaf() const {
@@ -277,11 +307,12 @@ namespace tree {
 		       + Node::tree_size(this->left_child())
 		       + Node::tree_size(this->right_child()));
 
-	this->reduced_ = reduce_fn.combine(reduce_fn(Node::reduced(reduce_fn,
-								   this->left_child()),
-						     this->value()),
-					   Node::reduced(reduce_fn,
-							 this->right_child()));
+	this->contents_.third = Node::reduced3(reduce_fn,
+					       Node::reduced(reduce_fn,
+							     this->left_child()),
+					       this->value(),
+					       Node::reduced(reduce_fn,
+							     this->right_child()));
 
         if (c_logging_enabled) {
           lscope.log(c_self, ": done recalc for key k, value v, reduced r",
@@ -340,10 +371,12 @@ namespace tree {
       Color color_ = C_Red;
       /* size of subtree (#of key/value pairs) rooted at this node */
       size_t size_ = 0;
-      /* .first  = key   associated with this node
-       * .second = value associated with this node
+      /* .first.first  = key   associated with this node
+       * .first.second = value associated with this node
+       * .second       = reduced value
        */
-      std::pair<Key, Value> contents_;
+      triple<Key, Value, ReducedValue> contents_;
+#ifdef OBSOLETE
       /* accumulator for some binary function of Keys.
        * must be associative.
        * examples:
@@ -351,6 +384,7 @@ namespace tree {
        *  - sum key values
        */
       ReducedValue reduced_;
+#endif
       /* pointer to parent node,  nullptr iff this is the root node */
       Node *parent_ = nullptr;
       /*
@@ -1109,25 +1143,25 @@ namespace tree {
         /* invariant: N->child(d) is nil */
 
         if (N) {
-	  RbNode * new_node = new RbNode(k, v);
+	  RbNode * new_node = new RbNode(k, v, RbNode::reduced_leaf(reduce_fn, v));
 
           N->assign_child_reparent(d, new_node);
 
           assert(is_red(N->child(d)));
 
-          /* recalculate Node sizes on path [root .. new_node] */
-          RbTreeUtil::fixup_ancestor_size(reduce_fn, new_node);
+          /* recalculate Node sizes on path [root .. N] */
+          RbTreeUtil::fixup_ancestor_size(reduce_fn, N);
           /* after adding a node,  must rebalance to restore RB-shape */
           RbTreeUtil::fixup_red_shape(d, N, reduce_fn, pp_root);
 
 	  return std::make_pair(true, N->child(d));
         } else {
-          *pp_root = new RbNode(k, v);
+          *pp_root = new RbNode(k, v, RbNode::reduced_leaf(reduce_fn, v));
 
           /* tree with a single node might as well be black */
           (*pp_root)->assign_color(C_Black);
 
-	  (*pp_root)->local_recalc_size(reduce_fn);
+	  //(*pp_root)->local_recalc_size(reduce_fn);
 
           /* Node.size will be correct for tree,  since
            * new node is only node in the tree
@@ -2091,6 +2125,7 @@ namespace tree {
       
       using RbNode = Node<Key, Value, Reduce>;
       using RbUtil = RbTreeUtil<Key, Value, Reduce>;
+      using ReducedValue = typename Reduce::value_type;
       
     public:
       Iterator() = default;
@@ -2113,12 +2148,12 @@ namespace tree {
       bool is_dereferenceable() const { return !this->is_sentinel(); }
 
       /* note: it's forbidden to assign to .first here */
-      std::pair<Key const, Value> & operator*() const {
+      triple<Key, Value, ReducedValue> & operator*() const {
 	this->check_regular();
 	return this->node_->contents();
       } /*operator**/
 
-      std::pair<Key const, Value> * operator->() const { return &(this->operator*()); }
+      triple<Key, Value, ReducedValue> * operator->() const { return &(this->operator*()); }
 
       bool operator==(Iterator const & x) const {
 	return (this->location_ == x.location_) && (this->node_ == x.node_);
@@ -2232,6 +2267,7 @@ namespace tree {
       
       using RbNode = Node<Key, Value, Reduce>;
       using RbUtil = RbTreeUtil<Key, Value, Reduce>;
+      using ReducedValue = typename Reduce::value_type;
       
     public:
       ConstIterator() = default;
@@ -2257,12 +2293,12 @@ namespace tree {
       bool is_dereferenceable() const { return !this->is_sentinel(); }
 
       /* note: it's forbidden to assign to .first here */
-      std::pair<Key, Value> const & operator*() const {
+      triple<Key, Value, ReducedValue> const & operator*() const {
 	this->check_regular();
 	return this->node_->contents();
       } /*operator**/
 
-      std::pair<Key, Value> const * operator->() const { return &(this->operator*()); }
+      triple<Key, Value, ReducedValue> const * operator->() const { return &(this->operator*()); }
 
       bool operator==(ConstIterator const & x) const {
 	return (this->location_ == x.location_) && (this->node_ == x.node_);

@@ -7,11 +7,14 @@
 
 namespace {
   using xo::tree::RedBlackTree;
+  using xo::tree::OrdinalReduce;
   using xo::tree::NullReduce;
   using xo::random::xoshiro256;
 
   using logutil::scope;
   using logutil::xtag;
+
+  using RbTree = RedBlackTree<int, double, OrdinalReduce<double>>;
 
 /* do n random inserts (taken from *p_rgen) into *p_rbtree.
  * inserted keys will be distinct values in [0, .., n-1]
@@ -19,7 +22,7 @@ namespace {
 void
 random_inserts(uint32_t n,
 	       xo::random::xoshiro256 * p_rgen,
-	       RedBlackTree<int, double, NullReduce<int>> * p_rbtree)
+	       RbTree * p_rbtree)
 {
   REQUIRE(p_rbtree->verify_ok());
 
@@ -50,7 +53,7 @@ random_inserts(uint32_t n,
    */
   void
   check_bidirectional_iterator(uint32_t dvalue,
-			       RedBlackTree<int, double, NullReduce<int>> const & rbtree)
+			       RbTree const & rbtree)
   {
     size_t const n = rbtree.size();
     size_t i = 0;
@@ -156,7 +159,7 @@ random_inserts(uint32_t n,
    * - for each key k,  associated value is 10*k
    */
   void
-  random_lookups(RedBlackTree<int, double, NullReduce<int>> const & rbtree,
+  random_lookups(RbTree const & rbtree,
 		 xoshiro256 * p_rgen)
   {
     REQUIRE(rbtree.verify_ok());
@@ -188,7 +191,7 @@ random_inserts(uint32_t n,
    */
   void
   random_updates(uint32_t dvalue,
-		 RedBlackTree<int, double, NullReduce<int>> * p_rbtree,
+		 RbTree * p_rbtree,
 		 xoshiro256 * p_rgen)
   {
     REQUIRE(p_rbtree->verify_ok());
@@ -219,7 +222,7 @@ random_inserts(uint32_t n,
    */
   void
   random_removes(xoshiro256 * p_rgen,
-		 RedBlackTree<int, double, NullReduce<int>> * p_rbtree)
+		 RbTree * p_rbtree)
   {
     REQUIRE(p_rbtree->verify_ok());
 
@@ -272,7 +275,7 @@ random_inserts(uint32_t n,
   } /*random_removes*/
 
 TEST_CASE("rbtree", "[redblacktree]") {
-  RedBlackTree<int, double, NullReduce<int>> rbtree;
+  RbTree rbtree;
 
   uint64_t seed = 14950349842636922572UL;
   /* can reseed from /dev/urandom with: */
