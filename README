@@ -43,11 +43,11 @@
   to attempt nix build
    $ do_all_phases   # shell function defined in setup.sh
 
-* to run cmake
+* to run cmake with debug symbols
    $ nix-shell -A path/to/kalman
    $ mkdir -p path/to/kalman/build
    $ cd path/to/kalman/build
-   $ cmake -DEXPORT_COMPILE_COMMANDS=1 ../src
+   $ cmake -DCMAKE_BUILD_TYPE=Debug -DEXPORT_COMPILE_COMMANDS=1 ../src
 
   subsequently can use:
    $ make -C path/to/kalman/build
