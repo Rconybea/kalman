@@ -5,11 +5,11 @@
 #include "catch2/catch.hpp"
 #include <map>
 
-using xo::tree::RedBlackTree;
-using xo::tree::NullReduce;
-using xo::random::xoshiro256;
-
 namespace {
+  using xo::tree::RedBlackTree;
+  using xo::tree::NullReduce;
+  using xo::random::xoshiro256;
+
   using logutil::scope;
   using logutil::xtag;
 
@@ -270,7 +270,6 @@ random_inserts(uint32_t n,
     REQUIRE(m.empty());
     REQUIRE(p_rbtree->size() == 0);
   } /*random_removes*/
-} /*namespace*/
 
 TEST_CASE("rbtree", "[redblacktree]") {
   RedBlackTree<int, double, NullReduce<int>> rbtree;
@@ -301,5 +300,6 @@ TEST_CASE("rbtree", "[redblacktree]") {
     random_removes(&rgen, &rbtree);
   }
 } /*TEST_CASE(rbtree)*/
+} /*namespace*/
 
 /* end redblacktree.cpp */
