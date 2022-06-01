@@ -148,6 +148,7 @@ namespace tree {
     class Node {
     public:
       using ReducedValue = typename Reduce::value_type;
+      using ContentsType = triple<Key, Value, ReducedValue>;
 
     public:
       Node() = default;
@@ -229,7 +230,7 @@ namespace tree {
 
       size_t size() const { return size_; }
       /* const access */
-      triple<Key, Value, ReducedValue> const & contents() const { return contents_; }
+      ContentsType const & contents() const { return contents_; }
       /* non-const value access.   
        *
        * editorial: would prefer to return
@@ -239,7 +240,7 @@ namespace tree {
        * is considered unrelated to std::pair<Key, Value>,
        * so l-value conversion not allowed
        */
-      triple<Key, Value, ReducedValue> & contents() { return contents_; }
+      ContentsType & contents() { return contents_; }
 
       Node *parent() const { return parent_; }
       Node *child(Direction d) const { return child_v_[d]; }
@@ -371,11 +372,11 @@ namespace tree {
       Color color_ = C_Red;
       /* size of subtree (#of key/value pairs) rooted at this node */
       size_t size_ = 0;
-      /* .first.first  = key   associated with this node
-       * .first.second = value associated with this node
-       * .second       = reduced value
+      /* .first        = key   associated with this node
+       * .second       = value associated with this node
+       * .third       = reduced value
        */
-      triple<Key, Value, ReducedValue> contents_;
+      ContentsType contents_;
 #ifdef OBSOLETE
       /* accumulator for some binary function of Keys.
        * must be associative.
@@ -2099,14 +2100,166 @@ namespace tree {
       } /*operator=*/
     }; /*RedBlackTreeLhs*/
 
-    /* xo::tree::detail::IteratorBase
-     * 
-     * shared between const & and non-const red-black-tree iterators
+    /* tragically, we can't partially specialize an alias template.
+     * however we /can/ partially specialize a struct that nests a typealias.
      */
     template <typename Key,
 	      typename Value,
+	      typename Reduce,
+	      bool IsConst>
+    struct NodeTypeTraits { using NodeType = void; };
+
+    template <typename Key,
+	      typename Value,
 	      typename Reduce>
+    struct NodeTypeTraits<Key, Value, Reduce, false> {
+      using NativeNodeType = Node<Key, Value, Reduce>;
+      using NodeType = NativeNodeType;
+      using ContentsType = typename NodeType::ContentsType;
+      using NodePtrType = NodeType *;
+    };
+
+    template <typename Key,
+	      typename Value,
+	      typename Reduce>
+    struct NodeTypeTraits<Key, Value, Reduce, true> {
+      using NativeNodeType = Node<Key, Value, Reduce>;
+      using NodeType = NativeNodeType const;
+      using ContentsType = typename NodeType::ContentsType const;
+      using NodePtrType = NodeType const *;
+    };
+
+    /* xo::tree::detail::IteratorBase
+     * 
+     * shared between const & and non-const red-black-tree iterators.
+     *
+     * Using CRTP (curiously-repeating-template-pattern):
+     * Iterator is class that is inheriting IteratorBase<...>
+     */
+    template <typename Key,
+	      typename Value,
+	      typename Reduce,
+	      bool IsConst>
     class IteratorBase {
+    public:
+      using RbUtil = RbTreeUtil<Key, Value, Reduce>;
+      using RbNode = Node<Key, Value, Reduce>;
+      using Traits = NodeTypeTraits<Key, Value, Reduce, IsConst>;
+      using RbNativeNodeType = typename Traits::NativeNodeType;
+      using RbNodePtrType = typename Traits::NodePtrType;
+      using RbContentsType = typename Traits::ContentsType;
+
+    protected:
+      IteratorBase() = default;
+      IteratorBase(IteratorLocation loc, RbNodePtrType node)
+	: location_(loc), node_(node) {}
+      IteratorBase(IteratorBase const & x) = default;
+      
+      static IteratorBase begin_aux(RbNodePtrType node) {
+	return IteratorBase(node ? IL_Regular : IL_AfterEnd, node);
+      } /*begin_aux*/
+
+      static IteratorBase end_aux(RbNodePtrType node) {
+	return IteratorBase(IL_AfterEnd, node);
+      } /*end_aux*/
+
+    public:
+      IteratorLocation location() const { return location_; }
+      RbNodePtrType node() const { return node_; }
+
+      RbContentsType & operator*() const {
+	this->check_regular();
+	return this->node_->contents();
+      } /*operator**/
+
+      RbContentsType * operator->() const {
+	return &(this->operator*());
+      }
+
+      /* true for "just before beginning" and "just after the end" states.
+       * false otherwise
+       */
+      bool is_sentinel() const { return (this->location_ != IL_Regular); }
+      /* true unless iterator is in a sentinel state */
+      bool is_dereferenceable() const { return !this->is_sentinel(); }
+
+      bool operator==(IteratorBase const & x) const {
+	return (this->location_ == x.location_) && (this->node_ == x.node_);
+      } /*operator==*/
+
+      bool operator!=(IteratorBase const & x) const {
+	return (this->location_ != x.location_) || (this->node_ != x.node_);
+      } /*operator!=*/
+
+      /* pre-increment */
+      IteratorBase & operator++() {
+	switch(this->location_) {
+	case IL_BeforeBegin:
+	  /* .node is first node in tree */
+	  this->location_ = IL_Regular;
+	  break;
+	case IL_Regular:
+	  {
+	    RbNodePtrType next_node
+	      = RbUtil::next_inorder_node(const_cast<RbNativeNodeType *>(this->node_));
+
+	    if(next_node) {
+	      this->node_ = next_node;
+	    } else {
+	      this->location_ = IL_AfterEnd;
+	    }
+	  }
+	  break;
+	case IL_AfterEnd:
+	  break;
+	} /*operator++*/
+
+	return *this;
+      } /*operator++*/
+
+      /* pre-decrement */
+      IteratorBase & operator--() {
+	switch(this->location_) {
+	case IL_BeforeBegin:
+	  break;
+	case IL_Regular:
+	  {
+	    RbNode * prev_node = RbUtil::prev_inorder_node(const_cast<RbNativeNodeType *>(this->node_));
+
+	    if(prev_node) {
+	      this->node_ = prev_node;
+	    } else {
+	      this->location_ = IL_BeforeBegin;
+	    }
+	  }
+	  break;
+	case IL_AfterEnd:
+	  /* .node is already last node in tree */
+	  this->location_ = IL_Regular;
+	  break;
+	}
+
+	return *this;
+      } /*operator--*/
+
+    protected:
+      void check_regular() const {
+	using logutil::tostr;
+
+	if(this->location_ != IL_Regular)
+	  throw std::runtime_error(tostr("rbtree iterator: cannot deref iterator"
+					 " in non-regular state"));
+      } /*check_regular*/
+
+    protected:
+      /* IL_BeforeBegin, IL_Regular, IL_AfterEnd */
+      IteratorLocation location_ = IL_AfterEnd;
+      /* location = IL_BeforeBegin: .node is leftmost node in tree
+       * location = IL_Regular:     .node is some node in tree,
+       *                            iterator refers to that node.
+       * location = IL_AfterEnd:    .node is rightmost node in tree
+       */
+      RbNodePtrType node_ = nullptr;
     }; /*IteratorBase*/
 
     /* xo::tree::detail::Iterator
@@ -2119,72 +2272,29 @@ namespace tree {
     template <typename Key,
 	      typename Value,
 	      typename Reduce>
-    class Iterator : public IteratorBase<Key, Value, Reduce> {
+    class Iterator : public IteratorBase<Key, Value, Reduce, false /*!IsConst*/> {
     public:
       using iterator_concept = std::bidirectional_iterator_tag;
       
-      using RbNode = Node<Key, Value, Reduce>;
-      using RbUtil = RbTreeUtil<Key, Value, Reduce>;
+      using RbIteratorBase = IteratorBase<Key, Value, Reduce, false /*!IsConst*/>;
+      using RbNode = typename RbIteratorBase::RbNode;
+      using RbUtil = typename RbIteratorBase::RbUtil;
       using ReducedValue = typename Reduce::value_type;
       
     public:
       Iterator() = default;
-      Iterator(IteratorLocation loc, RbNode * n) : location_(loc), node_(n) {}
+      Iterator(IteratorLocation loc, RbNode * n)
+	: RbIteratorBase(loc, n) {}
       Iterator(Iterator const & x) = default;
+      Iterator(RbIteratorBase const & x) : RbIteratorBase(x) {}
+      Iterator(RbIteratorBase && x) : RbIteratorBase(std::move(x)) {}
 
-      static Iterator begin_aux(RbNode const * n) {
-	return Iterator(n ? IL_Regular : IL_AfterEnd, n);
-      }
-
-      static Iterator end_aux(RbNode const * n) {
-	return Iterator(IL_AfterEnd, n);
-      } /*end_aux*/
-
-      /* true for "just before beginning" and "just after the end" states.
-       * false otherwise
-       */
-      bool is_sentinel() const { return (this->location_ != IL_Regular); }
-      /* true unless iterator is in a sentinel state */
-      bool is_dereferenceable() const { return !this->is_sentinel(); }
-
-      /* note: it's forbidden to assign to .first here */
-      triple<Key, Value, ReducedValue> & operator*() const {
-	this->check_regular();
-	return this->node_->contents();
-      } /*operator**/
-
-      triple<Key, Value, ReducedValue> * operator->() const { return &(this->operator*()); }
-
-      bool operator==(Iterator const & x) const {
-	return (this->location_ == x.location_) && (this->node_ == x.node_);
-      } /*operator==*/
-
-      bool operator!=(Iterator const & x) const {
-	return (this->location_ != x.location_) || (this->node_ != x.node_);
-      } /*operator!=*/
+      static Iterator begin_aux(RbNode const * n) { return RbIteratorBase::begin_aux(n); }
+      static Iterator end_aux(RbNode const * n) { return RbIteratorBase::end_aux(n); }
 
       /* pre-increment */
       Iterator & operator++() {
-	switch(this->location_) {
-	case IL_BeforeBegin:
-	  /* .node is first node in tree */
-	  this->location_ = IL_Regular;
-	  break;
-	case IL_Regular:
-	  {
-	    RbNode * next_node = RbUtil::next_inorder_node(this->node_);
-
-	    if(next_node) {
-	      this->node_ = next_node;
-	    } else {
-	      this->location_ = IL_AfterEnd;
-	    }
-	  }
-	  break;
-	case IL_AfterEnd:
-	  break;
-	}
-
+	RbIteratorBase::operator++();
 	return *this;
       } /*operator++*/
 
@@ -2199,26 +2309,7 @@ namespace tree {
 
       /* pre-decrement */
       Iterator & operator--() {
-	switch(this->location_) {
-	case IL_BeforeBegin:
-	  break;
-	case IL_Regular:
-	  {
-	    RbNode * prev_node = RbUtil::prev_inorder_node(this->node_);
-
-	    if(prev_node) {
-	      this->node_ = prev_node;
-	    } else {
-	      this->location_ = IL_BeforeBegin;
-	    }
-	  }
-	  break;
-	case IL_AfterEnd:
-	  /* .node is already last node in tree */
-	  this->location_ = IL_Regular;
-	  break;
-	}
-
+	RbIteratorBase::operator--();
 	return *this;
       } /*operator--*/
 
@@ -2230,25 +2321,6 @@ namespace tree {
 
 	return retval;
       } /*operator--(int)*/
-
-    private:
-      void check_regular() const {
-	using logutil::tostr;
-
-	if(this->location_ != IL_Regular)
-	  throw std::runtime_error(tostr("rbtree iterator: cannot deref iterator"
-					 " in non-regular state"));
-      } /*check_regular*/
-
-    private:
-      /* IL_BeforeBegin, IL_Regular, IL_AfterEnd */
-      IteratorLocation location_ = IL_AfterEnd;
-      /* location = IL_BeforeBegin: .node is leftmost node in tree
-       * location = IL_Regular:     .node is some node in tree,
-       *                            iterator refers to that node.
-       * location = IL_AfterEnd:    .node is rightmost node in tree
-       */
-      RbNode * node_ = nullptr;
     }; /*Iterator*/
 
     /* xo::tree::detail::ConstIterator
@@ -2261,76 +2333,29 @@ namespace tree {
     template <typename Key,
 	      typename Value,
 	      typename Reduce>
-    class ConstIterator : public IteratorBase<Key, Value, Reduce> {
+    class ConstIterator : public IteratorBase<Key, Value, Reduce, true /*IsConst*/> {
     public:
       using iterator_concept = std::bidirectional_iterator_tag;
-      
-      using RbNode = Node<Key, Value, Reduce>;
-      using RbUtil = RbTreeUtil<Key, Value, Reduce>;
+
+      using RbIteratorBase = IteratorBase<Key, Value, Reduce, true /*IsConst*/>;
+      using RbNode = typename RbIteratorBase::RbNode;
+      using RbUtil = typename RbIteratorBase::RbUtil;
       using ReducedValue = typename Reduce::value_type;
       
     public:
       ConstIterator() = default;
-      ConstIterator(IteratorLocation loc, RbNode const * n) : location_(loc), node_(n) {}
+      ConstIterator(IteratorLocation loc, RbNode const * node)
+	: RbIteratorBase(loc, node) {}
       ConstIterator(ConstIterator const & x) = default;
+      ConstIterator(RbIteratorBase const & x) : RbIteratorBase(x) {}
+      ConstIterator(RbIteratorBase && x) : RbIteratorBase(std::move(x)) {}
 
-      static ConstIterator begin_aux(RbNode const * n) {
-	return ConstIterator(n ? IL_Regular : IL_AfterEnd, n);
-      }
-
-      static ConstIterator end_aux(RbNode const * n) {
-	return ConstIterator(IL_AfterEnd, n);
-      } /*end_aux*/
-
-      IteratorLocation location() const { return location_; }
-      RbNode const * node() const { return node_; }
-
-      /* true for "just before beginning" and "just after the end" states.
-       * false otherwise
-       */
-      bool is_sentinel() const { return (this->location_ != IL_Regular); }
-      /* true unless iterator is in a sentinel state */
-      bool is_dereferenceable() const { return !this->is_sentinel(); }
-
-      /* note: it's forbidden to assign to .first here */
-      triple<Key, Value, ReducedValue> const & operator*() const {
-	this->check_regular();
-	return this->node_->contents();
-      } /*operator**/
-
-      triple<Key, Value, ReducedValue> const * operator->() const { return &(this->operator*()); }
-
-      bool operator==(ConstIterator const & x) const {
-	return (this->location_ == x.location_) && (this->node_ == x.node_);
-      } /*operator==*/
-
-      bool operator!=(ConstIterator const & x) const {
-	return (this->location_ != x.location_) || (this->node_ != x.node_);
-      } /*operator!=*/
+      static ConstIterator begin_aux(RbNode const * n) { return RbIteratorBase::begin_aux(n); }
+      static ConstIterator end_aux(RbNode const * n) { return RbIteratorBase::end_aux(n); }
 
       /* pre-increment */
       ConstIterator & operator++() {
-	switch(this->location_) {
-	case IL_BeforeBegin:
-	  /* .node is first node in tree */
-	  this->location_ = IL_Regular;
-	  break;
-	case IL_Regular:
-	  {
-	    RbNode const * next_node
-	      = RbUtil::next_inorder_node(const_cast<RbNode *>(this->node_));
-
-	    if(next_node) {
-	      this->node_ = next_node;
-	    } else {
-	      this->location_ = IL_AfterEnd;
-	    }
-	  }
-	  break;
-	case IL_AfterEnd:
-	  break;
-	}
-
+	RbIteratorBase::operator++();
 	return *this;
       } /*operator++*/
 
@@ -2345,27 +2370,7 @@ namespace tree {
 
       /* pre-decrement */
       ConstIterator & operator--() {
-	switch(this->location_) {
-	case IL_BeforeBegin:
-	  break;
-	case IL_Regular:
-	  {
-	    RbNode * prev_node
-	      = RbUtil::prev_inorder_node(const_cast<RbNode *>(this->node_));
-
-	    if(prev_node) {
-	      this->node_ = prev_node;
-	    } else {
-	      this->location_ = IL_BeforeBegin;
-	    }
-	  }
-	  break;
-	case IL_AfterEnd:
-	  /* .node is already last node in tree */
-	  this->location_ = IL_Regular;
-	  break;
-	}
-
+	RbIteratorBase::operator--();
 	return *this;
       } /*operator--*/
 
@@ -2377,25 +2382,6 @@ namespace tree {
 
 	return retval;
       } /*operator--(int)*/
-
-    private:
-      void check_regular() const {
-	using logutil::tostr;
-
-	if(this->location_ != IL_Regular)
-	  throw std::runtime_error(tostr("rbtree iterator: cannot deref const_iterator"
-					 " in non-regular state"));
-      } /*check_regular*/
-
-    private:
-      /* IL_BeforeBegin, IL_Regular, IL_AfterEnd */
-      IteratorLocation location_ = IL_AfterEnd;
-      /* location = IL_BeforeBegin: .node is leftmost node in tree
-       * location = IL_Regular:     .node is some node in tree,
-       *                            iterator refers to that node.
-       * location = IL_AfterEnd:    .node is rightmost node in tree
-       */
-      RbNode const * node_ = nullptr;
     }; /*ConstIterator*/
   } /*namespace detail*/
 
