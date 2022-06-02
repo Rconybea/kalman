@@ -14,20 +14,25 @@
 
 namespace xo {
 namespace tree {
+
   struct null_reduce_value {};
 
   /* for null reduce,  just have it return 0;
    * otherwise breaks verification (e.g. verify_subtree_ok() below)
    */
-  template<typename Value>
+  template<typename NodeValue>
   struct NullReduce {
     static constexpr bool is_null_reduce() { return true; }
 
+    /* data type for reduced values */
     using value_type = null_reduce_value;
 
     value_type nil() const { return value_type(); }
+    std::pair<value_type, value_type> leaf(NodeValue const & x) const {
+      return std::pair<value_type, value_type>(nil(), nil());
+    }
     value_type operator()(value_type x,
-			  Value const & value) const { return nil(); }
+			  NodeValue const & value) const { return nil(); }
     value_type combine(value_type x,
 		       value_type y) const { return nil(); }
     bool is_equal(value_type x, value_type y) const { return true; }
@@ -54,8 +59,12 @@ namespace tree {
 
     value_type nil() const { return 0; }
 
+    std::pair<value_type, value_type> leaf(Value const & x) const {
+      return std::pair<value_type, value_type>(1, 1);
+    } /*leaf*/
+
     value_type operator()(value_type acc,
-			  Value const & key) const {
+			  Value const & x) const {
       /* counts #of values */
       return acc + 1;
     }
@@ -142,11 +151,11 @@ namespace tree {
     public:
       Node() = default;
       Node(Key const & k, Value const &v,
-	   ReducedValue const & r1, ReducedValue const & r2)
-	: color_(C_Red), size_(1), contents_(k, v), reduced1_(r1), reduced2_(r2) {}
-      Node(Key && k, Value && v, ReducedValue && r1, ReducedValue && r2)
+	   std::pair<ReducedValue, ReducedValue> const & r)
+	: color_(C_Red), size_(1), contents_(k, v), reduced_(r) {}
+      Node(Key && k, Value && v, std::pair<ReducedValue, ReducedValue> && r)
 	: color_(C_Red), size_(1), contents_{std::move(k), std::move(v)},
-	  reduced1_{std::move(r1)}, reduced2_{std::move(r2)} {}
+	  reduced_{std::move(r)} {}
 
       /* return #of key/vaue pairs in tree rooted at x. */
       static size_t tree_size(Node *x) {
@@ -178,58 +187,29 @@ namespace tree {
         }
       } /*child_direction*/
 
-      /* if x is non-nil,  return reduced value computed for everything in
-       * {left subtree of x} u {x itself}
-       * othewise return nominal value from reduce functor
-       */
-      static ReducedValue reduced1(Reduce const & reduce,
-				   Node * x)
+      static ReducedValue reduce_aux(Reduce reduce, Node *x)
       {
-	if(x) {
-	  return x->reduced1();
-	} else {
-	  return reduce.nil();
-	}
-      } /*reduced1*/
-
-      /* if x is non-nil,  return reduced value computed for subtree x;
-       * othewise return nominal value from reduce functor
-       */
-      static ReducedValue reduced2(Reduce const & reduce,
-				   Node * x)
-      {
-	if(x) {
+	if(x)
 	  return x->reduced2();
-	} else {
+	else
 	  return reduce.nil();
-	}
-      } /*reduced2*/
+      } /*reduce_aux*/
 
-#ifdef OBSOLETE
-      static ReducedValue reduced3(Reduce const & reduce_fn,
-				   ReducedValue const & left,
-				   Value const & v,
-				   ReducedValue const & right)
+      /* calculate reduced values for node x.
+       * does not used x.reduced
+       */
+      static std::pair<ReducedValue,
+		       ReducedValue> reduced_pair(Reduce r, Node const * x)
       {
-	return reduce_fn.combine(reduce_fn(left,
-					   v),
-				 right);
-      } /*reduced3*/
-#endif
+	if(!x)
+	  assert(false);
 
-      static ReducedValue reduced1_leaf(Reduce const & reduce_fn,
-					Value const & v)
-      {
-	return reduce_fn(reduce_fn.nil() /*left*/,
-			 v);
-      } /*reduced1_leaf*/
-
-      static ReducedValue reduced2_leaf(Reduce const & reduce_fn,
-					Value const & v)
-      {
-	return reduce_fn.combine(reduced1_leaf(reduce_fn, v),
-				 reduce_fn.nil());
-      } /*reduced2_leaf*/
+	ReducedValue r1 = r(reduce_aux(r, x->left_child()),
+			    x->value());
+	ReducedValue r2 = r.combine(r1,
+				    reduce_aux(r, x->right_child()));
+	return std::pair<ReducedValue, ReducedValue>(r1, r2);
+      } /*reduced_pair*/
 
       /* replace root pointer *pp_root with x;
        * set x parent pointer to nil
@@ -258,8 +238,8 @@ namespace tree {
       Node *child(Direction d) const { return child_v_[d]; }
       Node *left_child() const { return child_v_[0]; }
       Node *right_child() const { return child_v_[1]; }
-      ReducedValue const & reduced1() const { return reduced1_; }
-      ReducedValue const & reduced2() const { return reduced2_; }
+      ReducedValue const & reduced1() const { return reduced_.first; }
+      ReducedValue const & reduced2() const { return reduced_.second; }
 
       /* true if this node has 0 children */
       bool is_leaf() const {
@@ -322,21 +302,7 @@ namespace tree {
 		       + Node::tree_size(this->right_child()));
 
 	/* (note: want reduce applied to all of left subtree) */
-	this->reduced1_ = reduce_fn(Node::reduced2(reduce_fn,
-						   this->left_child()),
-				    this->value());
-	this->reduced2_ = reduce_fn.combine(this->reduced1_,
-					    Node::reduced2(reduce_fn,
-							   this->right_child()));
-
-#ifdef OBSOLETE
-	this->reduced_ = Node::reduced3(reduce_fn,
-					Node::reduced(reduce_fn,
-						      this->left_child()),
-					this->value(),
-					Node::reduced(reduce_fn,
-						      this->right_child()));
-#endif
+	this->reduced_ = Node::reduced_pair(reduce_fn, this);
 
         if (c_logging_enabled) {
           lscope.log(c_self, ": done recalc for key k, value v, reduced r",
@@ -415,11 +381,10 @@ namespace tree {
        *  - count #of keys
        *  - sum key values
        *
-       * .reduced1: reduce applied to all values with keys <= .contents.first
-       * .reduced2: reduce applied to all values in this subtree.
+       * .reduced.first:  reduce applied to all values with keys <= .contents.first
+       * .reduced.second: reduce applied to all values in this subtree.
        */
-      ReducedValue reduced1_;
-      ReducedValue reduced2_;
+      std::pair<ReducedValue, ReducedValue> reduced_;
       /* pointer to parent node,  nullptr iff this is the root node */
       Node *parent_ = nullptr;
       /*
@@ -1179,8 +1144,7 @@ namespace tree {
 
         if (N) {
 	  RbNode * new_node = new RbNode(k, v,
-					 RbNode::reduced1_leaf(reduce_fn, v),
-					 RbNode::reduced2_leaf(reduce_fn, v));
+					 reduce_fn.leaf(v));
 
           N->assign_child_reparent(d, new_node);
 
@@ -1194,8 +1158,7 @@ namespace tree {
 	  return std::make_pair(true, N->child(d));
         } else {
           *pp_root = new RbNode(k, v,
-				RbNode::reduced1_leaf(reduce_fn, v),
-				RbNode::reduced2_leaf(reduce_fn, v));
+				reduce_fn.leaf(v));
 
           /* tree with a single node might as well be black */
           (*pp_root)->assign_color(C_Black);
@@ -1987,28 +1950,24 @@ namespace tree {
 	   *      where: L is reduced-value for left child,
 	   *             R is reduced-value for right child
 	   */
-	  auto reduce1_expr
-	    = reduce_fn(RbNode::reduced2(reduce_fn, x->left_child()),
-			x->value());
-	  auto reduce2_expr
-	    = reduce_fn.combine(reduce1_expr,
-				RbNode::reduced2(reduce_fn, x->right_child()));
+	  auto reduced_pair
+	    = RbNode::reduced_pair(reduce_fn, x);
 
 	  XO_EXPECT(reduce_fn.is_equal
-		    (x->reduced1(), reduce1_expr),
+		    (x->reduced1(), reduced_pair.first),
 		    tostr(c_self,
-			  ": expect Node::reduced to be reduce_fn applied to .L, "
-			  ".value",
+			  ": expect Node::reduced to be reduce_fn"
+			  " applied to (.L, .value)",
 			  xtag("node.reduced1", x->reduced1()),
-			  xtag("reduce1_expr", reduce1_expr)));
+			  xtag("reduced_pair.first", reduced_pair.first)));
 
 	  XO_EXPECT(reduce_fn.is_equal
-		    (x->reduced2(), reduce2_expr),
+		    (x->reduced2(), reduced_pair.second),
 		    tostr(c_self,
-			  ": expect Node::reduced to be reduce_fn applied to .L, "
-			  ".value, .R",
+			  ": expect Node::reduced to be reduce_fn"
+			  " applied to (.L, .value, .R)",
 			  xtag("node.reduced2", x->reduced2()),
-			  xtag("reduce2_expr", reduce1_expr)));
+			  xtag("reduce2_expr", reduced_pair.second)));
 
 	  ++i_node;
         };
