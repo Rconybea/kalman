@@ -603,15 +603,29 @@ namespace tree {
        * Value counts #of samples with that key.
        *
        * find_cum_glb() computes inverse for a monotonically increasing function,
-       * if reduce(S) = sum {j.value | j in S}
+       * if reduce(S) = sum {j.value | j in S};
+       *
+       * if rbtree stores values for a discrete function f: IR -> IR+,
+       * then x = find_sum_glb(p)->key() inverts the integral of f,  i.e.
+       * computes:
+       *             x
+       *            /
+       *            |
+       *   sup { x: |  f(z) dz < y }
+       *            |
+       *            /
+       *             -oo
        * 
        * Require:
-       * - Reduce is sum (e.g. CdfReduce)
-       *   (for example: if Value is non-negative and Reduce is CdfReduce<Value>)
+       * - Reduce behaves like sum:
+       *   must deliver monotonically increasing values
+       *   with increasing key-values.
+       * 
+       *   (for example: if Value is non-negative and Reduce is SumReduce<Value>)
        */
       static RbNode * find_sum_glb(Reduce const & reduce_fn,
 				   RbNode * N,
-				   typename Reduce::value_type p) {
+				   typename Reduce::value_type y) {
 	if(!N)
 	  return nullptr;
 
@@ -620,14 +634,14 @@ namespace tree {
 	typename Reduce::value_type right_sum
 	  = reduced(reduce_fn, N->right_child());
 
-	if(p < left_sum) {
-	  return find_sum_glb(reduce_fn, N->left_child(), p);
-	} else if(p < N->reduced() - right_sum || !N->right_child()) {
+	if(y <= left_sum) {
+	  return find_sum_glb(reduce_fn, N->left_child(), y);
+	} else if(y <= N->reduced1() || !N->right_child()) {
 	  /* since N.reduced = reduce(left_sum, N.value, right_sum) */
 	  return N;
 	} else  {
 	  /* find bound in non-null right subtree */
-	  return find_sum_glb(reduce_fn, N->right_child(), p - N->reduced() + right_sum);
+	  return find_sum_glb(reduce_fn, N->right_child(), y - N->reduced1());
 	}
       } /*find_sum_glb*/
 
@@ -2193,6 +2207,11 @@ namespace tree {
       /* true unless iterator is in a sentinel state */
       bool is_dereferenceable() const { return !this->is_sentinel(); }
 
+      /* deferenceable iterators are truth-y;
+       * sentinel iterators are false-y
+       */
+      operator bool() const { return this->is_dereferenceable(); }
+
       bool operator==(IteratorBase const & x) const {
 	return (this->location_ == x.location_) && (this->node_ == x.node_);
       } /*operator==*/
@@ -2405,6 +2424,7 @@ namespace tree {
   public:
     using key_type = Key;
     using value_type = Value;
+    using ReducedValue = typename Reduce::value_type;
     using RbTreeLhs = detail::RedBlackTreeLhs<RedBlackTree<Key, Value, Reduce>>;
     using RbTreeConstLhs = detail::RedBlackTreeConstLhs<RedBlackTree<Key, Value, Reduce>>;
     using RbUtil = detail::RbTreeUtil<Key, Value, Reduce>;
@@ -2419,13 +2439,16 @@ namespace tree {
     std::size_t size() const { return size_; }
     Reduce const & reduce_fn() const { return reduce_fn_; }
 
-    const_iterator begin() const {
+    const_iterator cbegin() const {
       return const_iterator::begin_aux(RbUtil::find_leftmost(this->root_));
     } /*begin*/
 
-    const_iterator end() const {
+    const_iterator cend() const {
       return const_iterator::end_aux(RbUtil::find_rightmost(this->root_));
     } /*end*/
+
+    const_iterator begin() const { return this->cbegin(); }
+    const_iterator end() const { return this->cend(); }
 
     iterator begin() {
       return iterator::begin_aux(RbUtil::find_leftmost(this->root_));
@@ -2543,6 +2566,63 @@ namespace tree {
 
       return RbTreeLhs(this, insert_result.second);
     } /*operator[]*/
+
+    /* Provided Reduce computes sum,  and we call this rbtree f
+     * with keys k[i] and values v[i]:
+     *
+     * returns iterator pointing to i'th key-value pair {k[i],v[i]} in this tree,
+     * with reduced value r(i) (i.e. RbNode::reduced1);
+     * where r(i) is the result of reducing all values v[j] with j<=i
+     *
+     * editor bait: invert_integral
+     */
+    const_iterator cfind_sum_glb(ReducedValue const & y) const {
+      using logutil::tostr;
+      using logutil::xtag;
+
+      char const * c_self = "RedBlackTree::find_sum_glb";
+
+      /* we expect r.nil() to supply the smallest possible reduced value.
+       * This implies no key k exists that can satisfy r(k ..) < y.
+       *
+       * use "before begin" iterator as sentinel value in this case
+       */
+      bool infeasible_flag = (y < this->reduce_fn_.nil());
+
+      RbNode * N = nullptr;
+
+      if(!infeasible_flag) {
+	N = RbUtil::find_sum_glb(this->reduce_fn_,
+				 this->root_,
+				 y);
+      }
+
+      if(infeasible_flag || !N) {
+	/* for no-lower-bound edge cases,  return iterator ix
+	 * pointing to 'before the beginning' of this tree.
+	 *
+	 * will have
+	 *   ix.is_deferenceable() == false
+	 *   (bool)ix == false
+	 */
+	return const_iterator(detail::IL_BeforeBegin,
+			      RbUtil::find_leftmost(this->root_));
+      }
+
+      return const_iterator(detail::IL_Regular, N);
+    } /*cfind_sum_glb*/
+
+    const_iterator find_sum_glb(ReducedValue const & y) const {
+      return this->cfind_sum_glb(y);
+    } /*find_sum_glb*/
+
+    /* non-const version of .cfind_sum_glb() */
+    iterator find_sum_glb(ReducedValue const & y) {
+      const_iterator ix = this->cfind_sum_glb(y);
+
+      return iterator(ix.location(),
+		      const_cast<RbNode *>(ix.node()));
+    } /*find_sum_glb*/
 
     bool insert(Key const & k, Value const & v) {
       std::pair<bool, RbNode *> insert_result
