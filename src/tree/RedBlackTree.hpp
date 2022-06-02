@@ -148,14 +148,14 @@ namespace tree {
     class Node {
     public:
       using ReducedValue = typename Reduce::value_type;
-      using ContentsType = triple<Key, Value, ReducedValue>;
+      using ContentsType = std::pair<Key, Value>;
 
     public:
       Node() = default;
       Node(Key const & k, Value const &v, ReducedValue const & r)
-	: color_(C_Red), size_(1), contents_(k, v, r) {}
+	: color_(C_Red), size_(1), contents_(k, v), reduced_(r) {}
       Node(Key && k, Value && v, ReducedValue && r)
-	: color_(C_Red), size_(1), contents_{std::move(k), std::move(v), std::move(r)} {}
+	: color_(C_Red), size_(1), contents_{std::move(k), std::move(v)}, reduced_{std::move(r)} {}
 
       /* return #of key/vaue pairs in tree rooted at x. */
       static size_t tree_size(Node *x) {
@@ -246,7 +246,7 @@ namespace tree {
       Node *child(Direction d) const { return child_v_[d]; }
       Node *left_child() const { return child_v_[0]; }
       Node *right_child() const { return child_v_[1]; }
-      ReducedValue const & reduced() const { return contents_.third; }
+      ReducedValue const & reduced() const { return reduced_; }
 
       /* true if this node has 0 children */
       bool is_leaf() const {
@@ -308,12 +308,12 @@ namespace tree {
 		       + Node::tree_size(this->left_child())
 		       + Node::tree_size(this->right_child()));
 
-	this->contents_.third = Node::reduced3(reduce_fn,
-					       Node::reduced(reduce_fn,
-							     this->left_child()),
-					       this->value(),
-					       Node::reduced(reduce_fn,
-							     this->right_child()));
+	this->reduced_ = Node::reduced3(reduce_fn,
+					Node::reduced(reduce_fn,
+						      this->left_child()),
+					this->value(),
+					Node::reduced(reduce_fn,
+						      this->right_child()));
 
         if (c_logging_enabled) {
           lscope.log(c_self, ": done recalc for key k, value v, reduced r",
@@ -377,15 +377,21 @@ namespace tree {
        * .third       = reduced value
        */
       ContentsType contents_;
-#ifdef OBSOLETE
       /* accumulator for some binary function of Keys.
-       * must be associative.
+       * must be associative,  since value will be produced
+       * by any testing of calls to Reduce::combine().
+       *
+       * e.g. {a, b, c, d} could be reduced by:
+       *   r(r(a,b), r(c,d))
+       * or
+       *   r(a, r(r(b, c), d))
+       * etc.
+       *
        * examples:
        *  - count #of keys
        *  - sum key values
        */
       ReducedValue reduced_;
-#endif
       /* pointer to parent node,  nullptr iff this is the root node */
       Node *parent_ = nullptr;
       /*
@@ -2133,8 +2139,7 @@ namespace tree {
      * 
      * shared between const & and non-const red-black-tree iterators.
      *
-     * Using CRTP (curiously-repeating-template-pattern):
-     * Iterator is class that is inheriting IteratorBase<...>
+     * editor bait: BaseIterator
      */
     template <typename Key,
 	      typename Value,
@@ -2145,6 +2150,7 @@ namespace tree {
       using RbUtil = RbTreeUtil<Key, Value, Reduce>;
       using RbNode = Node<Key, Value, Reduce>;
       using Traits = NodeTypeTraits<Key, Value, Reduce, IsConst>;
+      using ReducedValue = typename Reduce::value_type;
       using RbNativeNodeType = typename Traits::NativeNodeType;
       using RbNodePtrType = typename Traits::NodePtrType;
       using RbContentsType = typename Traits::ContentsType;
@@ -2166,6 +2172,8 @@ namespace tree {
     public:
       IteratorLocation location() const { return location_; }
       RbNodePtrType node() const { return node_; }
+
+      ReducedValue const & reduced() const { return node_->reduced(); }
 
       RbContentsType & operator*() const {
 	this->check_regular();
@@ -2586,7 +2594,10 @@ namespace tree {
       return retval;
     } /*remove*/
 
-    /* verify class invariants
+    /* verify class invariants.
+     * unless implementation is broken,  or client manages
+     * to violate api rules,   this will always return true.
+     *
      * RB0. if root node is nil then .size is 0
      * RB1. if root node is non-nil,  then root->parent() is nil,
      *      and .size = root->size
