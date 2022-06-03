@@ -159,18 +159,22 @@ random_inserts(uint32_t n,
   {
     size_t const n = rbtree.size();
 
-    /* TODO: check edge case where glb doesn't exist;
-     *       will require dvalue > 0
-     */
-
     for(size_t i = 0; i < n; ++i) {
-      uint64_t reduced = (i+1) * (5*i + dvalue);
+      /* compute reduction up to key=i */
+      double reduced_upto
+	= rbtree.reduce_lub(i /*key*/,
+			    true /*is_closed*/);
+
+      double reduced = (i+1) * (5*i + dvalue);
 
       INFO(tostr(xtag("i", i), xtag("n", n),
+		 xtag("tree.reduced_upto", reduced_upto),
 		 xtag("reduced", reduced),
 		 xtag("dvalue", dvalue)));
 
       auto glb_ix = rbtree.cfind_sum_glb(reduced);
+
+      REQUIRE(reduced_upto == reduced);
 
       REQUIRE(glb_ix.is_dereferenceable());
       /* glb_ix is truth-y */
@@ -353,7 +357,9 @@ TEST_CASE("rbtree", "[redblacktree]") {
     random_inserts(n, &rgen, &rbtree);
     /* check iterator traverses [0..n-1] in both directions (using ++ and --) */
     check_ordinal_lookup(0, rbtree);
+    /* verify end-to-end iteration */
     check_bidirectional_iterator(0, rbtree);
+    /* verify behavior of .reduce_lub(), .find_sum_glb() */
     check_reduced_sum(0, rbtree);
     /* verify behavior of read-only variant of operator[] */
     random_lookups(rbtree, &rgen);
@@ -364,7 +370,9 @@ TEST_CASE("rbtree", "[redblacktree]") {
     random_updates(10000, &rbtree, &rgen);
     /* verify that updates changed tree contents in expected way */
     check_ordinal_lookup(10000, rbtree);
+    /* verify end-to-end iteration */
     check_bidirectional_iterator(10000, rbtree);
+    /* verify behavior of .reduce_lub(), .find_sum_glb() */
     check_reduced_sum(10000, rbtree);
     /* verify behavior of read/write variant of operator[] */
     random_removes(&rgen, &rbtree);

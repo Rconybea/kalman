@@ -16,9 +16,6 @@
 namespace xo {
 namespace tree {
 
-  template<typename NodeValue>
-  struct NullReduce;
-
   /* concept for the 'Reduce' argument to RedBlackTree<...>
    * 
    * e.g.
@@ -40,6 +37,10 @@ namespace tree {
     { r(a, v) } -> std::same_as<typename T::value_type>;
     { r.combine(a, a) } -> std::same_as<typename T::value_type>;
   };
+
+  /* reduce function that disappears at compile time */
+  template<typename NodeValue>
+  struct NullReduce;
 
   /* red-black tree with order statistics
    *
@@ -360,6 +361,7 @@ namespace tree {
     class RbTreeUtil {
     public:
       using RbNode = Node<Key, Value, Reduce>;
+      using ReducedValue = typename Reduce::value_type;
 
     public:
       /* return #of key/vaue pairs in tree rooted at x. */
@@ -517,6 +519,41 @@ namespace tree {
 	return nullptr;
       } /*prev_inorder_node*/
 
+      /* compute value of reduce applied to the set K of all keys k[j] in subtree N
+       * with:
+       *   k[j] <= lub_key  if is_closed = true
+       *   k[j] <  lub_key  if is_closed = false
+       * return reduce_fn.nil() if K is empty
+       */
+      static ReducedValue reduce_lub(Key const & lub_key,
+				     Reduce const & reduce_fn,
+				     bool is_closed,
+				     RbNode * N)
+      {
+        ReducedValue retval = reduce_fn.nil();
+
+        for (;;) {
+          if (!N)
+            return retval;
+
+          if ((N->key() < lub_key) || (is_closed && (N->key() == lub_key))) {
+            /* all keys k[i] in left subtree of N satisfy k[i] < lub_key
+             * apply reduce to:
+             * - left subtree of N
+             * - N->key() depending on comparison with lub_key
+             * - any members of right subtree of N, with key < lub_key;
+             */
+            retval = reduce_fn.combine(retval, N->reduced1());
+            N = N->right_child();
+          } else {
+            /* all keys k[j] in right subtree of N do NOT satisfy k[j] <
+             * lub_key, exclude these.   also exclude N->key()
+             */
+            N = N->left_child();
+          }
+        }
+      } /*reduce_lub*/
+
       /* find largest key k such that
        *   reduce({node j in subtree(N)) | j.key <= k}) < p
        *
@@ -617,8 +654,10 @@ namespace tree {
         return N;
       } /*find_rightmost*/
 
-      /* find node in x with key k */
-      static RbNode *find(RbNode *x, Key const &k) {
+      /* find node in x with key k
+       * return nullptr iff no such node exists.
+       */
+      static RbNode * find(RbNode * x, Key const & k) {
         for (;;) {
           if (!x)
             return nullptr;
@@ -2617,6 +2656,19 @@ namespace tree {
 
       return RbTreeLhs(this, insert_result.second);
     } /*operator[]*/
+
+    /* compute value of reduce applied to the set K of all keys k[j] in subtree
+     * N with:
+     * - k[j] <= lub_key  if is_closed = true
+     * - k[j] <  lub_key  if is_closed = false
+     * return reduce_fn.nil() if K is empty
+     */
+    ReducedValue reduce_lub(Key const &lub_key, bool is_closed) const {
+      return RbUtil::reduce_lub(lub_key,
+				this->reduce_fn_,
+				is_closed,
+				this->root_);
+    } /*reduce_lub*/
 
     /* Provided Reduce computes sum,  and we call this rbtree f
      * with keys k[i] and values v[i]:
