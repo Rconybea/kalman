@@ -17,6 +17,7 @@
 
 * Directory Layout
   kalman
+  +- PLAN                  we should always have one of these
   +- README                this file
   +- default.nix           controls hermetic build.   nix-build uses this
   +- shell.nix             controls interactive development environment.  nix-shell uses this
@@ -26,6 +27,7 @@
   +- setup.sh              make shell environment for building;  called from builder.sh, shell.nix
   +- .gitignore            exclude generated files from git
   +- build                 run builds from here; excluded from git
+  +- ccov                  run coverage build from here; excluded from git (not working as of 3jun2022)
   +- src/                  root of source tree
      +- CmakeLists.txt     configure cmake build
      +- KalmanConfig.h.in  configuration file template;  generates kalman/build/KalmanConfig.h

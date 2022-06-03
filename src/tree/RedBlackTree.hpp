@@ -12,6 +12,7 @@
 #include <array>
 #include <cmath>
 #include <cassert>
+#include <stdexcept>
 
 namespace xo {
 namespace tree {
@@ -2086,33 +2087,78 @@ namespace tree {
 						       typename RedBlackTree::RbNode>
     {
     public:
+      using key_type = typename RedBlackTree::key_type;
       using value_type = typename RedBlackTree::value_type;
       using RbUtil = typename RedBlackTree::RbUtil;
       using RbNode = typename RedBlackTree::RbNode;
 
     public:
       RedBlackTreeLhs() = default;
-      RedBlackTreeLhs(RedBlackTree * tree, typename RedBlackTree::RbNode * node)
-	: RedBlackTreeLhsBase<RedBlackTree, RbNode>(tree, node) {}
+      RedBlackTreeLhs(RedBlackTree * tree, typename RedBlackTree::RbNode * node, key_type key)
+	: RedBlackTreeLhsBase<RedBlackTree, RbNode>(tree, node), key_(key) {}
       
       RedBlackTreeLhs & operator=(value_type const & v) {
 	using logutil::tostr;
 	
-	if(this->p_tree_ && this->node_) {
-	  this->node_->contents().second = v;
+	if(this->p_tree_) {
+	  if(this->node_) {
+	    this->node_->contents().second = v;
 
-	  /* after modifying a node n,
-	   * must recalculate reductions along path [root .. n]
-	   */
-	  RbUtil::fixup_ancestor_size(this->p_tree_->reduce_fn(),
-				      this->node_);
+	    /* after modifying a node n,
+	     * must recalculate reductions along path [root .. n]
+	     */
+	    RbUtil::fixup_ancestor_size(this->p_tree_->reduce_fn(),
+					this->node_);
+	  } else {
+	    /* insert (key, v) pair into this tree */
+	    this->p_tree_->insert(this->key_, v);
+	  }
 	} else {
+	  assert(false);
+
 	  throw std::runtime_error
-	    (tostr("rbtree: attempt to assign through empty lhs object"));
+	    (tostr("rbtree: attempt to apply operator= thru empty lhs object"));
 	}
 
 	return *this;
       } /*operator=*/
+
+      RedBlackTreeLhs & operator+=(value_type const & v) {
+	using logutil::tostr;
+
+	if(this->p_tree_) {
+	  if(this->node_) {
+	    this->node_->contents().second += v;
+
+	    /* after modifying value at node n,
+	     * must recalculate order statistics along path [root .. n]
+	     */
+	    RbUtil::fixup_ancestor_size(this->p_tree_->reduce_fn(),
+					this->node_);
+	  } else {
+	    /* for form's sake,  in case value_type is something unusual */
+	    value_type v2;
+	    v2 += v;
+
+	    /* insert (key, v) pair into this tree */
+	    this->p_tree_->insert(this->key_, v2);
+	  }
+	} else {
+          assert(false);
+	  
+	  throw std::runtime_error
+	    (tostr("rbtree: attempt to apply operator+= through empty lhs object"));
+	}
+
+	return *this;
+      } /*operator+=*/
+
+    private:
+      /* capture key k used in expression tree[k]
+       * Invariant:
+       * - if .node is non-null,  then .node.key = key
+       */
+      key_type key_;
     }; /*RedBlackTreeLhs*/
 
     /* tragically, we can't partially specialize an alias template.
@@ -2654,7 +2700,7 @@ namespace tree {
 			     this->reduce_fn_,
 			     &(this->root_));
 
-      return RbTreeLhs(this, insert_result.second);
+      return RbTreeLhs(this, insert_result.second, k);
     } /*operator[]*/
 
     /* compute value of reduce applied to the set K of all keys k[j] in subtree
