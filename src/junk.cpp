@@ -5,6 +5,7 @@
 #include "statistics/Histogram.hpp"
 #include "statistics/SampleStatistics.hpp"
 #include "process/BrownianMotion.hpp"
+#include "distribution/Empirical.hpp"
 #include "distribution/Normal.hpp"
 #include "random/Uniform.hpp"
 #include "random/TwoPoint.hpp"
@@ -78,6 +79,7 @@ main(int argc, char **argv)
   using xo::random::NormalGen;
   using xo::random::xoshiro256;
   using xo::distribution::Normal;
+  using xo::distribution::Empirical;
   using xo::time::utc_nanos;
   using xo::time::days;
   using xo::time::hours;
@@ -175,9 +177,10 @@ main(int argc, char **argv)
     C_BrownianMotion,
     C_Histogram,
     C_RedBlackTree,
+    C_Empirical,
   };
 
-  Cmd cmd = C_RedBlackTree;
+  Cmd cmd = C_Empirical;
 
   if(cmd == C_NormalDistribution) {
     constexpr size_t c_n = 500;
@@ -365,8 +368,35 @@ main(int argc, char **argv)
 		tostr(c_self,
 		      ": expect tree.size=0 after n distinct removes"));
     }
+  } else if(cmd == C_Empirical) {
+    Empirical<double> dist;
 
-  }
+    //uint64_t seed = 14950349842636922572UL;
+    uint64_t seed = static_cast<uint64_t>(time(nullptr));
+    arc4random_buf(&seed, sizeof(seed));
+
+    auto rgen = UnitIntervalGen<xo::random::xoshiro256>::make(seed);
+
+    lscope.log(c_self, ": using rng seed from /dev/urandom", xtag("seed", seed));
+
+    /* generate uniformly-distributed random samples,
+     * and record empirical cumulative distribution
+     */
+
+    /* generate samples */
+    for(uint32_t i=0; i<1000; ++i) {
+      /* generate U(0,1) random value */
+      double xi = rgen();
+
+      dist.include_sample(xi);
+      //hist.include_sample(xi);
+      //sample.include_sample(xi);
+    } 
+
+    lscope.log(c_self, ": empirical distribution of n U(0,1) random samples",
+	       xtag("n", dist.n_sample()));
+    
+  } 
 
 #ifdef NOT_IN_USE
   if (argc < 2) {

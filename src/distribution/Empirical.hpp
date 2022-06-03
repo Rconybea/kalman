@@ -2,24 +2,35 @@
 
 #pragma once
 
+#include "tree/RedBlackTree.hpp"
 #include <map>
 #include <cstdint>
 
 namespace xo {
 namespace distribution {
 
+  /* representation for counter,
+   * recording #of samples with the same value
+   */
+  using CounterRep = uint32_t;
+
+  /* counter;  for use with Empirical distribution below
+   */
   class Counter {
   public:
     Counter() = default;
-
-    uint32_t count() const { return count_; }
+    Counter(CounterRep n) : count_(n) {}
+    
+    CounterRep count() const { return count_; }
 
     void incr() { ++count_; }
 
-    Counter & operator+=(uint32_t n) { count_ += n; return *this; }
+    operator CounterRep () const { return count_; }
+
+    Counter & operator+=(CounterRep n) { count_ += n; return *this; }
     
   private:
-    uint32_t count_ = 0;
+    CounterRep count_ = 0;
   }; /*Counter*/
 
   /* an empirical distribution,
@@ -28,7 +39,9 @@ namespace distribution {
   template<typename T>
   class Empirical {
   public:
-    using SampleMap = std::map<T, Counter>;
+    using SampleMap = xo::tree::RedBlackTree<T,
+					     Counter,
+					     xo::tree::SumReduce<uint32_t>>;
     using const_iterator = typename SampleMap::const_iterator;
 
   public:
@@ -42,14 +55,18 @@ namespace distribution {
     void include_sample(T const & x) {
       ++(this->n_sample_);
 
-      Counter & n = this->sample_map_[x];
+      /* note: xo::tree::RedBlackTree doesn't provide the usual reference result
+       *       from operator[];  it needs to intervene after assignment to update
+       *       order statistics
+       */
+      auto lhs = this->sample_map_[x];
 
-      n += 1;
+      lhs += 1;
     } /*include_sample*/
 
   private:
     /* count #of calls to .include_sample() */
-    uint32_t n_sample_ = 0;
+    CounterRep n_sample_ = 0;
 
     /* .sample_map_[x] counts the #of times
      * .include_sample(x) has been called.

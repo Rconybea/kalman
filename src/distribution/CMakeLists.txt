@@ -13,6 +13,8 @@ set_target_properties(distribution PROPERTIES
 target_compile_options(distribution PRIVATE -Werror -Wall -Wextra)
 
 # ----------------------------------------------------------------
+# generic project dependency
+
 # PROJECT_SOURCE_DIR:
 #   so we can for example write
 #     #include "logutil/scope.hpp"
@@ -24,6 +26,11 @@ target_compile_options(distribution PRIVATE -Werror -Wall -Wextra)
 target_include_directories(distribution PUBLIC
                            ${PROJECT_SOURCE_DIR}
 			   ${PROJECT_BINARY_DIR})
+
+# ----------------------------------------------------------------
+# internal dependencies:  logutil, ...
+
+target_link_libraries(distribution PUBLIC logutil)
 
 # ----------------------------------------------------------------
 # make standard directories for std:: includes explicit
