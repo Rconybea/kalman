@@ -7,6 +7,7 @@
 
 namespace {
   using xo::tree::RedBlackTree;
+  using xo::tree::SumReduce;
   using xo::tree::OrdinalReduce;
   using xo::tree::NullReduce;
   using xo::random::xoshiro256;
@@ -14,7 +15,8 @@ namespace {
   using logutil::scope;
   using logutil::xtag;
 
-  using RbTree = RedBlackTree<int, double, OrdinalReduce<double>>;
+  //using RbTree = RedBlackTree<int, double, OrdinalReduce<double>>;
+  using RbTree = RedBlackTree<int, double, SumReduce<double>>;
 
 /* do n random inserts (taken from *p_rgen) into *p_rbtree.
  * inserted keys will be distinct values in [0, .., n-1]
@@ -136,6 +138,47 @@ random_inserts(uint32_t n,
     /* should have visited exactly n locations in reverse */
     REQUIRE(i == 0);
   } /*check_bidirectional_iterator*/
+
+  /* check that RedBlackTree<>::find_sum_glb() works as advertised.
+   *
+   * partial sums of v[j] for j<=i will be:
+   * 
+   *        (i+1) . i
+   *   10 . ---------  + ((i+1) . dvalue)
+   *            2
+   *
+   *  = (i+1).(5.i + dvalue)
+   *
+   * Require:
+   * - rbtree has keys [0..n-1],  where n=rbtree.size()
+   * - rbtree value at key k is dvalue+10*k
+   */
+  void
+  check_reduced_sum(uint32_t dvalue,
+		    RbTree const & rbtree)
+  {
+    size_t const n = rbtree.size();
+
+    /* TODO: check edge case where glb doesn't exist;
+     *       will require dvalue > 0
+     */
+
+    for(size_t i = 0; i < n; ++i) {
+      uint64_t reduced = (i+1) * (5*i + dvalue);
+
+      INFO(tostr(xtag("i", i), xtag("n", n),
+		 xtag("reduced", reduced),
+		 xtag("dvalue", dvalue)));
+
+      auto glb_ix = rbtree.cfind_sum_glb(reduced);
+
+      REQUIRE(glb_ix.is_dereferenceable());
+      /* glb_ix is truth-y */
+      REQUIRE(glb_ix);
+
+      REQUIRE(glb_ix->first == i);
+    }
+  } /*check_reduced_sum*/
 
   /* generate vector with integers [0.. n-1] */
   std::vector<uint32_t>
@@ -308,9 +351,10 @@ TEST_CASE("rbtree", "[redblacktree]") {
   for(uint32_t n=1; n<=1024; n*=2) {
     /* insert [0..n-1] in random order */
     random_inserts(n, &rgen, &rbtree);
-    /* check iterator traverses [0..n-1] in both directions */
+    /* check iterator traverses [0..n-1] in both directions (using ++ and --) */
     check_ordinal_lookup(0, rbtree);
     check_bidirectional_iterator(0, rbtree);
+    check_reduced_sum(0, rbtree);
     /* verify behavior of read-only variant of operator[] */
     random_lookups(rbtree, &rgen);
     /* verify that lookups didn't disturb tree contents */
@@ -321,6 +365,7 @@ TEST_CASE("rbtree", "[redblacktree]") {
     /* verify that updates changed tree contents in expected way */
     check_ordinal_lookup(10000, rbtree);
     check_bidirectional_iterator(10000, rbtree);
+    check_reduced_sum(10000, rbtree);
     /* verify behavior of read/write variant of operator[] */
     random_removes(&rgen, &rbtree);
   }

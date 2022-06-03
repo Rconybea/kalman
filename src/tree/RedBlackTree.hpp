@@ -10,83 +10,14 @@
 #include <concepts>
 #include <iterator>
 #include <array>
+#include <cmath>
 #include <cassert>
 
 namespace xo {
 namespace tree {
 
-  struct null_reduce_value {};
-
-  /* for null reduce,  just have it return 0;
-   * otherwise breaks verification (e.g. verify_subtree_ok() below)
-   */
   template<typename NodeValue>
-  struct NullReduce {
-    static constexpr bool is_null_reduce() { return true; }
-
-    /* data type for reduced values */
-    using value_type = null_reduce_value;
-
-    value_type nil() const { return value_type(); }
-    std::pair<value_type, value_type> leaf(NodeValue const & x) const {
-      return std::pair<value_type, value_type>(nil(), nil());
-    }
-    value_type operator()(value_type x,
-			  NodeValue const & value) const { return nil(); }
-    value_type combine(value_type x,
-		       value_type y) const { return nil(); }
-    bool is_equal(value_type x, value_type y) const { return true; }
-  }; /*NullReduce*/
-
-  inline std::ostream & operator<<(std::ostream & os,
-				   null_reduce_value x)
-  {
-    os << "{}";
-    return os;
-  } /*operator<<*/
-
-  /* just counts #of distinct values;
-   * redundant,  same as detail::Node<>::size_.
-   * providing for completeness' sake
-   */
-  template <typename Value>
-  class OrdinalReduce {
-  public:
-    using value_type = std::size_t;
-
-  public:
-    static constexpr bool is_monotonic() { return true; }
-
-    value_type nil() const { return 0; }
-
-    std::pair<value_type, value_type> leaf(Value const & x) const {
-      return std::pair<value_type, value_type>(1, 1);
-    } /*leaf*/
-
-    value_type operator()(value_type acc,
-			  Value const & x) const {
-      /* counts #of values */
-      return acc + 1;
-    }
-
-    value_type combine(value_type x, value_type y) const { return x + y; }
-    bool is_equal(value_type x, value_type y) const { return x == y; }
-  }; /*OrdinalReduce*/
-
-  /* reduction for inverting the integral of a non-negative discrete function
-   * computes sum of values for each subtree
-   */
-  template<typename Value>
-  struct SumReduce {
-    using value_type = Value;
-
-    static constexpr bool is_monotonic() { return true; }
-
-    value_type nil() const { return 0; }
-    value_type operator()(value_type const & x,
-			  value_type const & y) { return x + y; }
-    bool is_equal(value_type const & x, value_type const & y) { return x == y; }
-  }; /*SumReduce*/
+  struct NullReduce;
 
   /* concept for the 'Reduce' argument to RedBlackTree<...>
    * 
@@ -105,6 +36,7 @@ namespace tree {
   concept ReduceConcept = requires(T r, Value v, typename T::value_type a) { 
     typename T::value_type;
     { r.nil() } -> std::same_as<typename T::value_type>;
+    { r.leaf(v) } -> std::same_as<std::pair<typename T::value_type, typename T::value_type>>;
     { r(a, v) } -> std::same_as<typename T::value_type>;
     { r.combine(a, a) } -> std::same_as<typename T::value_type>;
   };
@@ -626,20 +558,42 @@ namespace tree {
       static RbNode * find_sum_glb(Reduce const & reduce_fn,
 				   RbNode * N,
 				   typename Reduce::value_type y) {
-	if(!N)
+	using logutil::scope;
+	using logutil::xtag;
+	
+	constexpr char const * c_self = "RbTreeUtil::find_sum_glb";
+	constexpr bool c_logging_enabled = false;
+	scope lscope(c_self, c_logging_enabled);
+
+	if(!N) {
+	  if(c_logging_enabled)
+	    lscope.log(c_self, ": return nullptr");
 	  return nullptr;
+	}
 
 	typename Reduce::value_type left_sum
-	  = reduced(reduce_fn, N->left_child());
+	  = RbNode::reduce_aux(reduce_fn, N->left_child());
 	typename Reduce::value_type right_sum
-	  = reduced(reduce_fn, N->right_child());
+	  = RbNode::reduce_aux(reduce_fn, N->right_child());
 
-	if(y <= left_sum) {
+	if (c_logging_enabled) {
+	  lscope.log(c_self, ": with",
+		     xtag("y", y),
+		     xtag("N.key", N->key()),
+		     xtag("N.value", N->value()),
+		     xtag("N.reduced1", N->reduced1()),
+		     xtag("left_sum", left_sum),
+		     xtag("right_sum", right_sum));
+	}
+
+	if (y <= left_sum) {
 	  return find_sum_glb(reduce_fn, N->left_child(), y);
-	} else if(y <= N->reduced1() || !N->right_child()) {
+	} else if (y <= N->reduced1() || !N->right_child()) {
+	  if (c_logging_enabled)
+	    lscope.log(c_self, ": return N");
 	  /* since N.reduced = reduce(left_sum, N.value, right_sum) */
 	  return N;
-	} else  {
+	} else {
 	  /* find bound in non-null right subtree */
 	  return find_sum_glb(reduce_fn, N->right_child(), y - N->reduced1());
 	}
@@ -2414,6 +2368,103 @@ namespace tree {
     }; /*ConstIterator*/
   } /*namespace detail*/
 
+  struct null_reduce_value {};
+
+  /* for null reduce,  just have it return 0;
+   * otherwise breaks verification (e.g. verify_subtree_ok() below)
+   */
+  template<typename NodeValue>
+  struct NullReduce {
+    static constexpr bool is_null_reduce() { return true; }
+
+    /* data type for reduced values */
+    using value_type = null_reduce_value;
+
+    value_type nil() const { return value_type(); }
+    std::pair<value_type, value_type> leaf(NodeValue const & x) const {
+      return std::pair<value_type, value_type>(nil(), nil());
+    }
+    value_type operator()(value_type x,
+			  NodeValue const & value) const { return nil(); }
+    value_type combine(value_type x,
+		       value_type y) const { return nil(); }
+    bool is_equal(value_type x, value_type y) const { return true; }
+  }; /*NullReduce*/
+
+  inline std::ostream & operator<<(std::ostream & os,
+				   null_reduce_value x)
+  {
+    os << "{}";
+    return os;
+  } /*operator<<*/
+
+  /* just counts #of distinct values;
+   * redundant,  same as detail::Node<>::size_.
+   * providing for completeness' sake
+   */
+  template <typename Value>
+  class OrdinalReduce {
+  public:
+    using value_type = std::size_t;
+
+  public:
+    static constexpr bool is_monotonic() { return true; }
+
+    value_type nil() const { return 0; }
+
+    std::pair<value_type, value_type> leaf(Value const & x) const {
+      return std::pair<value_type, value_type>(1, 1);
+    } /*leaf*/
+
+    value_type operator()(value_type acc,
+			  Value const & x) const {
+      /* counts #of values */
+      return acc + 1;
+    }
+
+    value_type combine(value_type x, value_type y) const { return x + y; }
+    bool is_equal(value_type x, value_type y) const { return x == y; }
+  }; /*OrdinalReduce*/
+
+  /* reduction for inverting the integral of a non-negative discrete function
+   * computes sum of values for each subtree
+   */
+  template<typename Value>
+  struct SumReduce {
+    using value_type = Value;
+
+    static constexpr bool is_monotonic() { return true; }
+
+    value_type nil() const { return -std::numeric_limits<value_type>::infinity(); }
+    std::pair<value_type, value_type> leaf(Value const & x) const {
+      return std::pair<value_type, value_type>(x, x);
+    } /*leaf*/
+    
+    value_type operator()(value_type reduced,
+			  Value const & x) const {
+      /* sums tree values */
+      if(std::isfinite(reduced)) {
+	return reduced + x;
+      } else {
+	/* omit -oo reduced value from .nil() */
+	return x;
+      }
+    } /*operator()*/
+
+    value_type combine(value_type const & x,
+		       value_type const & y) const {
+      /* omit -oo reduced value from .nil() */
+      if(!std::isfinite(x))
+	return y;
+      if(!std::isfinite(y))
+	return x;
+
+      return x + y;
+    } /*combine*/
+
+    bool is_equal(value_type const & x, value_type const & y) const { return x == y; }
+  }; /*SumReduce*/
+
   /* red-black tree with order statistics
    */
   template <typename Key, typename Value, typename Reduce>
@@ -2582,22 +2633,11 @@ namespace tree {
 
       char const * c_self = "RedBlackTree::find_sum_glb";
 
-      /* we expect r.nil() to supply the smallest possible reduced value.
-       * This implies no key k exists that can satisfy r(k ..) < y.
-       *
-       * use "before begin" iterator as sentinel value in this case
-       */
-      bool infeasible_flag = (y < this->reduce_fn_.nil());
+      RbNode * N = RbUtil::find_sum_glb(this->reduce_fn_,
+					this->root_,
+					y);
 
-      RbNode * N = nullptr;
-
-      if(!infeasible_flag) {
-	N = RbUtil::find_sum_glb(this->reduce_fn_,
-				 this->root_,
-				 y);
-      }
-
-      if(infeasible_flag || !N) {
+      if(!N) {
 	/* for no-lower-bound edge cases,  return iterator ix
 	 * pointing to 'before the beginning' of this tree.
 	 *
