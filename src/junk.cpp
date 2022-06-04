@@ -5,6 +5,7 @@
 #include "statistics/Histogram.hpp"
 #include "statistics/SampleStatistics.hpp"
 #include "process/BrownianMotion.hpp"
+#include "distribution/KolmogorovSmirnov.hpp"
 #include "distribution/Empirical.hpp"
 #include "distribution/Normal.hpp"
 #include "random/Uniform.hpp"
@@ -78,6 +79,7 @@ main(int argc, char **argv)
   using xo::random::ExponentialGen;
   using xo::random::NormalGen;
   using xo::random::xoshiro256;
+  using xo::distribution::KolmogorovSmirnov;
   using xo::distribution::Normal;
   using xo::distribution::Empirical;
   using xo::time::utc_nanos;
@@ -178,9 +180,10 @@ main(int argc, char **argv)
     C_Histogram,
     C_RedBlackTree,
     C_Empirical,
+    C_KolmogorovSmirnov,
   };
 
-  Cmd cmd = C_Empirical;
+  Cmd cmd = C_KolmogorovSmirnov;
 
   if(cmd == C_NormalDistribution) {
     constexpr size_t c_n = 500;
@@ -396,7 +399,60 @@ main(int argc, char **argv)
     lscope.log(c_self, ": empirical distribution of n U(0,1) random samples",
 	       xtag("n", dist.n_sample()));
     
-  } 
+  } else if(cmd == C_KolmogorovSmirnov) {
+    for(uint32_t j = 1; j<6; ++j) {
+      double x = 1.0;
+      double term = KolmogorovSmirnov::term1_aux(j, x);
+
+      lscope.log(c_self, ": KS term j",
+		 xtag("j", j), xtag("x", x), xtag("term(j,x)", term));
+    }
+
+    for(uint32_t j = 1; j<6; ++j) {
+      double x = 1.18;
+      double term = KolmogorovSmirnov::term1_aux(j, x);
+
+      lscope.log(c_self, ": KS term j",
+		 xtag("j", j), xtag("x", x), xtag("term(j,x)", term));
+    }
+
+    lscope.log(c_self, ": with",
+	       xtag("pi^2/8", KolmogorovSmirnov::c_pi2_8));
+
+    for(uint32_t j = 1; j<5; ++j) {
+      double x = 1.0;
+      double term = KolmogorovSmirnov::term2_aux(j, x);
+
+      lscope.log(c_self, ": KS term2 j",
+		 xtag("j", j), xtag("x", x), xtag("term2(j,x)", term));
+    }
+
+    for(uint32_t j = 1; j<5; ++j) {
+      double x = 1.18;
+      double term = KolmogorovSmirnov::term2_aux(j, x);
+
+      lscope.log(c_self, ": KS term2 j",
+		 xtag("j", j), xtag("x", x), xtag("term2(j,x)", term));
+    }
+
+    /* KS cdf values */
+    lscope.log(c_self, ": KS P1 series converges quickly for x>1.18");
+    lscope.log(c_self, ": KS P2 series converges quickly for x<1.18");
+
+    double x = 0.02;
+
+    for(uint32_t j = 1; j < 100; ++j) {
+      bool cutover_flag = (x > 1.18);
+
+      lscope.log(c_self, ": KS distr series P1, P2",
+		 xtag("x", x),
+		 xtag(cutover_flag ? "P1(x)" : "p1(x)",
+		      KolmogorovSmirnov::distr1_impl(x)),
+		 xtag(cutover_flag ? "p2(x)" : "P2(x)",
+		      KolmogorovSmirnov::distr2_impl(x)));
+      x *= 1.07;
+    }
+  }
 
 #ifdef NOT_IN_USE
   if (argc < 2) {
