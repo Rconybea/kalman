@@ -23,6 +23,8 @@ namespace xo {
 	this->s_[1] = seed;
 	this->s_[2] = 0;
 	this->s_[3] = 0;
+
+	generate();
       }
 
       static constexpr uint64_t min() { return 0; }
@@ -33,7 +35,7 @@ namespace xo {
 	return (x << k) | (x >> (64 - k));
       }
 
-      uint64_t operator()()
+      uint64_t generate()
       {
 	uint64_t * s = this->s_;
 	uint64_t const result = rol64(s[1] * 5, 7) * 9;
@@ -48,7 +50,9 @@ namespace xo {
 	s[3] = rol64(s[3], 45);
 
 	return result;
-      } /*xoshiro256ss*/
+      } /*generate*/
+
+      uint64_t operator()() { return generate(); }
 
     private:
       /* state */
