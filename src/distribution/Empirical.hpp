@@ -53,8 +53,30 @@ namespace distribution {
     const_iterator begin() const { return sample_map_.begin(); }
     const_iterator end() const { return sample_map_.end(); }
 
-    /* compute kolmogorov-smirnov statistic with a non-sampled distribution */
-    //double ks_stat_1sided(
+    /* compute kolmogorov-smirnov statistic with a non-sampled distribution.
+     * if d2 is sampled,  should use .ks_stat_2sided() instead
+     */
+    double ks_stat_1sided(Distribution<Domain> const & d2) const {
+      double ks_stat = 0.0;
+
+      /* loop over elements x[i] of this (sampled) distribution,
+       * compare cdf(x[i]) with d2.cdf(x[i])
+       *
+       * KS stat is the maximum observed difference.
+       */
+      for(auto const & point : this->sample_map_) {
+	Domain const & xi = point.first;
+
+	double p1 = this->cdf(xi);
+	double p2 = d2.cdf(xi);
+
+	double dp = std::abs(p1 - p2);
+
+	ks_stat = std::max(ks_stat, dp);
+      }
+
+      return ks_stat;
+    } /*ks_stat_1sided*/
 
     /* introduce one new sample into this distribution */
     void include_sample(Domain const & x) {
