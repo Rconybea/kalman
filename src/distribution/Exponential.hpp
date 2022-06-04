@@ -2,13 +2,14 @@
 
 #pragma once
 
+#include "distribution/Distribution.hpp"
 #include <limits>
 #include <cmath>
 
 namespace xo {
   namespace distribution {
     /* Exponential probability distribution */
-    class Exponential {
+    class Exponential : public Distribution<double> {
     public:
       explicit Exponential(double lm) : lambda_(lm) {}
 
@@ -72,6 +73,12 @@ namespace xo {
       double distribution_inverse(double y) const {
 	return distr_inverse_impl(this->lambda_, y);
       } /*distribution_inverse*/
+
+      // ----- inherited from Distribution<double> -----
+
+      virtual double cdf(double const & x) const override {
+	return distribution(x);
+      } /*cdf*/
 
     private:
       /* intensity parameter.

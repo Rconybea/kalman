@@ -6,6 +6,7 @@
 
 namespace xo {
   namespace distribution {
+    /* TODO: inherit Distribution<double> */
     class Normal {
     public:
       /* normal probability density:
@@ -19,6 +20,8 @@ namespace xo {
 
 	return ::exp(-0.5 * x * x) / c_sqrt_2pi;
       } /*density*/
+
+      /* TODO: implement .cdf() */
     }; /*Normal*/
   } /*namespace distribution*/
 } /*namespace xo*/

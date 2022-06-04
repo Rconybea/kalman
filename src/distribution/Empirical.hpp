@@ -2,6 +2,7 @@
 
 #pragma once
 
+#include "distribution/Distribution.hpp"
 #include "tree/RedBlackTree.hpp"
 #include <map>
 #include <cstdint>
@@ -33,13 +34,14 @@ namespace distribution {
     CounterRep count_ = 0;
   }; /*Counter*/
 
-  /* an empirical distribution,
+  /* an empirical distribution over a given domain
+   * (e.g. double as proxy for IR),
    * obtained by sorting equally-weighted samples
    */
-  template<typename T>
-  class Empirical {
+  template<typename Domain>
+  class Empirical : public Distribution<Domain> {
   public:
-    using SampleMap = xo::tree::RedBlackTree<T,
+    using SampleMap = xo::tree::RedBlackTree<Domain,
 					     Counter,
 					     xo::tree::SumReduce<uint32_t>>;
     using const_iterator = typename SampleMap::const_iterator;
@@ -51,8 +53,11 @@ namespace distribution {
     const_iterator begin() const { return sample_map_.begin(); }
     const_iterator end() const { return sample_map_.end(); }
 
+    /* compute kolmogorov-smirnov statistic with a non-sampled distribution */
+    //double ks_stat_1sided(
+
     /* introduce one new sample into this distribution */
-    void include_sample(T const & x) {
+    void include_sample(Domain const & x) {
       ++(this->n_sample_);
 
       /* note: xo::tree::RedBlackTree doesn't provide the usual reference result
@@ -63,6 +68,16 @@ namespace distribution {
 
       lhs += 1;
     } /*include_sample*/
+
+    // ----- inherited from Distribution<Domain> -----
+
+    virtual double cdf(Domain const & x) const override {
+      /* computes #of samples with values <= x */
+      uint32_t nx = this->sample_map_.reduce_lub(x, true /*is_closed*/);
+      size_t n = this->sample_map_.size();
+
+      return static_cast<double>(nx) / n;
+    } /*cdf*/
 
   private:
     /* count #of calls to .include_sample() */

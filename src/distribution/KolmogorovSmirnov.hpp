@@ -2,6 +2,7 @@
 
 #pragma once
 
+#include "distribution/Distribution.hpp"
 #include "logutil/scope.hpp"
 #include <cmath>
 #include <cstdint>
@@ -10,7 +11,7 @@ namespace xo {
   /* Kolmogorov-Smirnov probability distribution */
   namespace distribution {
     
-    class KolmogorovSmirnov {
+    class KolmogorovSmirnov : public Distribution<double> {
     public:
       KolmogorovSmirnov() = default;
 
@@ -197,6 +198,11 @@ namespace xo {
       double distribution(double x) const {
 	return distr_impl(x);
       } /*distribution*/
+
+      // ----- inherited from Distribution<double> -----
+      virtual double cdf(double const & x) const {
+	return this->distribution(x);
+      } /*cdf*/
     }; /*KolmogorovSmirnov*/
   } /*namespace distribution*/
 } /*namespace xo*/
