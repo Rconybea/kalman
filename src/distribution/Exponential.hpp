@@ -62,6 +62,8 @@ namespace xo {
 	return (-1.0 / lambda) *  ::log(1.0 - Fx);
       } /*distr_inverse_impl*/
 
+      double lambda() const { return lambda_; }
+
       double density(double x) const {
 	return density_impl(this->lambda_, x);
       } /*density*/
@@ -85,6 +87,7 @@ namespace xo {
        * require: lambda > 0
        */
       double lambda_;
+    }; /*Exponential*/
   } /*namespace distribution*/
 } /*namespace xo*/
 

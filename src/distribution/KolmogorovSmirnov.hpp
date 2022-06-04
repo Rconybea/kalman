@@ -194,6 +194,37 @@ namespace xo {
 	}
       } /*distr_impl*/
 
+      /* p-value for significance of a particular value of the KS-statistic
+       * obtain this statistic for a sample distribution using
+       *   Empirical.ks_stat_1sided(dexp)
+       * for some target distribution dexp
+       *
+       * ne.
+       *   for 1-sided test:  #of points in sample, i.e. Empirical.n_sample()
+       *   for 2-sided test:  (n1 . n2) / (n1 + n2)
+       * D.
+       *   max difference between observed and expected cumulative distributions.
+       *   see Empirical.ks_stat_1sided()
+       */
+      static double ks_pvalue(uint32_t ne, double D)
+      {
+	double ne_sqrt = ::sqrt(ne);
+
+	/* argument to KS-distribution.
+	 *   x in [0, +oo)
+	 *
+	 * A large value for x -> small value for 1 - KSdist(x),
+	 * i.e. represents probability that a sample of size ne with a 
+	 * KS-statistic of magnitude D or larger,  could be drawn from
+	 * distribution dexp.
+	 */
+	double x = ne_sqrt + 0.12 + (0.11 / ne_sqrt);
+
+	double pvalue = 1.0 - distr_impl(x);
+
+	return pvalue;
+      } /*ks_pvalue*/
+
       /* cumulative distribution function */
       double distribution(double x) const {
 	return distr_impl(x);

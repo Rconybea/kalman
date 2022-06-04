@@ -59,6 +59,14 @@ namespace distribution {
     double ks_stat_1sided(Distribution<Domain> const & d2) const {
       double ks_stat = 0.0;
 
+      /* for i'th loop iteration below:
+       *   xj_sum = sum of all x[j] with j<=i
+       */
+      uint32_t xj_sum = 0;
+
+      /* #of sample in this distribution,  as double */
+      double nr = 1.0 / this->n_sample();
+
       /* loop over elements x[i] of this (sampled) distribution,
        * compare cdf(x[i]) with d2.cdf(x[i])
        *
@@ -66,8 +74,12 @@ namespace distribution {
        */
       for(auto const & point : this->sample_map_) {
 	Domain const & xi = point.first;
+	uint32_t xi_count = point.second;
 
-	double p1 = this->cdf(xi);
+	xj_sum += xi_count;
+
+	/* p1 = xi_sum / n1,  where n1 = .n_sample() */
+	double p1 = xj_sum * nr;
 	double p2 = d2.cdf(xi);
 
 	double dp = std::abs(p1 - p2);
@@ -96,7 +108,7 @@ namespace distribution {
     virtual double cdf(Domain const & x) const override {
       /* computes #of samples with values <= x */
       uint32_t nx = this->sample_map_.reduce_lub(x, true /*is_closed*/);
-      size_t n = this->sample_map_.size();
+      size_t n = this->n_sample();
 
       return static_cast<double>(nx) / n;
     } /*cdf*/
