@@ -6,6 +6,7 @@
 #include "statistics/SampleStatistics.hpp"
 #include "process/BrownianMotion.hpp"
 #include "distribution/KolmogorovSmirnov.hpp"
+#include "distribution/Exponential.hpp"
 #include "distribution/Empirical.hpp"
 #include "distribution/Normal.hpp"
 #include "random/Uniform.hpp"
@@ -81,6 +82,7 @@ main(int argc, char **argv)
   using xo::random::xoshiro256;
   using xo::distribution::KolmogorovSmirnov;
   using xo::distribution::Normal;
+  using xo::distribution::Exponential;
   using xo::distribution::Empirical;
   using xo::time::utc_nanos;
   using xo::time::days;
@@ -183,7 +185,8 @@ main(int argc, char **argv)
     C_KolmogorovSmirnov,
   };
 
-  Cmd cmd = C_KolmogorovSmirnov;
+  Cmd cmd = C_Histogram;
+  //Cmd cmd = C_KolmogorovSmirnov;
 
   if(cmd == C_NormalDistribution) {
     constexpr size_t c_n = 500;
@@ -287,16 +290,43 @@ main(int argc, char **argv)
 		   1.0 /*hi_bucket*/);
 
     SampleStatistics sample;
+    /* probability distribution of sample */
+    Empirical<double> sample_dist;
 
-    auto rgen = UnitIntervalGen<xo::random::xoshiro256>::make(time(nullptr) /*seed*/);
+    //uint64_t seed = 14950349842636922572UL;
+    uint64_t seed = static_cast<uint64_t>(time(nullptr));
+    arc4random_buf(&seed, sizeof(seed));
+
+    auto rgen = UnitIntervalGen<xo::random::xoshiro256>::make(seed);
+
+    /* use Kolmogorov-Smirnov test to compare with another distribution */
+    Exponential exp_dist(0.7);
+    
+    lscope.log("comparing online sample distribution with exponential distribution",
+	       xtag("half-life", exp_dist.lambda()));
+    lscope.log("note: KS p-value not trustworthy for n < 5");
 
     /* generate samples */
-    for(uint32_t i=0; i<1000; ++i) {
+    for(uint32_t i=0; i<100; ++i) {
       /* generate U(0,1) random value */
       double xi = rgen();
 
       hist.include_sample(xi);
       sample.include_sample(xi);
+      sample_dist.include_sample(xi);
+
+      double ks_stat = sample_dist.ks_stat_1sided(exp_dist);
+      double ks_pvalue = KolmogorovSmirnov::ks_pvalue(sample_dist.n_sample(),
+						      ks_stat);
+
+      /* measure KS-stat versus obviously-wrong exponential distribution,
+       * as we proceed
+       */
+      lscope.log(xtag("n", sample_dist.n_sample()),
+		 xtag("x[i]", xi),
+		 xtag("ks_stat", ks_stat),
+		 xtag("ks_pvalue", ks_pvalue)
+		 );
     } 
 
     lscope.log("histogram of U(0,1) psuedorandom vars");
@@ -311,6 +341,18 @@ main(int argc, char **argv)
 		 " ", bucket.n_sample(),
 		 " ", bucket.mean());
     }
+
+#ifdef OBSOLETE
+    double ks_stat = sample_dist.ks_stat_1sided(exp_dist);
+
+    lscope.log("comparing sample distribution with exponential distribution",
+	       xtag("half-life", exp_dist.lambda()));
+    lscope.log(xtag("ks-stat", ks_stat));
+    lscope.log(xtag("p-value",
+		    KolmogorovSmirnov::ks_pvalue(sample_dist.n_sample(),
+						 ks_stat)));
+#endif
+
   } else if(cmd == C_RedBlackTree) {
     RedBlackTree<int, double, OrdinalReduce<int>> rbtree;
 
