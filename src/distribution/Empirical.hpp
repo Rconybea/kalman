@@ -4,6 +4,7 @@
 
 #include "distribution/Distribution.hpp"
 #include "tree/RedBlackTree.hpp"
+#include "logutil/scope.hpp"
 #include <map>
 #include <cstdint>
 
@@ -57,6 +58,14 @@ namespace distribution {
      * if d2 is sampled,  should use .ks_stat_2sided() instead
      */
     double ks_stat_1sided(Distribution<Domain> const & d2) const {
+      using logutil::scope;
+      using logutil::xtag;
+
+      constexpr char const * c_self = "Empirical::ks_stat_1sided";
+      constexpr bool c_logging_enabled = false;
+
+      scope lscope(c_self, c_logging_enabled);
+
       double ks_stat = 0.0;
 
       /* for i'th loop iteration below:
@@ -83,6 +92,15 @@ namespace distribution {
 	double p2 = d2.cdf(xi);
 
 	double dp = std::abs(p1 - p2);
+
+	if(c_logging_enabled)
+	  lscope.log(c_self,
+		   xtag("xi", xi),
+		   xtag("xi_count", xi_count),
+		   xtag("xj_sum", xj_sum),
+		   xtag("p1", p1),
+		   xtag("p2", p2),
+		   xtag("dp", dp));
 
 	ks_stat = std::max(ks_stat, dp);
       }
