@@ -208,6 +208,14 @@ namespace xo {
        */
       static double ks_pvalue(uint32_t ne, double D)
       {
+	using logutil::scope;
+	using logutil::xtag;
+
+	constexpr char const * c_self = "KolmogorovSmirnov::ks_pvalue";
+	constexpr bool logging_enabled_flag = false;
+
+	scope lscope(c_self, logging_enabled_flag);
+
 	double ne_sqrt = ::sqrt(ne);
 
 	/* argument to KS-distribution.
@@ -220,7 +228,17 @@ namespace xo {
 	 */
 	double x = ne_sqrt + 0.12 + (0.11 / ne_sqrt);
 
-	double pvalue = 1.0 - distr_impl(x);
+	double xD = x * D;
+
+	double pvalue = 1.0 - distr_impl(xD);
+
+	if(logging_enabled_flag)
+	  lscope.log(xtag("ne", ne),
+		     xtag("D", D),
+		     xtag("ne_sqrt", ne_sqrt),
+		     xtag("x", x),
+		     xtag("xD", xD),
+		     xtag("pvalue", pvalue));
 
 	return pvalue;
       } /*ks_pvalue*/
