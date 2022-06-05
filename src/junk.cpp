@@ -9,6 +9,7 @@
 #include "distribution/Exponential.hpp"
 #include "distribution/Empirical.hpp"
 #include "distribution/Normal.hpp"
+#include "distribution/Uniform.hpp"
 #include "random/Uniform.hpp"
 #include "random/TwoPoint.hpp"
 #include "random/Exponential.hpp"
@@ -80,10 +81,11 @@ main(int argc, char **argv)
   using xo::random::ExponentialGen;
   using xo::random::NormalGen;
   using xo::random::xoshiro256;
+  using xo::distribution::Empirical;
   using xo::distribution::KolmogorovSmirnov;
   using xo::distribution::Normal;
   using xo::distribution::Exponential;
-  using xo::distribution::Empirical;
+  using xo::distribution::Uniform;
   using xo::time::utc_nanos;
   using xo::time::days;
   using xo::time::hours;
@@ -301,6 +303,7 @@ main(int argc, char **argv)
 
     /* use Kolmogorov-Smirnov test to compare with another distribution */
     Exponential exp_dist(0.7);
+    Uniform u_dist = Uniform::unit();
     
     lscope.log("comparing online sample distribution with exponential distribution",
 	       xtag("half-life", exp_dist.lambda()));
@@ -315,17 +318,22 @@ main(int argc, char **argv)
       sample.include_sample(xi);
       sample_dist.include_sample(xi);
 
-      double ks_stat = sample_dist.ks_stat_1sided(exp_dist);
-      double ks_pvalue = KolmogorovSmirnov::ks_pvalue(sample_dist.n_sample(),
-						      ks_stat);
+      double ks_x_stat = sample_dist.ks_stat_1sided(exp_dist);
+      double ks_x_pvalue = KolmogorovSmirnov::ks_pvalue(sample_dist.n_sample(),
+							ks_x_stat);
+      double ks_u_stat = sample_dist.ks_stat_1sided(u_dist);
+      double ks_u_pvalue = KolmogorovSmirnov::ks_pvalue(sample_dist.n_sample(),
+							ks_u_stat);
 
       /* measure KS-stat versus obviously-wrong exponential distribution,
        * as we proceed
        */
       lscope.log(xtag("n", sample_dist.n_sample()),
 		 xtag("x[i]", xi),
-		 xtag("ks_stat", ks_stat),
-		 xtag("ks_pvalue", ks_pvalue)
+		 xtag("ks_x_stat", ks_x_stat),
+		 xtag("ks_x_pvalue", ks_x_pvalue),
+		 xtag("ks_u_stat", ks_u_stat),
+		 xtag("ks_u_pvalue", ks_u_pvalue)
 		 );
     } 
 
