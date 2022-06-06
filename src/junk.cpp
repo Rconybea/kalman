@@ -15,8 +15,10 @@
 #include "random/Exponential.hpp"
 #include "random/Normal.hpp"
 #include "random/xoshiro256.hpp"
+#include "random/random_seed.hpp"
 #include "logutil/scope.hpp"
 #include "logutil/tag.hpp"
+#include "logutil/array.hpp"
 #include "reflect/demangle.hpp"
 #include <Eigen/Dense>
 #include <algorithm>
@@ -27,6 +29,7 @@ namespace xo {
   using xo::process::BrownianMotion;
   using xo::time::utc_nanos;
   using xo::time::days;
+  //using logutil::operator<<;
 
   /* (*p_v)[i_lo] and (*p_v)[i_hi]
    * already populated
@@ -80,7 +83,9 @@ main(int argc, char **argv)
   using xo::random::TwoPointDistribution;
   using xo::random::ExponentialGen;
   using xo::random::NormalGen;
-  using xo::random::xoshiro256;
+  using xo::random::xoshiro256ss;
+  using xo::random::random_seed;
+  using xo::random::Seed;
   using xo::distribution::Empirical;
   using xo::distribution::KolmogorovSmirnov;
   using xo::distribution::Normal;
@@ -220,32 +225,31 @@ main(int argc, char **argv)
   // Cmd cmd = C_KolmogorovSmirnov;
 
   if (cmd == C_NormalDistribution) {
-        constexpr size_t c_n = 500;
+    constexpr size_t c_n = 500;
 
-        for (size_t i = 0; i <= c_n; ++i) {
-          constexpr double c_lo = -4.0;
-          constexpr double c_hi = +4.0;
+    for (size_t i = 0; i <= c_n; ++i) {
+      constexpr double c_lo = -4.0;
+      constexpr double c_hi = +4.0;
 
-          double xi = c_lo + i * (c_hi - c_lo) / c_n;
-          double yi = Normal::density(xi);
+      double xi = c_lo + i * (c_hi - c_lo) / c_n;
+      double yi = Normal::density(xi);
 
-          std::cout << xi << " " << yi << std::endl;
-        }
-      } else if (cmd == C_UnitIntRandom) {
-        // uint64_t seed = 14950349842636922572UL;
-        uint64_t seed = static_cast<uint64_t>(time(nullptr));
-        arc4random_buf(&seed, sizeof(seed));
+      std::cout << xi << " " << yi << std::endl;
+    }
+  } else if (cmd == C_UnitIntRandom) {
+    // uint64_t seed = 14950349842636922572UL;
+    Seed<xoshiro256ss::seed_type> seed;
 
-        auto rgen = UnitIntervalGen<xo::random::xoshiro256>::make(seed);
+    auto rgen = UnitIntervalGen<xo::random::xoshiro256ss>::make(seed);
 
-	/* generate in pairs, so we can graphically test for pairwise dependence
-	 */
-        for (size_t i = 0; i < 10000; ++i) {
-          double xi = rgen();
-	  double yi = rgen();
-          std::cout << xi << " " << yi << std::endl;
-        }
-      } else if (cmd == C_TwoPoint) {
+    /* generate in pairs, so we can graphically test for pairwise dependence
+     */
+    for (size_t i = 0; i < 10000; ++i) {
+      double xi = rgen();
+      double yi = rgen();
+      std::cout << xi << " " << yi << std::endl;
+    }
+  } else if (cmd == C_TwoPoint) {
         auto rgen = TwoPointGen::make(time(nullptr) /*seed*/, 0.5 /*prob*/,
                                       -1.0 /*x1*/, +1.0 /*x2*/);
 
@@ -258,17 +262,17 @@ main(int argc, char **argv)
 
           std::cout << xi << std::endl;
         }
-      } else if (cmd == C_Exponential) {
-        auto rgen =
-            ExponentialGen::make(time(nullptr) /*seed*/, 10.1 /*lambda*/);
+  } else if (cmd == C_Exponential) {
+    auto rgen =
+      ExponentialGen::make(time(nullptr) /*seed*/, 10.1 /*lambda*/);
 
-        for (size_t i = 0; i < 50; ++i) {
-          double xi = rgen();
+    for (size_t i = 0; i < 50; ++i) {
+      double xi = rgen();
 
-          std::cout << xi << std::endl;
-        }
-      } else if (cmd == C_Normal) {
-        auto rgen = NormalGen<xo::random::xoshiro256>::make(
+      std::cout << xi << std::endl;
+    }
+  } else if (cmd == C_Normal) {
+        auto rgen = NormalGen<xo::random::xoshiro256ss>::make(
             time(nullptr) /*seed*/, 0.0 /*mean*/, 100.0 /*sdev*/);
 
         for (size_t i = 0; i < 50; ++i) {
@@ -328,10 +332,9 @@ main(int argc, char **argv)
         Empirical<double> sample_dist;
 
         // uint64_t seed = 14950349842636922572UL;
-        uint64_t seed = static_cast<uint64_t>(time(nullptr));
-        arc4random_buf(&seed, sizeof(seed));
+        Seed<uint64_t> seed;
 
-        auto rgen = UnitIntervalGen<xo::random::xoshiro256>::make(seed);
+        auto rgen = UnitIntervalGen<xoshiro256ss>::make(seed);
 
         /* use Kolmogorov-Smirnov test to compare with another distribution */
         Exponential exp_dist(0.7);
@@ -403,7 +406,7 @@ main(int argc, char **argv)
 
     lscope.log(c_self, ": using rng seed from /dev/urandom", xtag("seed", seed));
 
-    auto rgen = xo::random::xoshiro256(seed);
+    auto rgen = xo::random::xoshiro256ss(seed);
 
     /* generate a random series of inserts and removes,  with increasing scale */
 
@@ -458,12 +461,12 @@ main(int argc, char **argv)
     Empirical<double> dist;
 
     //uint64_t seed = 14950349842636922572UL;
-    uint64_t seed = static_cast<uint64_t>(time(nullptr));
-    arc4random_buf(&seed, sizeof(seed));
+    Seed<xoshiro256ss::seed_type> seed;
 
-    auto rgen = UnitIntervalGen<xo::random::xoshiro256>::make(seed);
+    auto rgen = UnitIntervalGen<xoshiro256ss>::make(seed);
 
-    lscope.log(c_self, ": using rng seed from /dev/urandom", xtag("seed", seed));
+    lscope.log(c_self, ": using rng seed from /dev/urandom",
+	       xtag("seed", seed));
 
     /* generate uniformly-distributed random samples,
      * and record empirical cumulative distribution
