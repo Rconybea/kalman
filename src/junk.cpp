@@ -193,7 +193,7 @@ main(int argc, char **argv)
 
   /* print menu */
   while ((cmd_int < 1) || (cmd_int > N_Command)) {
-    std::cout << "menu:\n"
+    std::cerr << "menu:\n"
               << "1. normal distribution\n"
               << "2. U(0,1) random numbers\n"
               << "3. two-point random numbers\n"
@@ -204,7 +204,7 @@ main(int argc, char **argv)
               << "8. red-black tree with order statistics\n"
               << "9. empirical (i.e. sample) distribution\n"
               << "10. kolmogorov-smirnov test\n";
-    std::cout << "> " << std::flush;
+    std::cerr << "> " << std::flush;
 
     std::cin >> cmd_int;
 
@@ -232,13 +232,18 @@ main(int argc, char **argv)
           std::cout << xi << " " << yi << std::endl;
         }
       } else if (cmd == C_UnitIntRandom) {
-        auto rgen = UnitIntervalGen<xo::random::xoshiro256>::make(
-            time(nullptr) /*seed*/);
+        // uint64_t seed = 14950349842636922572UL;
+        uint64_t seed = static_cast<uint64_t>(time(nullptr));
+        arc4random_buf(&seed, sizeof(seed));
 
-        for (size_t i = 0; i < 10; ++i) {
+        auto rgen = UnitIntervalGen<xo::random::xoshiro256>::make(seed);
+
+	/* generate in pairs, so we can graphically test for pairwise dependence
+	 */
+        for (size_t i = 0; i < 10000; ++i) {
           double xi = rgen();
-
-          std::cout << xi << std::endl;
+	  double yi = rgen();
+          std::cout << xi << " " << yi << std::endl;
         }
       } else if (cmd == C_TwoPoint) {
         auto rgen = TwoPointGen::make(time(nullptr) /*seed*/, 0.5 /*prob*/,
