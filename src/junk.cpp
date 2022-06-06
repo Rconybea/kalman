@@ -185,171 +185,198 @@ main(int argc, char **argv)
     C_RedBlackTree,
     C_Empirical,
     C_KolmogorovSmirnov,
+    N_Command
   };
 
-  Cmd cmd = C_Histogram;
-  //Cmd cmd = C_KolmogorovSmirnov;
+  /* Cmd enum encoding will be cmd_int-1 */
+  uint32_t cmd_int = 0;
 
-  if(cmd == C_NormalDistribution) {
-    constexpr size_t c_n = 500;
+  /* print menu */
+  while ((cmd_int < 1) || (cmd_int > N_Command)) {
+    std::cout << "menu:\n"
+              << "1. normal distribution\n"
+              << "2. U(0,1) random numbers\n"
+              << "3. two-point random numbers\n"
+              << "4. exponentially-distributed random numbers\n"
+              << "5. normally-distributed random numbers\n"
+              << "6. discretized wiener process\n"
+              << "7. histogram\n"
+              << "8. red-black tree with order statistics\n"
+              << "9. empirical (i.e. sample) distribution\n"
+              << "10. kolmogorov-smirnov test\n";
+    std::cout << "> " << std::flush;
 
-    for(size_t i=0; i<=c_n; ++i) {
-      constexpr double c_lo = -4.0;
-      constexpr double c_hi = +4.0;
+    std::cin >> cmd_int;
 
-      double xi = c_lo + i * (c_hi - c_lo) / c_n;
-      double yi = Normal::density(xi);
-
-      std::cout << xi << " " << yi << std::endl;
+    if (cmd_int < 1 || cmd_int > N_Command) {
+      std::cerr << "got [" << cmd_int << "]"
+                << " where integer in [1,..,10] expected" << std::endl;
+    } else {
+      break;
     }
-  } else if(cmd == C_UnitIntRandom) {
-    auto rgen = UnitIntervalGen<xo::random::xoshiro256>::make(time(nullptr) /*seed*/);
+  } /*loop for command */
 
-    for(size_t i=0; i<10; ++i) {
-      double xi = rgen();
+  Cmd cmd = static_cast<Cmd>(cmd_int - 1);
+  // Cmd cmd = C_KolmogorovSmirnov;
 
-      std::cout << xi << std::endl;
-    }
-  } else if(cmd == C_TwoPoint) {
-    auto rgen = TwoPointGen::make(time(nullptr) /*seed*/,
-				  0.5 /*prob*/,
-				  -1.0 /*x1*/,
-				  +1.0 /*x2*/);
+  if (cmd == C_NormalDistribution) {
+        constexpr size_t c_n = 500;
 
-    //std::cout << "type(rgen)=" << typeid(decltype(rgen)).name() << std::endl;
-    //std::cout << "type(rgen)=" << xo::reflect::type_name<decltype(rgen)>();
+        for (size_t i = 0; i <= c_n; ++i) {
+          constexpr double c_lo = -4.0;
+          constexpr double c_hi = +4.0;
 
-    for(size_t i=0; i<50; ++i) {
-      double xi = rgen();
+          double xi = c_lo + i * (c_hi - c_lo) / c_n;
+          double yi = Normal::density(xi);
 
-      std::cout << xi << std::endl;
-    }
-  } else if(cmd == C_Exponential) {
-    auto rgen = ExponentialGen::make(time(nullptr) /*seed*/,
-				     10.1 /*lambda*/);
+          std::cout << xi << " " << yi << std::endl;
+        }
+      } else if (cmd == C_UnitIntRandom) {
+        auto rgen = UnitIntervalGen<xo::random::xoshiro256>::make(
+            time(nullptr) /*seed*/);
 
-    for(size_t i=0; i<50; ++i) {
-      double xi = rgen();
+        for (size_t i = 0; i < 10; ++i) {
+          double xi = rgen();
 
-      std::cout << xi << std::endl;
-    }
-  } else if(cmd == C_Normal) {
-    auto rgen = NormalGen<xo::random::xoshiro256>::make(time(nullptr) /*seed*/,
-							0.0 /*mean*/,
-							100.0 /*sdev*/);
+          std::cout << xi << std::endl;
+        }
+      } else if (cmd == C_TwoPoint) {
+        auto rgen = TwoPointGen::make(time(nullptr) /*seed*/, 0.5 /*prob*/,
+                                      -1.0 /*x1*/, +1.0 /*x2*/);
 
-    for(size_t i=0; i<50; ++i) {
-      double xi = rgen();
+        // std::cout << "type(rgen)=" << typeid(decltype(rgen)).name() <<
+        // std::endl; std::cout << "type(rgen)=" <<
+        // xo::reflect::type_name<decltype(rgen)>();
 
-      std::cout << xi << std::endl;
-    }
-  } else if(cmd == C_BrownianMotion) {
-    /* note this is arithmetic brownian motion;
-     * -ve values allowed!
-     */
+        for (size_t i = 0; i < 50; ++i) {
+          double xi = rgen();
 
-    utc_nanos t0 = std::chrono::system_clock::now();
+          std::cout << xi << std::endl;
+        }
+      } else if (cmd == C_Exponential) {
+        auto rgen =
+            ExponentialGen::make(time(nullptr) /*seed*/, 10.1 /*lambda*/);
 
-    BrownianMotion bm(t0,
-		      0.5 /*50% annual volatility - sdev ~ .025/day*/,
-		      time(nullptr) /*seed*/);
+        for (size_t i = 0; i < 50; ++i) {
+          double xi = rgen();
 
-    {
-      double var_1day = bm.variance_dt(xo::time::days(1));
-      lscope.log(TAG2("var(1day)", var_1day));
-      lscope.log(TAG2("sdev(1day)", ::sqrt(var_1day)));
-    }
-    {
-      double var_30day = bm.variance_dt(xo::time::days(30));
-      lscope.log(TAG2("var(30day)", var_30day));
-      lscope.log(TAG2("sdev(30day)", ::sqrt(var_30day)));
-    }
+          std::cout << xi << std::endl;
+        }
+      } else if (cmd == C_Normal) {
+        auto rgen = NormalGen<xo::random::xoshiro256>::make(
+            time(nullptr) /*seed*/, 0.0 /*mean*/, 100.0 /*sdev*/);
 
-    lscope.log("using exterior_sample (30 days)");
-    constexpr uint32_t n = 30;
-    std::array<double, n> v;
+        for (size_t i = 0; i < 50; ++i) {
+          double xi = rgen();
 
-    v[0] = 0.0;
-    for(uint32_t i=1; i<n; ++i) {
-      utc_nanos ti_prev = t0 + days(i-1);
-      utc_nanos ti = t0 + days(i);
+          std::cout << xi << std::endl;
+        }
+      } else if (cmd == C_BrownianMotion) {
+        /* note this is arithmetic brownian motion;
+         * -ve values allowed!
+         */
 
-      v[i] = bm.exterior_sample(ti, BrownianMotion::event_type(ti_prev, v[i-1]));
+        utc_nanos t0 = std::chrono::system_clock::now();
 
-      lscope.log(TAG(i), " ", TAG(v[i]));
-    }
+        BrownianMotion bm(t0, 0.5 /*50% annual volatility - sdev ~ .025/day*/,
+                          time(nullptr) /*seed*/);
 
-    lscope.log("using interior_sample");
+        {
+          double var_1day = bm.variance_dt(xo::time::days(1));
+          lscope.log(TAG2("var(1day)", var_1day));
+          lscope.log(TAG2("sdev(1day)", ::sqrt(var_1day)));
+        }
+        {
+          double var_30day = bm.variance_dt(xo::time::days(30));
+          lscope.log(TAG2("var(30day)", var_30day));
+          lscope.log(TAG2("sdev(30day)", ::sqrt(var_30day)));
+        }
 
-    xo::fill_interior_samples<n>(t0, 0, n-1, &bm, &v);
+        lscope.log("using exterior_sample (30 days)");
+        constexpr uint32_t n = 30;
+        std::array<double, n> v;
 
-    for(uint32_t i=1; i<n; ++i) {
-      lscope.log(TAG(i), " ", TAG(v[i]));
-    }
-  } else if(cmd == C_Histogram) {
-    Histogram hist(100 /*n_interior_bucket*/,
-		   0.0 /*lo_bucket*/,
-		   1.0 /*hi_bucket*/);
+        v[0] = 0.0;
+        for (uint32_t i = 1; i < n; ++i) {
+          utc_nanos ti_prev = t0 + days(i - 1);
+          utc_nanos ti = t0 + days(i);
 
-    SampleStatistics sample;
-    /* probability distribution of sample */
-    Empirical<double> sample_dist;
+          v[i] = bm.exterior_sample(
+              ti, BrownianMotion::event_type(ti_prev, v[i - 1]));
 
-    //uint64_t seed = 14950349842636922572UL;
-    uint64_t seed = static_cast<uint64_t>(time(nullptr));
-    arc4random_buf(&seed, sizeof(seed));
+          lscope.log(TAG(i), " ", TAG(v[i]));
+        }
 
-    auto rgen = UnitIntervalGen<xo::random::xoshiro256>::make(seed);
+        lscope.log("using interior_sample");
 
-    /* use Kolmogorov-Smirnov test to compare with another distribution */
-    Exponential exp_dist(0.7);
-    Uniform u_dist = Uniform::unit();
-    
-    lscope.log("comparing online sample distribution with exponential distribution",
-	       xtag("half-life", exp_dist.lambda()));
-    lscope.log("note: KS p-value not trustworthy for n < 5");
+        xo::fill_interior_samples<n>(t0, 0, n - 1, &bm, &v);
 
-    /* generate samples */
-    for(uint32_t i=0; i<100; ++i) {
-      /* generate U(0,1) random value */
-      double xi = rgen();
+        for (uint32_t i = 1; i < n; ++i) {
+          lscope.log(TAG(i), " ", TAG(v[i]));
+        }
+      } else if (cmd == C_Histogram) {
+        Histogram hist(100 /*n_interior_bucket*/, 0.0 /*lo_bucket*/,
+                       1.0 /*hi_bucket*/);
 
-      hist.include_sample(xi);
-      sample.include_sample(xi);
-      sample_dist.include_sample(xi);
+        SampleStatistics sample;
+        /* probability distribution of sample */
+        Empirical<double> sample_dist;
 
-      std::pair<double,double> ks_x_stat = sample_dist.ks_stat_1sided(exp_dist);
-      double ks_x_pvalue = KolmogorovSmirnov::ks_pvalue(ks_x_stat.first,
-							ks_x_stat.second);
+        // uint64_t seed = 14950349842636922572UL;
+        uint64_t seed = static_cast<uint64_t>(time(nullptr));
+        arc4random_buf(&seed, sizeof(seed));
 
-      std::pair<double,double> ks_u_stat = sample_dist.ks_stat_1sided(u_dist);
-      double ks_u_pvalue = KolmogorovSmirnov::ks_pvalue(ks_u_stat.first,
-							ks_u_stat.second);
+        auto rgen = UnitIntervalGen<xo::random::xoshiro256>::make(seed);
 
-      /* measure KS-stat versus obviously-wrong exponential distribution,
-       * as we proceed
-       */
-      lscope.log(xtag("n", sample_dist.n_sample()),
-		 xtag("x[i]", xi),
-		 xtag("ks_x_stat", ks_x_stat.second),
-		 xtag("ks_x_pvalue", ks_x_pvalue),
-		 xtag("ks_u_stat", ks_u_stat.second),
-		 xtag("ks_u_pvalue", ks_u_pvalue)
-		 );
-    } 
+        /* use Kolmogorov-Smirnov test to compare with another distribution */
+        Exponential exp_dist(0.7);
+        Uniform u_dist = Uniform::unit();
 
-    lscope.log("histogram of U(0,1) psuedorandom vars");
-    lscope.log(TAG2("sample-mean", sample.mean()));
-    lscope.log(TAG2("sample-variance", sample.sample_variance()));
+        lscope.log("comparing online sample distribution with exponential "
+                   "distribution",
+                   xtag("half-life", exp_dist.lambda()));
+        lscope.log("note: KS p-value not trustworthy for n < 5");
 
-    lscope.log("bucket, n, mean");
-    for(uint32_t i=0; i<hist.n_bucket(); ++i) {
-      Bucket const & bucket = hist.lookup(i);
+        /* generate samples */
+        for (uint32_t i = 0; i < 100; ++i) {
+          /* generate U(0,1) random value */
+          double xi = rgen();
 
-      lscope.log(hist.bucket_hi_edge(i),
-		 " ", bucket.n_sample(),
-		 " ", bucket.mean());
-    }
+          hist.include_sample(xi);
+          sample.include_sample(xi);
+          sample_dist.include_sample(xi);
+
+          std::pair<double, double> ks_x_stat =
+              sample_dist.ks_stat_1sided(exp_dist);
+          double ks_x_pvalue =
+              KolmogorovSmirnov::ks_pvalue(ks_x_stat.first, ks_x_stat.second);
+
+          std::pair<double, double> ks_u_stat =
+              sample_dist.ks_stat_1sided(u_dist);
+          double ks_u_pvalue =
+              KolmogorovSmirnov::ks_pvalue(ks_u_stat.first, ks_u_stat.second);
+
+          /* measure KS-stat versus obviously-wrong exponential distribution,
+           * as we proceed
+           */
+          lscope.log(xtag("n", sample_dist.n_sample()), xtag("x[i]", xi),
+                     xtag("ks_x_stat", ks_x_stat.second),
+                     xtag("ks_x_pvalue", ks_x_pvalue),
+                     xtag("ks_u_stat", ks_u_stat.second),
+                     xtag("ks_u_pvalue", ks_u_pvalue));
+        }
+
+        lscope.log("histogram of U(0,1) psuedorandom vars");
+        lscope.log(TAG2("sample-mean", sample.mean()));
+        lscope.log(TAG2("sample-variance", sample.sample_variance()));
+
+        lscope.log("bucket, n, mean");
+        for (uint32_t i = 0; i < hist.n_bucket(); ++i) {
+          Bucket const &bucket = hist.lookup(i);
+
+          lscope.log(hist.bucket_hi_edge(i), " ", bucket.n_sample(), " ",
+                     bucket.mean());
+        }
 
 #ifdef OBSOLETE
     double ks_stat = sample_dist.ks_stat_1sided(exp_dist);
@@ -520,7 +547,7 @@ main(int argc, char **argv)
     return 1;
   }
 #endif
-}
+    }
 
 /* junk.cpp */
 
