@@ -7,14 +7,20 @@
 
 namespace xo {
   namespace random {
+    /* generate exponentially-distributed random numbers
+     * with some half-life lambda
+     */
+    template<class Engine>
     class ExponentialGen {
     public:
+      using engine_type = Engine;
       using generator_type
-	= Generator<std::mt19937,
+	= Generator<Engine,
 		    std::exponential_distribution<double>>;
 
-      static generator_type make(uint64_t seed, double lambda) {
-	return generator_type::make(std::mt19937(seed),
+      template<class Seed>
+      static generator_type make(Seed const & seed, double lambda) {
+	return generator_type::make(Engine(seed),
 				    std::exponential_distribution<double>(lambda));
       } /*make*/
     }; /*ExponentialGen*/

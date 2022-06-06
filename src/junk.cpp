@@ -238,7 +238,7 @@ main(int argc, char **argv)
     }
   } else if (cmd == C_UnitIntRandom) {
     // uint64_t seed = 14950349842636922572UL;
-    Seed<xoshiro256ss::seed_type> seed;
+    Seed<xoshiro256ss> seed;
 
     auto rgen = UnitIntervalGen<xo::random::xoshiro256ss>::make(seed);
 
@@ -263,8 +263,10 @@ main(int argc, char **argv)
           std::cout << xi << std::endl;
         }
   } else if (cmd == C_Exponential) {
+    Seed<xoshiro256ss> seed;
+
     auto rgen =
-      ExponentialGen::make(time(nullptr) /*seed*/, 10.1 /*lambda*/);
+      ExponentialGen<xoshiro256ss>::make(seed, 10.1 /*lambda*/);
 
     for (size_t i = 0; i < 50; ++i) {
       double xi = rgen();
@@ -272,7 +274,7 @@ main(int argc, char **argv)
       std::cout << xi << std::endl;
     }
   } else if (cmd == C_Normal) {
-        auto rgen = NormalGen<xo::random::xoshiro256ss>::make(
+        auto rgen = NormalGen<xoshiro256ss>::make(
             time(nullptr) /*seed*/, 0.0 /*mean*/, 100.0 /*sdev*/);
 
         for (size_t i = 0; i < 50; ++i) {
@@ -332,7 +334,7 @@ main(int argc, char **argv)
         Empirical<double> sample_dist;
 
         // uint64_t seed = 14950349842636922572UL;
-        Seed<uint64_t> seed;
+        Seed<xoshiro256ss> seed;
 
         auto rgen = UnitIntervalGen<xoshiro256ss>::make(seed);
 
@@ -461,7 +463,7 @@ main(int argc, char **argv)
     Empirical<double> dist;
 
     //uint64_t seed = 14950349842636922572UL;
-    Seed<xoshiro256ss::seed_type> seed;
+    Seed<xoshiro256ss> seed;
 
     auto rgen = UnitIntervalGen<xoshiro256ss>::make(seed);
 

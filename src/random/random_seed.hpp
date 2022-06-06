@@ -38,16 +38,18 @@ namespace xo {
      *
      * Usage:
      *
-     *   Seed<uint64_t> seed;
+     *   Seed<xoshiro256ss> seed;
      *   auto rgen = UnitIntervalGen<xoshiro256ss>::make(seed);
      */
-    template<typename T>
+    template<typename Engine>
     struct Seed {
+      using seed_type = typename Engine::seed_type;
+
       Seed() { random_seed(&seed_); }
 
-      operator T const & () const { return seed_; }
+      operator seed_type const & () const { return seed_; }
 
-      T seed_;
+      seed_type seed_;
     }; /*Seed*/
 
     template<typename T>
