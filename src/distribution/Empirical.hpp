@@ -57,7 +57,7 @@ namespace distribution {
     /* compute kolmogorov-smirnov statistic with a non-sampled distribution.
      * if d2 is sampled,  should use .ks_stat_2sided() instead
      */
-    double ks_stat_1sided(Distribution<Domain> const & d2) const {
+    std::pair<double, double> ks_stat_1sided(Distribution<Domain> const & d2) const {
       using logutil::scope;
       using logutil::xtag;
 
@@ -105,8 +105,110 @@ namespace distribution {
 	ks_stat = std::max(ks_stat, dp);
       }
 
-      return ks_stat;
+      return std::pair<double, double>(this->n_sample(), ks_stat);
     } /*ks_stat_1sided*/
+
+    /* compute kolmogorov-smirnov statistic with a sampled distribution;
+     * assess likelihood that both samples come from the same population.
+     */
+    std::pair<double, double> ks_stat_2sided(Empirical<Domain> const & d2) {
+      /* loop once over both sample distributions;
+       * algorithm is O(n1 + n2) for two empirical
+       * distributions with n1,n2 points respectively
+       */
+
+      /* return value observed here */
+      double ks_stat = 0.0;
+
+      auto     ix1 = this->sample_map_.begin();
+      auto end_ix1 = this->sample_map_.end();
+
+      auto     ix2 = d2.sample_map_.begin();
+      auto end_ix2 = this->sample_map_.end();
+
+      uint32_t xj1_sum = 0;
+      uint32_t xj2_sum = 0;
+
+      uint32_t n1 = this->n_sample();
+      uint32_t n2 = d2.n_sample();
+
+      double nr1 = 1.0 / n1;
+      double nr2 = 1.0 / n2;
+
+      /*  ^
+       * 1|                   **.
+       *  |                ...*..
+       *  |                .  *
+       *  |          **********
+       *  |          *     .
+       *  |        .........
+       *  |        . *
+       *  |   ********
+       *  | ..*.....
+       *  +----------------------->
+       *           ^ ^
+       *         ix1 ix2
+       */
+
+      while ((ix1 != end_ix1) || (ix2 != end_ix2)) {
+        /* on each iteration,  compare sample distributions
+         * at smallest of (ix1->first, ix2->first)
+         */
+
+        bool advance_ix1_flag = false;
+        bool advance_ix2_flag = false;
+
+        if (ix1 == end_ix1) {
+          /* only ix2 dereferenceable */
+          advance_ix2_flag = true;
+        } else if (ix2 == end_ix2) {
+          /* only ix1 dereferenceable */
+          advance_ix1_flag = true;
+        } else {
+          /* ix1,ix2 both dereferenceable */
+
+	  advance_ix1_flag = (ix1->first <= ix2->first);
+	  advance_ix2_flag = (ix2->first <= ix1->first);
+        }
+
+        if (advance_ix1_flag) {
+          xj1_sum += ix1->first;
+          ++ix1;
+        }
+        if (advance_ix2_flag) {
+          xj2_sum += ix2->first;
+          ++ix2;
+        }
+
+        double p1 = xj1_sum * nr1;
+        double p2 = xj2_sum * nr2;
+
+        double dp = std::abs(p1 - p2);
+
+        ks_stat = std::max(ks_stat, dp);
+      }
+
+      /* ne = effective #of points to use when comparing 2 sample dist/s */
+      double ne = (n1 * n2) / static_cast<double>(n1 + n2);
+
+      return std::pair<double, double>(ne, ks_stat);
+
+#ifdef OBSOLETE
+      /* NOTE: this will cost O(n.log(n))
+       *       (for empirical distributions with n points)
+       *       if we loop over both sets of points in parallel,
+       *       can get O(n) solution
+       *       
+       */
+
+      /* loop over points in *this */
+      double ks1 = this->ks_stat_1sided(d2);
+      /* loop over points in d2 */
+      double ks2 = d2.ks_stat_1sided(*this);
+
+      return std::max(ks1, ks2);
+#endif
+    } /*ks_stat_2sided*/
 
     /* introduce one new sample into this distribution */
     void include_sample(Domain const & x) {
