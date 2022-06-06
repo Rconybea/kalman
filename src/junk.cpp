@@ -250,25 +250,25 @@ main(int argc, char **argv)
       std::cout << xi << " " << yi << std::endl;
     }
   } else if (cmd == C_TwoPoint) {
-        auto rgen = TwoPointGen::make(time(nullptr) /*seed*/, 0.5 /*prob*/,
-                                      -1.0 /*x1*/, +1.0 /*x2*/);
+    auto rgen = TwoPointGen::make(time(nullptr) /*seed*/, 0.5 /*prob*/,
+				  -1.0 /*x1*/, +1.0 /*x2*/);
 
         // std::cout << "type(rgen)=" << typeid(decltype(rgen)).name() <<
         // std::endl; std::cout << "type(rgen)=" <<
         // xo::reflect::type_name<decltype(rgen)>();
 
-        for (size_t i = 0; i < 50; ++i) {
-          double xi = rgen();
+    for (size_t i = 0; i < 50; ++i) {
+      double xi = rgen();
 
-          std::cout << xi << std::endl;
-        }
+      std::cout << xi << std::endl;
+    }
   } else if (cmd == C_Exponential) {
     Seed<xoshiro256ss> seed;
 
     auto rgen =
       ExponentialGen<xoshiro256ss>::make(seed, 10.1 /*lambda*/);
 
-    for (size_t i = 0; i < 50; ++i) {
+    for (size_t i = 0; i < 10000; ++i) {
       double xi = rgen();
 
       std::cout << xi << std::endl;
@@ -326,18 +326,22 @@ main(int argc, char **argv)
           lscope.log(TAG(i), " ", TAG(v[i]));
         }
       } else if (cmd == C_Histogram) {
-        Histogram hist(100 /*n_interior_bucket*/, 0.0 /*lo_bucket*/,
+        Histogram hist(10 /*n_interior_bucket*/, 0.0 /*lo_bucket*/,
                        1.0 /*hi_bucket*/);
 
         SampleStatistics sample;
+#ifdef OBSOLETE
         /* probability distribution of sample */
         Empirical<double> sample_dist;
+#endif
 
         // uint64_t seed = 14950349842636922572UL;
         Seed<xoshiro256ss> seed;
 
-        auto rgen = UnitIntervalGen<xoshiro256ss>::make(seed);
+        //auto rgen = UnitIntervalGen<xoshiro256ss>::make(seed);
+        auto rgen = ExponentialGen<xoshiro256ss>::make(seed, 4.0);
 
+#ifdef OBSOLETE
         /* use Kolmogorov-Smirnov test to compare with another distribution */
         Exponential exp_dist(0.7);
         Uniform u_dist = Uniform::unit();
@@ -346,14 +350,16 @@ main(int argc, char **argv)
                    "distribution",
                    xtag("half-life", exp_dist.lambda()));
         lscope.log("note: KS p-value not trustworthy for n < 5");
+#endif
 
         /* generate samples */
-        for (uint32_t i = 0; i < 100; ++i) {
+        for (uint32_t i = 0; i < 10000; ++i) {
           /* generate U(0,1) random value */
           double xi = rgen();
 
           hist.include_sample(xi);
           sample.include_sample(xi);
+#ifdef OBSOLETE
           sample_dist.include_sample(xi);
 
           std::pair<double, double> ks_x_stat =
@@ -374,6 +380,7 @@ main(int argc, char **argv)
                      xtag("ks_x_pvalue", ks_x_pvalue),
                      xtag("ks_u_stat", ks_u_stat.second),
                      xtag("ks_u_pvalue", ks_u_pvalue));
+#endif
         }
 
         lscope.log("histogram of U(0,1) psuedorandom vars");
@@ -384,9 +391,14 @@ main(int argc, char **argv)
         for (uint32_t i = 0; i < hist.n_bucket(); ++i) {
           Bucket const &bucket = hist.lookup(i);
 
-          lscope.log(hist.bucket_hi_edge(i), " ", bucket.n_sample(), " ",
-                     bucket.mean());
+	  std::cout << hist.bucket_hi_edge(i)
+		    << " " << bucket.n_sample()
+		    << " " << bucket.mean()
+		    << " " << bucket.standard_error()
+		    << "\n";
         }
+
+	std::cout << std::flush;
 
 #ifdef OBSOLETE
     double ks_stat = sample_dist.ks_stat_1sided(exp_dist);

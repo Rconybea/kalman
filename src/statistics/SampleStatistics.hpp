@@ -79,9 +79,9 @@ namespace xo {
        * mean_n.     mean estimate for S(n)
        * moment2.    2nd moment for S(n)
        */
-      double update_online_moment2(double x, 
-				   double mean_np1, double mean_n,
-				   double moment2)
+      static double update_online_moment2(double x, 
+					  double mean_np1, double mean_n,
+					  double moment2)
       {
 	return moment2 + (x - mean_n) * (x - mean_np1);
       } /*update_online_moment2*/

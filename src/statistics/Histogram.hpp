@@ -3,7 +3,9 @@
 #pragma once
 
 #include "statistics/SampleStatistics.hpp"
+#include "logutil/scope.hpp"
 #include <vector>
+#include <cmath>
 #include <cstdint>
 
 namespace xo {
@@ -16,14 +18,41 @@ namespace xo {
       uint32_t n_sample() const { return n_sample_; }
       double sum() const { return sum_; }
       double mean() const { return mean_; }
+      double sample_variance() const { return (n_sample_ > 1) ? moment2_ / (n_sample_ - 1) : 0.0; }
+      double standard_error() const { return ::sqrt(this->sample_variance()); }
 
       /* add one sample, x, to this bucket */
       void include_sample(double x) {
+	using logutil::scope;
+	using logutil::xtag;
+
+	constexpr char const * c_self = "Bucket::include_sample";
+	constexpr bool c_logging_enabled = false;
+
 	int n = this->n_sample_;
 
 	this->n_sample_ = n+1;
 	this->sum_ += x;
-	this->mean_ = SampleStatistics::update_online_mean(x, n, this->mean_);
+
+	double mean_n = this->mean_;
+	double mom2_n = this->moment2_;
+	double mean_np1 = SampleStatistics::update_online_mean(x, n, mean_n);
+	double mom2_np1 = SampleStatistics::update_online_moment2(x,
+								  mean_np1, mean_n,
+								  mom2_n);
+	scope lscope(c_self, c_logging_enabled);
+	if(c_logging_enabled) {
+	lscope.log("update",
+		   xtag("x", x), xtag("n", n),
+		   xtag("sum", sum_),
+		   xtag("mean(n)", mean_n),
+		   xtag("mom2(n)", mom2_n),
+		   xtag("mean(n+1)", mean_np1),
+		   xtag("mom2(n+1)", mom2_np1));
+	}
+
+	this->mean_ = mean_np1;
+	this->moment2_ = mom2_np1;
       } /*include_sample*/
 
     private:
@@ -35,6 +64,7 @@ namespace xo {
        * -- use online algo to avoid catastrophic errors for large #samples
        */
       double mean_ = 0.0;
+      double moment2_ = 0.0;
     }; /*Bucket*/
 
     /* accumulate histogram on sampled data */
