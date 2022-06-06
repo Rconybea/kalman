@@ -2,12 +2,14 @@
 
 #pragma once
 
+#include "distribution/Distribution.hpp"
 #include <cmath>
 
 namespace xo {
   namespace distribution {
-    /* TODO: inherit Distribution<double> */
-    class Normal {
+    /* the guassian distribution,  with mean 0 and variance 1
+     */
+    class Normal : public Distribution<double> {
     public:
       /* normal probability density:
        *
@@ -21,7 +23,25 @@ namespace xo {
 	return ::exp(-0.5 * x * x) / c_sqrt_2pi;
       } /*density*/
 
-      /* TODO: implement .cdf() */
+      /* cumulative distribution function for N(0,1):
+       *    
+       *   / x
+       *   |
+       *   |    p(x).dx
+       *   |
+       *   / -oo 
+       *
+       * where p(x) is the normal density function p(x) = e^[-x^2/2]
+       */
+      static double cdf_impl(double x) {
+	return 0.5 * std::erfc(M_SQRT1_2 * x);
+      } /*cdf_impl*/
+
+      // ----- inherited from Distribution<double> -----
+
+      virtual double cdf(double const & x) const override {
+	return cdf_impl(x);
+      } /*cdf*/
     }; /*Normal*/
   } /*namespace distribution*/
 } /*namespace xo*/
