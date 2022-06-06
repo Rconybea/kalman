@@ -1,0 +1,14 @@
+1. to visually test rng for pairwise independence
+
+   $ cd path/to/kalman
+   $ nix-shell
+   $ xterm
+   ..in xterm window..
+   $ cd build
+   $ ./example > tmp.txt
+   # at menu enter '2' for uniformly-distributed random #'s
+   > 2
+   $ gnuplot
+   gnuplot> set terminal xterm
+   gnuplot> plot "tmp.txt" with points pointtype 7 pointsize 0 lc "blue" notitle
+   
