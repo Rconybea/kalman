@@ -11,4 +11,19 @@
    $ gnuplot
    gnuplot> set terminal xterm
    gnuplot> plot "tmp.txt" with points pointtype 7 pointsize 0 lc "blue" notitle
+
+2. to observe histogram
+
+   $ cd path/to/kalman
+   $ nix-shell
+   $ xterm
+   ..in xterm window..
+   $ cd build
+   $ ./example > tmp.txt
+   # at menu enter '7' for histogram of uniform random #'s
+   > 7
+   $ gnuplot
+   gnuplot> set terminal xtern
+   gnuplot> plot "tmp.txt" using 1:2 with boxes
+   
    
