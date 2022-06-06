@@ -2,6 +2,7 @@
 
 #pragma once
 
+#include <array>
 #include <limits>
 #include <cstdint>
 
@@ -12,12 +13,18 @@ namespace xo {
      *
      * see https:/en.wikipedia.org/wiki/Xorshift#xoshiro256**
      */
-    class xoshiro256 {
+    class xoshiro256ss {
     public:
       using result_type = uint64_t;
+      using seed_type = std::array<uint64_t, 4>;
 
     public:
-      xoshiro256(uint64_t seed)
+      xoshiro256ss(seed_type const & seed)
+	: s_(seed)
+      {}
+
+      /* fallback version */
+      xoshiro256ss(uint64_t seed)
       {
 	this->s_[0] = 0;
 	this->s_[1] = seed;
@@ -37,7 +44,7 @@ namespace xo {
 
       uint64_t generate()
       {
-	uint64_t * s = this->s_;
+	std::array<uint64_t, 4> & s = (this->s_);
 	uint64_t const result = rol64(s[1] * 5, 7) * 9;
 	uint64_t const t = s[1] << 17;
 
@@ -56,8 +63,8 @@ namespace xo {
 
     private:
       /* state */
-      uint64_t s_[4];
-    }; /*xoshiro256*/
+      std::array<uint64_t, 4> s_;
+    }; /*xoshiro256ss*/
   } /*namespace random*/
 } /*namespace xo*/
 
