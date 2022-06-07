@@ -19,7 +19,8 @@ namespace xo {
 	= Generator<Engine,
 		    std::normal_distribution<double>>;
 
-      static generator_type make(uint64_t seed, double mean, double sdev) {
+      template<typename Seed>
+      static generator_type make(Seed const & seed, double mean, double sdev) {
 	return generator_type::make(Engine(seed),
 				    std::normal_distribution(mean, sdev));
       }

@@ -326,8 +326,9 @@ main(int argc, char **argv)
           lscope.log(TAG(i), " ", TAG(v[i]));
         }
       } else if (cmd == C_Histogram) {
-        Histogram hist(10 /*n_interior_bucket*/, 0.0 /*lo_bucket*/,
-                       1.0 /*hi_bucket*/);
+    Histogram hist(50 /*n_interior_bucket*/,
+		       -3.0 /*lo_bucket*/,
+                       +3.0 /*hi_bucket*/);
 
         SampleStatistics sample;
 #ifdef OBSOLETE
@@ -339,7 +340,8 @@ main(int argc, char **argv)
         Seed<xoshiro256ss> seed;
 
         //auto rgen = UnitIntervalGen<xoshiro256ss>::make(seed);
-        auto rgen = ExponentialGen<xoshiro256ss>::make(seed, 4.0);
+        //auto rgen = ExponentialGen<xoshiro256ss>::make(seed, 4.0);
+	auto rgen = NormalGen<xoshiro256ss>::make(seed, 0.0 /*mean*/, 1.0 /*sdev*/);
 
 #ifdef OBSOLETE
         /* use Kolmogorov-Smirnov test to compare with another distribution */
@@ -353,9 +355,14 @@ main(int argc, char **argv)
 #endif
 
         /* generate samples */
-        for (uint32_t i = 0; i < 10000; ++i) {
+        for (uint32_t i = 0; i < 100000; ++i) {
           /* generate U(0,1) random value */
           double xi = rgen();
+
+          /* measure KS-stat versus obviously-wrong exponential distribution,
+           * as we proceed
+           */
+          //lscope.log(xtag("n", hist.n_sample()), xtag("x[i]", xi));
 
           hist.include_sample(xi);
           sample.include_sample(xi);
@@ -393,8 +400,8 @@ main(int argc, char **argv)
 
 	  std::cout << hist.bucket_hi_edge(i)
 		    << " " << bucket.n_sample()
+		    << " " << bucket.n_sample_stderr(hist.n_sample())
 		    << " " << bucket.mean()
-		    << " " << bucket.standard_error()
 		    << "\n";
         }
 
