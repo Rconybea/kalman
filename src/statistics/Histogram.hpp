@@ -14,6 +14,8 @@ namespace xo {
     class Bucket {
     public:
       Bucket() = default;
+      Bucket(uint32_t n_sample, double sum, double mean, double mom2)
+	: n_sample_(n_sample), sum_(sum), mean_(mean), moment2_(mom2) {}
 
       uint32_t n_sample() const { return n_sample_; }
       double sum() const { return sum_; }
@@ -56,6 +58,7 @@ namespace xo {
 	constexpr char const * c_self = "Bucket::include_sample";
 	constexpr bool c_logging_enabled = false;
 
+	/* size of sample _before_ adding x */
 	int n = this->n_sample_;
 
 	this->n_sample_ = n+1;
@@ -115,6 +118,48 @@ namespace xo {
       const_iterator begin() const { return bucket_v_.begin(); }
       const_iterator end() const { return bucket_v_.end(); }
       Bucket const & lookup(uint32_t ix) const { return this->bucket_v_[ix]; }
+
+      /* compute bucket representing pooled sample combining
+       * contents of buckets [lo .. hi)
+       */
+      Bucket pooled(uint32_t lo, uint32_t hi) const {
+	/* NOTE: for pooled bucket,  may want to compute "reliability variance",
+	 *       i.e. report
+	 *         M2 / (N - (sum(nk^2) / N))
+	 *       instead of
+	 *         M2 / (N - 1)
+	 */
+
+	uint32_t n_sample = 0;
+	double sum = 0.0;
+	double mean = 0.0;
+	double mom2 = 0.0;
+
+	for(uint32_t i = lo; i<hi; ++i) {
+	  Bucket const & bucket = this->lookup(i);
+
+	  n_sample += bucket.n_sample();
+	  /* note that sum is not numerically well-behaved if summing
+	   * over a large #of buckets
+	   */
+	  sum += bucket.sum();
+
+	  double prev_mean = mean;
+	  /* relative weight of bucket b(i) relative to pooled statistics
+	   * from buckets b(lo) .. b(i-1)
+	   */
+	  double wt = (bucket.n_sample() / static_cast<double>(n_sample));
+
+	  /* similar to SampleStatistics::update_online_mean() */
+	  mean = prev_mean + wt * (bucket.mean() - prev_mean);
+	  /* similar to SampleStatistics::update_online_moment2() */
+	  mom2 = (mom2 + (bucket.n_sample()
+			  * (bucket.mean() - prev_mean)
+			  * (bucket.mean() - mean)));
+	}
+
+	return Bucket(n_sample, sum, mean, mom2);
+      } /*pooled*/
 
       double bucket_hi_edge(uint32_t ix) const {
 	if(ix < n_interior_bucket_ + 1)
