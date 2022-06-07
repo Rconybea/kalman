@@ -325,10 +325,10 @@ main(int argc, char **argv)
         for (uint32_t i = 1; i < n; ++i) {
           lscope.log(TAG(i), " ", TAG(v[i]));
         }
-      } else if (cmd == C_Histogram) {
+  } else if (cmd == C_Histogram) {
     Histogram hist(50 /*n_interior_bucket*/,
-		       -3.0 /*lo_bucket*/,
-                       +3.0 /*hi_bucket*/);
+		   0.0 /*lo_bucket*/,
+		   1.0 /*hi_bucket*/);
 
         SampleStatistics sample;
 #ifdef OBSOLETE
@@ -340,8 +340,9 @@ main(int argc, char **argv)
         Seed<xoshiro256ss> seed;
 
         //auto rgen = UnitIntervalGen<xoshiro256ss>::make(seed);
-        //auto rgen = ExponentialGen<xoshiro256ss>::make(seed, 4.0);
-	auto rgen = NormalGen<xoshiro256ss>::make(seed, 0.0 /*mean*/, 1.0 /*sdev*/);
+	/* for exponential distribution, mean=1/lambda. */
+	auto rgen = ExponentialGen<xoshiro256ss>::make(seed, 4.0 /*lambda*/);
+	//auto rgen = NormalGen<xoshiro256ss>::make(seed, 0.5 /*mean*/, 0.15 /*sdev*/);
 
 #ifdef OBSOLETE
         /* use Kolmogorov-Smirnov test to compare with another distribution */
@@ -396,13 +397,17 @@ main(int argc, char **argv)
 
         lscope.log("bucket, n, mean");
         for (uint32_t i = 0; i < hist.n_bucket(); ++i) {
-          Bucket const &bucket = hist.lookup(i);
+          Bucket const & bucket = hist.lookup(i);
+	  /* pooled sample, conditional on x > bucket_hi_edge(i-1) */
+	  Bucket cond_bucket = hist.pooled(i, hist.n_bucket());
 
 	  std::cout << hist.bucket_hi_edge(i)
 		    << " " << bucket.n_sample()
 		    << " " << bucket.n_sample_stderr(hist.n_sample())
 		    << " " << bucket.mean()
+		    << " " << cond_bucket.mean() - hist.bucket_lo_edge(i)
 		    << "\n";
+
         }
 
 	std::cout << std::flush;
