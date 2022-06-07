@@ -21,6 +21,33 @@ namespace xo {
       double sample_variance() const { return (n_sample_ > 1) ? moment2_ / (n_sample_ - 1) : 0.0; }
       double standard_error() const { return ::sqrt(this->sample_variance()); }
 
+      /* to estimate standard error of the mean:
+       * 0. let nk = .n_sample be the #of samples falling into this bin.
+       *    n is the total #of samples across all bins.
+       *    (i.e. Histogram.n_sample)
+       * 1. imagine probability of a sample falling in this bin
+       *    is the observed frequency p = (.n_sample / n)
+       * 2. imagine a Bernoulli random variable Bp(i) associated with each sample x(i)
+       *    {1, with probability p;  0 with probability q=1-p})
+       * 3. each Bp(i) has mean p, variance p(1-p)
+       * 4. sum of the Bp(1) .. Bp(n) has mean n.p = nk,
+       *    variance
+       *       n.p.(1-p)
+       *     = n.(nk/n).(1 - nk/n)
+       *     = nk.(1 - nk/n)
+       *    (by central limit theorem we can treat this as approximately normal
+       *     for sufficiently large n)
+       * 5. standard error of Sum{Bp(i)}
+       *    will be
+       *       sqrt(nk.(1 - nk/n))
+       */
+      double n_sample_stderr(uint32_t n) const {
+	double nr = 1.0 / n;
+	uint32_t nk = this->n_sample_;
+
+	return ::sqrt(nk * (1.0 - nk * nr));
+      } /*n_sample_stderr*/
+      
       /* add one sample, x, to this bucket */
       void include_sample(double x) {
 	using logutil::scope;
@@ -80,6 +107,7 @@ namespace xo {
 	  bucket_v_(n_interior_bucket + 2)
       {}
 
+      uint32_t n_sample() const { return n_sample_; }
       uint32_t n_bucket() const { return n_interior_bucket_ + 2; }
 
       double bucket_width() const { return (this->hi_bucket_ - this->lo_bucket_) / this->n_interior_bucket_; }
@@ -88,7 +116,7 @@ namespace xo {
       const_iterator end() const { return bucket_v_.end(); }
       Bucket const & lookup(uint32_t ix) const { return this->bucket_v_[ix]; }
 
-      double bucket_hi_edge(uint32_t ix) {
+      double bucket_hi_edge(uint32_t ix) const {
 	if(ix < n_interior_bucket_ + 1)
 	  return this->lo_bucket_ + ix * this->bucket_width();
 	else
@@ -96,7 +124,7 @@ namespace xo {
       } /*bucket_hi_edge*/
       
       /* index (into .bucket_v[]) of bucket to use for a sample with value x */
-      uint32_t bucket_ix(double x) {
+      uint32_t bucket_ix(double x) const {
 	if(x < this->lo_bucket_)
 	  return 0;
 
@@ -109,10 +137,13 @@ namespace xo {
       void include_sample(double x) {
 	uint32_t ix = this->bucket_ix(x);
 
+	++(this->n_sample_);
 	this->bucket_v_[ix].include_sample(x);
       } /*include_sample*/
 
     private:
+      /* #of samples across all buckets */
+      uint32_t n_sample_ = 0;
       /* #of interior buckets:  split [.lo_bucket, .hi_bucket] into
        * equally-spaced intervals of width (.hi_bucket - .lo_bucket) / .n_bucket
        */
