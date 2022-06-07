@@ -161,6 +161,14 @@ namespace xo {
 	return Bucket(n_sample, sum, mean, mom2);
       } /*pooled*/
 
+      double bucket_lo_edge(uint32_t ix) const {
+	if(ix == 0) {
+	  return -std::numeric_limits<double>::infinity();
+	} else {
+	  return this->lo_bucket_ + (ix - 1) * this->bucket_width();
+	}
+      } /*bucket_lo_edge*/
+
       double bucket_hi_edge(uint32_t ix) const {
 	if(ix < n_interior_bucket_ + 1)
 	  return this->lo_bucket_ + ix * this->bucket_width();
