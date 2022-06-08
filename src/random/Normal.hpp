@@ -9,7 +9,7 @@ namespace xo {
   namespace random {
     /* Engine:
      *  std::mt19937
-     *  xo::random::xoshiro256
+     *  xo::random::xoshiro256ss
      */
     template<class Engine>
     class NormalGen {

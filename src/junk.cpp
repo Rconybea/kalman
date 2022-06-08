@@ -14,6 +14,7 @@
 #include "random/TwoPoint.hpp"
 #include "random/Exponential.hpp"
 #include "random/Normal.hpp"
+#include "random/GaussianPair.hpp"
 #include "random/xoshiro256.hpp"
 #include "random/random_seed.hpp"
 #include "logutil/scope.hpp"
@@ -83,6 +84,7 @@ main(int argc, char **argv)
   using xo::random::TwoPointDistribution;
   using xo::random::ExponentialGen;
   using xo::random::NormalGen;
+  using xo::random::GaussianPairGen;
   using xo::random::xoshiro256ss;
   using xo::random::random_seed;
   using xo::random::Seed;
@@ -190,6 +192,7 @@ main(int argc, char **argv)
     C_RedBlackTree,
     C_Empirical,
     C_KolmogorovSmirnov,
+    C_GaussianPair,
     N_Command
   };
 
@@ -208,7 +211,8 @@ main(int argc, char **argv)
               << "7. histogram\n"
               << "8. red-black tree with order statistics\n"
               << "9. empirical (i.e. sample) distribution\n"
-              << "10. kolmogorov-smirnov test\n";
+              << "10. kolmogorov-smirnov test\n"
+	      << "11. correlated guassian pairs\n";
     std::cerr << "> " << std::flush;
 
     std::cin >> cmd_int;
@@ -564,6 +568,43 @@ main(int argc, char **argv)
 		      KolmogorovSmirnov::distr2_impl(x)));
       x *= 1.07;
     }
+  } else if(cmd == C_GaussianPair) {
+    Seed<xoshiro256ss> seed;
+
+    double rho = 0.9;
+
+    auto rgen = GaussianPairGen<xoshiro256ss>::make(seed, rho);
+
+    /* use Kolmogorov-Smirnov to compare generated numbers with N(0,1) cdf */
+    Normal n_dist;
+
+    for (uint32_t i=0; i<1000; ++i) {
+      auto pt = rgen();
+
+#ifdef NOT_IN_USE
+      Empirical<double> y1_dist;
+      Empirical<double> y2_dist;
+
+      y1_dist.include_sample(pt[0]);
+      y2_dist.include_sample(pt[1]);
+
+      std::pair<double, double> ks1_stat
+	= y1_dist.ks_stat_1sided(n_dist);
+      std::pair<double, double> ks2_stat
+	= y2_dist.ks_stat_1sided(n_dist);
+
+      double ks1_pvalue = KolmogorovSmirnov::ks_pvalue(ks1_stat.first,
+						       ks1_stat.second);
+      double ks2_pvalue = KolmogorovSmirnov::ks_pvalue(ks2_stat.first,
+						       ks2_stat.second);
+#endif
+
+      std::cout << pt[0]
+		<< " " << pt[1]
+		<< "\n";
+    }
+
+    std::cout << std::flush;
   }
 
 #ifdef NOT_IN_USE

@@ -11,6 +11,8 @@ namespace xo {
      */
     class Normal : public Distribution<double> {
     public:
+      Normal() = default;
+
       /* normal probability density:
        *
        *                  x^2
