@@ -40,13 +40,15 @@ configure_file(KalmanConfig.h.in KalmanConfig.h)
 # activate code coverage for all executables + libraries (when -DCODE_COVERAGE=ON ?)
 add_code_coverage()
 
-# add process/, logutil/ subdirectory
+# add process/, logutil/, .. subdirectory
+add_subdirectory(simulator)
 add_subdirectory(process)
 add_subdirectory(distribution)
 add_subdirectory(random)
 add_subdirectory(logutil)
 
 # add unittest subdirectories
+add_subdirectory(process/utest)
 add_subdirectory(tree/utest)
 
 # add the executable

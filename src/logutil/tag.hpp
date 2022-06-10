@@ -16,6 +16,9 @@ namespace logutil {
   //
   // will print like
   //   :name value
+  //
+  // NOTE: will search for operator<< overloads in the logutil
+  //       namespace
   //*/
   template <bool PrefixSpace, typename Name, typename Value>
   struct tag_impl {

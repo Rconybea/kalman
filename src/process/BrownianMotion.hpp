@@ -53,6 +53,8 @@ namespace process {
     // ----- inherited from StochasticProcess<> -----
 
     virtual utc_nanos t0() const override { return t0_; }
+    virtual double t0_value() const override { return 0.0; }
+
     /* sample this process at time t,
      * given glb sample for this process lo={t_lo, x_lo}, t>t_lo
      */

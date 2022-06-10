@@ -2,8 +2,7 @@
 
 #pragma once
 
-#include "time/Time.hpp"
-#include <utility>
+#include "process/StochasticProcess.hpp"
 
 namespace xo {
 namespace process {
@@ -16,14 +15,19 @@ namespace process {
 template <typename T>
 class RealizationTracer {
 public:
+  using Process = xo::process::StochasticProcess<T>;
+  using event_type = typename Process::event_type;
   using utc_nanos = xo::time::utc_nanos;
   using nanos = xo::time::nanos;
 
 public:
-  /* current time t associated with this tracer */
-  utc_nanos current_tm() const;
+  RealizationTracer(StochasticProcess<T> * p)
+    : current_(event_type(p->t0(), p->t0_value())) {}
+
+  event_type const & current_ev() const { return current_; }
+  utc_nanos current_tm() const { return current_.first; }
   /* value of this path at time t */
-  T const & value() const;
+  T const & current_value() const { return current_.second; }
 
   /* sample with fixed time:
    * - advance to time t+dt,  where t=.current_tm()
@@ -34,28 +38,45 @@ public:
   std::pair<utc_nanos, T> next_dt(nanos dt) {
     this->advance_dt(dt);
 
-    return std::make_pair(this->current_tm(),
-			  this->value());
+    return this->current_;
   } /*next_dt*/
 
   std::pair<utc_nanos, T> next_eps(double eps) {
     this->advance_eps(eps);
 
-    return std::make_pair(this->current_tm(),
-			  this->value());
+    return this->current_;
   } /*next_eps*/
 
   /* sample with fixed time:
    * - advance to point t+dt,  with dt specified.
    */
-  virtual void advance_dt(nanos dt) = 0;
+  void advance_dt(nanos dt) {
+    utc_nanos t1 = this->current_.first + dt;
 
+    this->advance_until(t1);
+  } /*advance_dt*/
+
+  void advance_until(utc_nanos t1) {
+    this->current_.first = t1;
+    this->current_.second
+      = this->process_->exterior_sample(t1,
+					this->current_.second);
+  } /*advance_until*/
+
+#ifdef NOT_IN_USE // need StochasticProcess.hitting_time() for this
   /* sample with max change in process value eps.
    * requires that T defines a norm under which eps
    * can be interpreted
    */
   virtual void advance_eps(double eps) = 0;
+#endif
 
+private:
+  /* current (time, processvalue) associated with this realization */
+  event_type current_;
+
+  /* develop a sampled realization of this stochastic process */
+  StochasticProcess<T> * process_ = nullptr;
 }; /*RealizationTracer*/
 
 } /*namespace process*/

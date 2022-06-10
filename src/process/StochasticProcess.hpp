@@ -27,7 +27,11 @@ public:
 public:
   virtual ~StochasticProcess() {}
 
+  /* starting time for this process */
   virtual utc_nanos t0() const = 0;
+
+  /* starting value of this process */
+  virtual T t0_value() const = 0;
 
   /* sample this process at time t,
    * given preceding known value
