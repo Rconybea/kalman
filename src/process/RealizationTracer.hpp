@@ -16,13 +16,14 @@ template <typename T>
 class RealizationTracer {
 public:
   using Process = xo::process::StochasticProcess<T>;
+  /* something like std::pair<utc_nanos, T> */
   using event_type = typename Process::event_type;
   using utc_nanos = xo::time::utc_nanos;
   using nanos = xo::time::nanos;
 
 public:
   RealizationTracer(StochasticProcess<T> * p)
-    : current_(event_type(p->t0(), p->t0_value())) {}
+    : current_(event_type(p->t0(), p->t0_value())), process_(p) {}
 
   event_type const & current_ev() const { return current_; }
   utc_nanos current_tm() const { return current_.first; }
@@ -60,7 +61,7 @@ public:
     this->current_.first = t1;
     this->current_.second
       = this->process_->exterior_sample(t1,
-					this->current_.second);
+					this->current_);
   } /*advance_until*/
 
 #ifdef NOT_IN_USE // need StochasticProcess.hitting_time() for this
