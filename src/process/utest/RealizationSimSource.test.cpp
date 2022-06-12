@@ -15,8 +15,8 @@ namespace xo {
   using xo::time::Time;
   using xo::time::utc_nanos;
   //using xo::print::printer;
-  //using logutil::scope;
-  //using logutil::xtag;
+  using logutil::scope;
+  using logutil::xtag;
   using std::chrono::hours;
   using std::chrono::minutes;
 
@@ -67,7 +67,9 @@ namespace xo {
 
     TEST_CASE("sim-brownian-motion", "[discretized brownian motion simulation]") {
       constexpr char const * c_self = "TEST_CASE:sim-brownian-motion";
-      constexpr bool c_logging_enabled = true;
+      constexpr bool c_logging_enabled = false;
+
+      scope lscope(c_self, c_logging_enabled);
 
       /* arbitrary 'starting time' */
       utc_nanos t0 = Time::ymd_hms_usec(20220610 /*ymd*/,
@@ -89,6 +91,7 @@ namespace xo {
 
       auto sink = [&sample_v](std::pair<utc_nanos,double> const & ev) { sample_v.push_back(ev); };
 
+      /* what is step dt? */
       RealizationSimSource<double,
 			   decltype(sink)> sim_source(&tracer, sink);
 
@@ -98,7 +101,11 @@ namespace xo {
 
       sim.run_until(t1);
 
-      REQUIRE(sample_v.size() > 0);
+      /* 1-minute simulation with 1-second samples */
+      REQUIRE(sample_v.size() == 61);
+
+      //lscope.log(xtag("sample_v.size", sample_v.size()));
+
     } /*TEST_CASE("sim-brownian-motion")*/
   } /*namespace ut*/
 } /*namespace xo*/

@@ -25,9 +25,13 @@ namespace xo {
 
     public:
       RealizationSimSource(RealizationTracer<T> * tracer, EventSink const & ev_sink)
-	: tracer_(tracer), ev_sink_(ev_sink) {}
+	: tracer_(tracer),
+	  ev_sink_(ev_sink),
+	  ev_interval_dt_(std::chrono::seconds(1)) {}
       RealizationSimSource(RealizationTracer<T> * tracer, EventSink && ev_sink)
-	: tracer_(tracer), ev_sink_{std::move(ev_sink)} {}
+	: tracer_(tracer),
+	  ev_sink_{std::move(ev_sink)},
+	  ev_interval_dt_(std::chrono::seconds(1)) {}
 
       /* deliver current event to sink */
       void deliver_one() const {
