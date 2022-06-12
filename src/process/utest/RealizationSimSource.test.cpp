@@ -93,7 +93,10 @@ namespace xo {
 
       /* what is step dt? */
       RealizationSimSource<double,
-			   decltype(sink)> sim_source(&tracer, sink);
+			   decltype(sink)>
+	sim_source(&tracer,
+		   std::chrono::seconds(1) /*ev_interval_dt*/,
+		   sink);
 
       sim.add_source(&sim_source);
 

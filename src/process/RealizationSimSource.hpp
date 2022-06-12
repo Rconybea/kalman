@@ -24,14 +24,18 @@ namespace xo {
       using nanos = xo::time::nanos;
 
     public:
-      RealizationSimSource(RealizationTracer<T> * tracer, EventSink const & ev_sink)
+      RealizationSimSource(RealizationTracer<T> * tracer,
+			   nanos ev_interval_dt,
+			   EventSink const & ev_sink)
 	: tracer_(tracer),
 	  ev_sink_(ev_sink),
-	  ev_interval_dt_(std::chrono::seconds(1)) {}
-      RealizationSimSource(RealizationTracer<T> * tracer, EventSink && ev_sink)
+	  ev_interval_dt_(ev_interval_dt) {}
+      RealizationSimSource(RealizationTracer<T> * tracer,
+			   nanos ev_interval_dt,
+			   EventSink && ev_sink)
 	: tracer_(tracer),
 	  ev_sink_{std::move(ev_sink)},
-	  ev_interval_dt_(std::chrono::seconds(1)) {}
+	  ev_interval_dt_(ev_interval_dt) {}
 
       /* deliver current event to sink */
       void deliver_one() const {
