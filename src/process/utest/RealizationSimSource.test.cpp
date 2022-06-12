@@ -81,11 +81,11 @@ namespace xo {
       REQUIRE(sim.is_exhausted());
 
       /* FIXME: leak */
-      BrownianMotion * bm
+      std::unique_ptr<BrownianMotion> bm
 	= BrownianMotion::make(t0,
 			       0.30 /*sdev -- annualized volatility*/,
 			       12345678UL /*seed*/);
-      RealizationTracer<double> tracer(bm);
+      RealizationTracer<double> tracer(bm.get());
 
       std::vector<std::pair<utc_nanos,double>> sample_v;
 

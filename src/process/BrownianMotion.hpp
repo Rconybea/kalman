@@ -4,6 +4,7 @@
 
 #include "process/StochasticProcess.hpp"
 #include "random/Normal.hpp"
+#include <memory>
 #include <chrono>
 
 namespace xo {
@@ -37,8 +38,8 @@ namespace xo {
        *
        * TODO: return std::unique_ptr<> here
        */
-      static BrownianMotion *make(utc_nanos t0, double sdev, uint64_t seed) {
-        return new BrownianMotion(t0, sdev, seed);
+      static std::unique_ptr<BrownianMotion> make(utc_nanos t0, double sdev, uint64_t seed) {
+        return std::unique_ptr<BrownianMotion>(new BrownianMotion(t0, sdev, seed));
       } /*make*/
 
       /* brownian motion with constant volatility at this level */
