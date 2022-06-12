@@ -14,6 +14,9 @@ namespace xo {
      * 1. Realization is developed lazily,  (see RealizationTracer<T>)
      * 2. Use a fixed discretization interval to develop realization
      * 3. events are consumed by Sink
+     *
+     * Require:
+     * - EventSink(T)
      */
     template <typename T, typename EventSink>
     class RealizationSimSource : public xo::sim::SimulationSource {
