@@ -28,6 +28,7 @@
 
 namespace xo {
   using xo::process::BrownianMotion;
+  using xo::random::xoshiro256ss;
   using xo::time::utc_nanos;
   using xo::time::days;
   //using logutil::operator<<;
@@ -40,7 +41,7 @@ namespace xo {
   fill_interior_samples(utc_nanos t0,
 			uint32_t i_lo,
 			uint32_t i_hi,
-			BrownianMotion *p_bm,
+			BrownianMotion<xoshiro256ss> * p_bm,
 			std::array<double, N> *p_v)
   {
     if (i_lo == i_hi)
@@ -58,9 +59,10 @@ namespace xo {
     /* sample B(t_mid) for v[i_mid];
      * this will be interior sample using B(t_lo), B(t_hi);
      */
-    (*p_v)[i_mid] = p_bm->interior_sample(t_mid,
-					  BrownianMotion::event_type(t_lo, (*p_v)[i_lo]),
-					  BrownianMotion::event_type(t_hi, (*p_v)[i_hi]));
+    (*p_v)[i_mid]
+      = p_bm->interior_sample(t_mid,
+			      BrownianMotion<xoshiro256ss>::event_type(t_lo, (*p_v)[i_lo]),
+			      BrownianMotion<xoshiro256ss>::event_type(t_hi, (*p_v)[i_hi]));
 
     fill_interior_samples<N>(t0, i_lo, i_mid, p_bm, p_v);
     fill_interior_samples<N>(t0, i_mid, i_hi, p_bm, p_v);
@@ -293,8 +295,8 @@ main(int argc, char **argv)
 
         utc_nanos t0 = std::chrono::system_clock::now();
 
-        BrownianMotion bm(t0, 0.5 /*50% annual volatility - sdev ~ .025/day*/,
-                          time(nullptr) /*seed*/);
+        BrownianMotion<xoshiro256ss> bm(t0, 0.5 /*50% annual volatility - sdev ~ .025/day*/,
+					time(nullptr) /*seed*/);
 
         {
           double var_1day = bm.variance_dt(xo::time::days(1));
@@ -317,7 +319,7 @@ main(int argc, char **argv)
           utc_nanos ti = t0 + days(i);
 
           v[i] = bm.exterior_sample(
-              ti, BrownianMotion::event_type(ti_prev, v[i - 1]));
+              ti, BrownianMotion<xoshiro256ss>::event_type(ti_prev, v[i - 1]));
 
           lscope.log(TAG(i), " ", TAG(v[i]));
         }

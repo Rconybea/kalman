@@ -2,6 +2,7 @@
 
 #include "process/RealizationSimSource.hpp"
 #include "process/BrownianMotion.hpp"
+#include "random/xoshiro256.hpp"
 #include "simulator/Simulator.hpp"
 #include "logutil/printer.hpp"
 #include "logutil/scope.hpp"
@@ -12,6 +13,7 @@ namespace xo {
   using xo::process::RealizationSimSource;
   using xo::process::RealizationTracer;
   using xo::process::BrownianMotion;
+  using xo::random::xoshiro256ss;
   using xo::time::Time;
   using xo::time::utc_nanos;
   //using xo::print::printer;
@@ -81,15 +83,18 @@ namespace xo {
       REQUIRE(sim.is_exhausted());
 
       /* FIXME: leak */
-      std::unique_ptr<BrownianMotion> bm
-	= BrownianMotion::make(t0,
-			       0.30 /*sdev -- annualized volatility*/,
-			       12345678UL /*seed*/);
+      std::unique_ptr<BrownianMotion<xoshiro256ss>> bm
+	= BrownianMotion<xoshiro256ss>::make(t0,
+					     0.30 /*sdev -- annualized volatility*/,
+					     12345678UL /*seed*/);
       RealizationTracer<double> tracer(bm.get());
 
       std::vector<std::pair<utc_nanos,double>> sample_v;
 
-      auto sink = [&sample_v](std::pair<utc_nanos,double> const & ev) { sample_v.push_back(ev); };
+      auto sink
+	= ([&sample_v]
+	   (std::pair<utc_nanos,double> const & ev)
+	{ sample_v.push_back(ev); });
 
       /* what is step dt? */
       RealizationSimSource<double,
