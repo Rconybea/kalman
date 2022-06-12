@@ -1,6 +1,7 @@
 /* @file RealizationSimSource.test.cpp */
 
 #include "process/RealizationSimSource.hpp"
+#include "process/BrownianMotion.hpp"
 #include "simulator/Simulator.hpp"
 #include "logutil/printer.hpp"
 #include "logutil/scope.hpp"
@@ -8,13 +9,16 @@
 
 namespace xo {
   using xo::sim::Simulator;
-  //using xo::process::RealizationSimSource;
+  using xo::process::RealizationSimSource;
+  using xo::process::RealizationTracer;
+  using xo::process::BrownianMotion;
   using xo::time::Time;
   using xo::time::utc_nanos;
   //using xo::print::printer;
   //using logutil::scope;
   //using logutil::xtag;
   using std::chrono::hours;
+  using std::chrono::minutes;
 
   namespace ut {
     /* TODO: move this to time/utest/ */
@@ -60,6 +64,42 @@ namespace xo {
 
       REQUIRE((sim.is_exhausted() || (sim.next_tm() > t1)));
     } /*TEST_CASE(empty-simulation)*/
+
+    TEST_CASE("sim-brownian-motion", "[discretized brownian motion simulation]") {
+      constexpr char const * c_self = "TEST_CASE:sim-brownian-motion";
+      constexpr bool c_logging_enabled = true;
+
+      /* arbitrary 'starting time' */
+      utc_nanos t0 = Time::ymd_hms_usec(20220610 /*ymd*/,
+					162905 /*hms*/,
+					123456 /*usec*/);
+
+      Simulator sim(t0);
+
+      REQUIRE(sim.is_exhausted());
+
+      /* FIXME: leak */
+      BrownianMotion * bm
+	= BrownianMotion::make(t0,
+			       0.30 /*sdev -- annualized volatility*/,
+			       12345678UL /*seed*/);
+      RealizationTracer<double> tracer(bm);
+
+      std::vector<std::pair<utc_nanos,double>> sample_v;
+
+      auto sink = [&sample_v](std::pair<utc_nanos,double> const & ev) { sample_v.push_back(ev); };
+
+      RealizationSimSource<double,
+			   decltype(sink)> sim_source(&tracer, sink);
+
+      sim.add_source(&sim_source);
+
+      utc_nanos t1 = t0 + minutes(1);
+
+      sim.run_until(t1);
+
+      REQUIRE(sample_v.size() > 0);
+    } /*TEST_CASE("sim-brownian-motion")*/
   } /*namespace ut*/
 } /*namespace xo*/
 
