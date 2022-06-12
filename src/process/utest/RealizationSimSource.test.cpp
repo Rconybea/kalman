@@ -15,6 +15,7 @@ namespace xo {
   using xo::process::BrownianMotion;
   using xo::random::xoshiro256ss;
   using xo::time::Time;
+  using xo::time::seconds;
   using xo::time::utc_nanos;
   //using xo::print::printer;
   using logutil::scope;
@@ -82,7 +83,6 @@ namespace xo {
 
       REQUIRE(sim.is_exhausted());
 
-      /* FIXME: leak */
       std::unique_ptr<BrownianMotion<xoshiro256ss>> bm
 	= BrownianMotion<xoshiro256ss>::make(t0,
 					     0.30 /*sdev -- annualized volatility*/,
@@ -111,6 +111,12 @@ namespace xo {
 
       /* 1-minute simulation with 1-second samples */
       REQUIRE(sample_v.size() == 61);
+
+      utc_nanos sample_t0 = sample_v[0].first;
+
+      for(size_t i = 0; i < sample_v.size(); ++i) {
+	REQUIRE(sample_v[i].first == t0 + seconds(i));
+      }
 
       //lscope.log(xtag("sample_v.size", sample_v.size()));
 
