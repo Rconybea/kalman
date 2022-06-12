@@ -5,6 +5,8 @@
 #include <algorithm>
 
 namespace xo {
+  using xo::time::utc_nanos;
+
   namespace sim {
     bool
     Simulator::is_source_present(SimulationSource * src) const
@@ -17,7 +19,7 @@ namespace xo {
       return false;
     } /*is_source_pesent*/
 
-    time::utc_nanos
+    utc_nanos
     Simulator::next_tm() const {
       if(this->sim_heap_.empty()) {
 	/* 0 remaining events in simulator */
@@ -100,6 +102,19 @@ namespace xo {
 		       std::greater<SourceTimestamp>());
       }	
     } /*advance_one_event*/
+
+    void
+    Simulator::run_until(utc_nanos t1)
+    {
+      while(!this->is_exhausted()) {
+	utc_nanos t = this->next_tm();
+
+	if(t > t1)
+	  break;
+
+	this->advance_one_event();
+      } /*loop until done*/
+    } /*run_until*/
   } /*namespace sim*/
 } /*namespace xo*/
 

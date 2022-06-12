@@ -20,7 +20,7 @@ namespace xo {
       using utc_nanos = xo::time::utc_nanos;
       
     public:
-      Simulator(utc_nanos t0) : t0_(t0) {}
+      explicit Simulator(utc_nanos t0) : t0_(t0) {}
 
       /* value of .t0() is estabished in ctor.
        * it will not change except across call to .advance_one()
@@ -59,6 +59,9 @@ namespace xo {
        * resolve ties arbitrarily
        */
       void advance_one_event();
+
+      /* run simulation until earliest event time t satisfies t > t1 */
+      void run_until(utc_nanos t1);
 
     private:
       /* simulation heap:
