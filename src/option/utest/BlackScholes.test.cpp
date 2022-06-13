@@ -30,9 +30,17 @@ namespace xo {
 
     using BSTC = BlackScholesTestCase;
 
-    std::array<BlackScholesTestCase, 1> s_test_case_v {
-      /*     K    S    s    r   ttx         tv     delta      gamma */
-      BSTC{1.0, 1.0, 0.3, 0.0, 1e-9, 3.7847e-6, 0.500002, 4.20522e4}
+    std::array<BlackScholesTestCase, 3> s_test_case_v {
+      /*     K    S    s    r        ttx          tv     delta      gamma */
+
+      /* 1: at-the-money options */
+
+      /* 1.1: millisecond option */
+      BSTC{1.0, 1.0, 0.3, 0.0,      1e-9,  3.7847e-6, 0.500002, 4.20522e4},
+      /* 1.2: 1-day option */
+      BSTC{1.0, 1.0, 0.3, 0.0,  1/365.25, 6.26227e-3, 0.503131, 25.41385},
+      /* 1.3: 1-mo option */
+      BSTC{1.0, 1.0, 0.3, 0.0, 31/365.25,  0.0348561, 0.517428,  4.560247}
     }; /*s_test_case_v*/
   } /*namespace*/
 
