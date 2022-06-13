@@ -49,8 +49,13 @@ namespace xo {
       /* convenience lambda */
       auto N = [](double x) { return Normal::cdf_impl(x); };
 
+      /* N(d1) */
+      double Nd1 = N(d1);
+
       /* option value */
-      double tv = (N(d1) * S) - (N(d2) * K * D);
+      double tv = (Nd1 * S) - (N(d2) * K * D);
+      /* delta */
+      double delta = Nd1;
 
       if(c_logging_enabled) {
 	lscope.log(xtag("K", K),
@@ -67,11 +72,12 @@ namespace xo {
 		   xtag("F", F),
 		   xtag("N(d1)", N(d1)),
 		   xtag("N(d2)", N(d2)),
-		   xtag("tv", tv)
+		   xtag("tv", tv),
+		   xtag("delta", delta)
 		   );
       }
 
-      return Greeks(tv);
+      return Greeks(tv, delta);
     } /*call_greeks*/
   } /*namespace option*/
 } /*namespace xo*/

@@ -13,9 +13,9 @@ namespace xo {
   namespace {
     struct BlackScholesTestCase {
     public:
-      BlackScholesTestCase(double K, double S, double s, double r, double t, double exp_tv)
+      BlackScholesTestCase(double K, double S, double s, double r, double t, double exp_tv, double exp_delta)
 	: strike_{K}, spot_{S}, volatility_{s}, rate_{r}, ttx_{t},
-	  exp_tv_{exp_tv} {}
+	  exp_tv_{exp_tv}, exp_delta_{exp_delta} {}
 
       double strike_;     /*strike*/
       double spot_;       /*spot*/
@@ -23,13 +23,14 @@ namespace xo {
       double rate_;       /*interest rate*/
       double ttx_;        /*time-to-expiry*/
 
-      double exp_tv_;     /*expected option value*/
+      double exp_tv_;     /*expected option value. see Greeks.tv*/
+      double exp_delta_;  /*expected delta.  see Greeks.delta */
     }; /*BlackScholesTestCase*/
 
     using BSTC = BlackScholesTestCase;
 
     std::array<BlackScholesTestCase, 1> s_test_case_v {
-      BSTC{1.0, 1.0, 0.3, 0.0, 1e-9, 3.7847e-6}
+      BSTC{1.0, 1.0, 0.3, 0.0, 1e-9, 3.7847e-6, 0.500002}
     }; /*s_test_case_v*/
   } /*namespace*/
 
@@ -48,6 +49,7 @@ namespace xo {
 				      spec.ttx_);
 
 	REQUIRE(greeks.tv() == Approx(spec.exp_tv_).epsilon(5e-7));
+	REQUIRE(greeks.delta() == Approx(spec.exp_delta_).epsilon(5e-7));
       }
 
 #ifdef OBSOLETE
