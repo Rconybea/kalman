@@ -46,7 +46,7 @@ namespace xo {
        * vega (derivative w.r.t. s):
        *     S.N'(d1).sqrt(t)
        *
-       * theta (minus derivative w.r.t. t):
+       * theta (-1 * derivative w.r.t. t):
        * - call-option:
        *     - (S.N'(d1).s / 2.sqrt(t)) - r.K.exp(-r.t).N(d2)
        * - put-option:

@@ -65,6 +65,10 @@ namespace xo {
       double gamma = nd1 / (S * s_root_t);
       /* vega: S.N'(d1).sqrt(t) */
       double vega = S * nd1 * root_t;
+      /* theta: (S.N'(d1).s / 2.sqrt(t)) - r.K.exp(-r.t).N(d2)
+       *   (reverse sign,  bc want theta as ttx gets smaller)
+       */
+      double theta = (-0.5 * S * nd1 * s / root_t) + (r * K * D * Nd2);
 
       if(c_logging_enabled) {
 	lscope.log(xtag("K", K),
@@ -85,11 +89,12 @@ namespace xo {
 		   xtag("tv", tv),
 		   xtag("delta", delta),
 		   xtag("gamma", gamma),
-		   xtag("vega", vega)
+		   xtag("vega", vega),
+		   xtag("theta", theta)
 		   );
       }
 
-      return Greeks(tv, delta, gamma, vega);
+      return Greeks(tv, delta, gamma, vega, theta);
     } /*call_greeks*/
   } /*namespace option*/
 } /*namespace xo*/
