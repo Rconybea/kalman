@@ -69,6 +69,8 @@ namespace xo {
        *   (reverse sign,  bc want theta as ttx gets smaller)
        */
       double theta = (-0.5 * S * nd1 * s / root_t) + (r * K * D * Nd2);
+      /* rho: K.t.exp(-r.t).N(d2) */
+      double rho = K * t * D * Nd2;
 
       if(c_logging_enabled) {
 	lscope.log(xtag("K", K),
@@ -90,11 +92,12 @@ namespace xo {
 		   xtag("delta", delta),
 		   xtag("gamma", gamma),
 		   xtag("vega", vega),
-		   xtag("theta", theta)
+		   xtag("theta", theta),
+		   xtag("rho", rho)
 		   );
       }
 
-      return Greeks(tv, delta, gamma, vega, theta);
+      return Greeks(tv, delta, gamma, vega, theta, rho);
     } /*call_greeks*/
   } /*namespace option*/
 } /*namespace xo*/
