@@ -43,12 +43,14 @@ add_code_coverage()
 # add process/, logutil/, .. subdirectory
 add_subdirectory(simulator)
 add_subdirectory(process)
+add_subdirectory(option)
 add_subdirectory(distribution)
 add_subdirectory(random)
 add_subdirectory(logutil)
 
 # add unittest subdirectories
 add_subdirectory(process/utest)
+add_subdirectory(option/utest)
 add_subdirectory(tree/utest)
 
 # add the executable
