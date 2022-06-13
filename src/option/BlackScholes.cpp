@@ -21,8 +21,11 @@ namespace xo {
        * t = time to expiry
        */
 
+      /* root_t: sqrt(t) */
+      double root_t = ::sqrt(t);
+
       /* s_root_t: s.sqrt(t) */
-      double s_root_t = s * ::sqrt(t);
+      double s_root_t = s * root_t;
 
       /* s^2/2 */
       double half_s2 = 0.5 * s * s;
@@ -56,11 +59,12 @@ namespace xo {
       /* N(d2) */
       double Nd2 = N(d2);
 
-      /* option value */
+      /* tv: option value */
       double tv = (Nd1 * S) - (Nd2 * K * D);
-      /* delta */
       double delta = Nd1;
       double gamma = nd1 / (S * s_root_t);
+      /* vega: S.N'(d1).sqrt(t) */
+      double vega = S * nd1 * root_t;
 
       if(c_logging_enabled) {
 	lscope.log(xtag("K", K),
@@ -80,11 +84,12 @@ namespace xo {
 		   xtag("N(d2)", Nd2),
 		   xtag("tv", tv),
 		   xtag("delta", delta),
-		   xtag("gamma", gamma)
+		   xtag("gamma", gamma),
+		   xtag("vega", vega)
 		   );
       }
 
-      return Greeks(tv, delta, gamma);
+      return Greeks(tv, delta, gamma, vega);
     } /*call_greeks*/
   } /*namespace option*/
 } /*namespace xo*/
