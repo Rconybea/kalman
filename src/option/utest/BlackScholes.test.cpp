@@ -13,9 +13,9 @@ namespace xo {
   namespace {
     struct BlackScholesTestCase {
     public:
-      BlackScholesTestCase(double K, double S, double s, double r, double t, double exp_tv, double exp_delta)
+      BlackScholesTestCase(double K, double S, double s, double r, double t, double exp_tv, double exp_delta, double exp_gamma)
 	: strike_{K}, spot_{S}, volatility_{s}, rate_{r}, ttx_{t},
-	  exp_tv_{exp_tv}, exp_delta_{exp_delta} {}
+	  exp_tv_{exp_tv}, exp_delta_{exp_delta}, exp_gamma_{exp_gamma} {}
 
       double strike_;     /*strike*/
       double spot_;       /*spot*/
@@ -25,12 +25,14 @@ namespace xo {
 
       double exp_tv_;     /*expected option value. see Greeks.tv*/
       double exp_delta_;  /*expected delta.  see Greeks.delta */
+      double exp_gamma_;  /*expected gamma.  see Greeks.gamma */
     }; /*BlackScholesTestCase*/
 
     using BSTC = BlackScholesTestCase;
 
     std::array<BlackScholesTestCase, 1> s_test_case_v {
-      BSTC{1.0, 1.0, 0.3, 0.0, 1e-9, 3.7847e-6, 0.500002}
+      /*     K    S    s    r   ttx         tv     delta      gamma */
+      BSTC{1.0, 1.0, 0.3, 0.0, 1e-9, 3.7847e-6, 0.500002, 4.20522e4}
     }; /*s_test_case_v*/
   } /*namespace*/
 
@@ -50,6 +52,7 @@ namespace xo {
 
 	REQUIRE(greeks.tv() == Approx(spec.exp_tv_).epsilon(5e-7));
 	REQUIRE(greeks.delta() == Approx(spec.exp_delta_).epsilon(5e-7));
+	REQUIRE(greeks.gamma() == Approx(spec.exp_gamma_).epsilon(5e-7));
       }
 
 #ifdef OBSOLETE

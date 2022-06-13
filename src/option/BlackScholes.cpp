@@ -51,11 +51,16 @@ namespace xo {
 
       /* N(d1) */
       double Nd1 = N(d1);
+      /* N'(d1) */
+      double nd1 = Normal::density(d1);
+      /* N(d2) */
+      double Nd2 = N(d2);
 
       /* option value */
-      double tv = (Nd1 * S) - (N(d2) * K * D);
+      double tv = (Nd1 * S) - (Nd2 * K * D);
       /* delta */
       double delta = Nd1;
+      double gamma = nd1 / (S * s_root_t);
 
       if(c_logging_enabled) {
 	lscope.log(xtag("K", K),
@@ -70,14 +75,16 @@ namespace xo {
 		   xtag("d2", d2),
 		   xtag("D", D),
 		   xtag("F", F),
-		   xtag("N(d1)", N(d1)),
-		   xtag("N(d2)", N(d2)),
+		   xtag("N(d1)", Nd1),
+		   xtag("N'(d1)", nd1),
+		   xtag("N(d2)", Nd2),
 		   xtag("tv", tv),
-		   xtag("delta", delta)
+		   xtag("delta", delta),
+		   xtag("gamma", gamma)
 		   );
       }
 
-      return Greeks(tv, delta);
+      return Greeks(tv, delta, gamma);
     } /*call_greeks*/
   } /*namespace option*/
 } /*namespace xo*/
