@@ -36,7 +36,7 @@ namespace xo {
        * where p(x) is the normal density function p(x) = e^[-x^2/2]
        */
       static double cdf_impl(double x) {
-	return 0.5 * std::erfc(M_SQRT1_2 * x);
+	return 0.5 * std::erfc(-M_SQRT1_2 * x);
       } /*cdf_impl*/
 
       // ----- inherited from Distribution<double> -----
