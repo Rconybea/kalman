@@ -1,6 +1,7 @@
 /* @file BlackScholes.hpp */
 
 #include "option/Greeks.hpp"
+#include "option/Callput.hpp"
 #include "distribution/Normal.hpp"
 #include <cmath>
 
@@ -38,7 +39,7 @@ namespace xo {
        * - call-option:
        *     N(d1)
        * - put-option:
-       *     -N(-d1) = N(d1) - 1
+       *     -N(-d1) = N(d1) - 1  -> N(-d1) = 1 - N(d1)
        *
        * gamma (2nd derivative w.r.t. S):
        *     N'(d1) / (S.s.sqrt(t))
@@ -54,11 +55,11 @@ namespace xo {
        *
        * rho (derivative w.r.t. r)
        * - call-option:
-       *     K.t.exp(-r.t).N(d2)
+       *     +K.t.exp(-r.t).N(d2)
        * - put-option:
        *     -K.t.exp(-r.t).N(-d2)
        */
-      static Greeks call_greeks(double K, double S, double s, double r, double t);
+      static Greeks greeks(Callput pc, double K, double S, double s, double r, double t);
     }; /*BlackScholes*/
   } /*namespace option*/
 } /*namespace xo*/
