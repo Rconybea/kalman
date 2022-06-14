@@ -39,7 +39,16 @@ pkgs: attrs:
       #localcxxdev = (if builtins.currentSystem == "aarch64-darwin" then [ libcxx.dev llvmPackages_13.llvm ] else []);
       #localcxxdev = (if builtins.currentSystem == "aarch64-darwin" then [ llvmPackages_13.libcxx llvmPackages_13.llvm ] else []);
       localcxxdev = (if builtins.currentSystem == "aarch64-darwin" then [ llvm ] else []);
-      buildInputs = localcxxdev ++ [ pkg-config eigen cmake boost which catch2 ];
+      buildInputs = localcxxdev
+                      ++ [ cmake			# build system
+			   pkg-config			# use with cmake to find packages
+			   which			# build dep,  used in one of the .sh files
+                           eigen			# project dep
+			   boost			# project dep
+			   catch2                       # project dep
+			   python39Full                 # 2nd order project dep
+			   python39Packages.pybind11    # project dep
+			 ];
 
       devInputs = [];
     };
