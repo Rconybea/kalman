@@ -47,6 +47,7 @@ add_subdirectory(process)
 add_subdirectory(option)
 add_subdirectory(distribution)
 add_subdirectory(random)
+add_subdirectory(queue)
 add_subdirectory(logutil)
 
 # add unittest subdirectories

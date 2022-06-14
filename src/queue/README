@@ -1,0 +1,56 @@
+queues vs simulators.
+
+1.
+simulator merges N simulation queues,
+in monotonically non-decreasing event time order.
+
+2.
+queueing system more like first-come first-served;
+a queue (aka Source) can contain events that are not timestamped,
+conversely simulator events _must_ be timestamped
+
+a tcp socket accepting incoming connections,  can be treated as a Source
+
+That said, a simulator isa queuing system,
+and sim sources are queues.
+
+3.
+queuing system may use collapsing queues,
+with non-deterministic behavior if there are multiple
+worker threads.
+
+4.
+for determinstic simulation,   may want ability 
+to replace wholesale non-deterministic collapsing queues with a
+deterministic variation.
+
+5.
+queue/source api:
+- .is_empty()      [equivalent to SimulationSource::is_empty()]
+- .deliver_one()   [equivalent to SimulationSource::advance_one()]
+
+6.
+round-robin scheduler:
+a. given ordered list of queues:
+b. poll queues in order;  call .deliver_one() for each non-empty queue.
+   (simpler than qreactor design;  but won't scale up as well to large #of queues)
+c. alternately,   have sources elect themselves into 'ready list' (i.e. run-queue)
+   on transition {empty} -> {nonempty}
+d. for use in simulator,  need .run_until_empty(),
+   plus some mechanism for distinguishing recurring (i.e. self-reposting) events
+
+7.
+scheduler api:
+- .add_source(src)
+- .remove_source(src)
+
+also add to source api:
+- .has_scheduler()
+- .notify_scheduler_add(sched)    [only can be in one scheduler at a time]
+- .notify_scheduler_remove(sched)
+
+8.
+source can be self-scheduling:  borrows thread calling .push_event(),
+which calls .deliver_one().
+can still have collapsing behavior if source allows multiple threads to call .push_event(),
+while preventing multiple threads from calling .deliver_one()
