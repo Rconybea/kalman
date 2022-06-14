@@ -38,9 +38,9 @@ namespace xo {
 	  ev_interval_dt_(ev_interval_dt) {}
 
       /* deliver current event to sink */
-      void deliver_one() const {
+      void sink_one() const {
 	std::invoke(this->ev_sink_, this->tracer_->current_ev());
-      } /*deliver_one*/
+      } /*sink_one*/
 
       // ----- inherited from SimulationSource -----
 
@@ -63,10 +63,12 @@ namespace xo {
 	}
       } /*advance_until*/
 	
-      virtual void advance_one() override {
-	this->deliver_one();
+      virtual std::uint64_t advance_one() override {
+	this->sink_one();
 	this->tracer_->advance_dt(this->ev_interval_dt_);
-      }
+
+	return 1;
+      } /*advance_one*/
 
     private:
       /* produces events representing realized stochastic-process values */

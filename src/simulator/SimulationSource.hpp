@@ -2,6 +2,7 @@
 
 #pragma once
 
+#include "queue/Source.hpp"
 #include "time/Time.hpp"
 
 namespace xo {
@@ -22,7 +23,7 @@ namespace xo {
      *      s->advance_until(tm, true);
      *   }
      */
-    class SimulationSource {
+    class SimulationSource : public reactor::Source {
     public:
       using utc_nanos = xo::time::utc_nanos;
 
@@ -50,8 +51,15 @@ namespace xo {
        *
        * promise:
        * - new .t0() >= old .t0() || .is_exhausted()
+       *
+       * returns #of events actually released (0 or 1)
        */
-      virtual void advance_one() = 0;
+      virtual std::uint64_t advance_one() = 0;
+
+      // ----- inherited from reactor::Source -----
+
+      virtual bool is_empty() const override { return this->is_exhausted(); }
+      virtual std::uint64_t deliver_one() override { return this->advance_one(); }
     }; /*SimulationSource*/
   } /*namespace sim*/
 } /*namespace xo*/

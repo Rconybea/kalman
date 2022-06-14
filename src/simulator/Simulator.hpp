@@ -14,6 +14,13 @@ namespace xo {
      *
      * - time advances monotonically
      * - applies a modifiable set of sources
+     *
+     * A Simulator isn't an example of a Reactor,
+     * because it can't work with arbitrary Sources
+     * (may find it expedient to fake this later,
+     * so we can easily adopt
+     *    Source.notify_reactor_add() / Source.notify_reactor_remove())
+     * in a simulation context
      */
     class Simulator {
     public:
