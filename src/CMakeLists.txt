@@ -42,6 +42,7 @@ add_code_coverage()
 
 # add process/, logutil/, .. subdirectory
 add_subdirectory(simulator)
+add_subdirectory(simulator_py)
 add_subdirectory(process)
 add_subdirectory(option)
 add_subdirectory(distribution)

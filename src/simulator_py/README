@@ -1,0 +1,23 @@
+simulator module,  using pybind11 to wrap c++ implementation
+
+To demo:
+
+1. build the kalman project:
+   see path/to/kalman/README for details.
+
+   python-compatible .so will be at:
+   path/to/kalman/build/simulator_py/simulator_py.cpython-39-darwin.so
+
+2. run python:
+     $ cd path/to/kalman/build/simulator_py
+     $ python3
+     Python 3.9.12 (main, May 13 2022, 08:13:55) 
+     [Clang 11.1.0 ] on darwin
+     Type "help", "copyright", "credits" or "license" for more information.
+     >>>
+
+3. import pybind11 module + run:
+     >>> import simulator_py
+     >>> simulator_py.xoadd(4,5)
+     9
+
