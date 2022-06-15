@@ -84,6 +84,8 @@ namespace xo {
 
       T * get() const { return ptr_; }
 
+      T * operator->() const { return ptr_; }
+
       intrusive_ptr<T> & operator=(intrusive_ptr<T> const & rhs) {
         using logutil::scope;
         using logutil::xtag;
