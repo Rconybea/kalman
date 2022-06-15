@@ -2,6 +2,7 @@
 
 #pragma once
 
+#include "refcnt/Refcounted.hpp"
 #include <cstdint>
 
 namespace xo {
@@ -11,14 +12,14 @@ namespace xo {
     /* abtract api for a reactor:
      * something that arranges to have work done on a set of Sources.
      */
-    class Reactor {
+    class Reactor : public refcnt::Refcounted<Reactor> {
     public:
       virtual ~Reactor() = default;
       
       /* add source src to this reactor.
        * on success, invoke src.notify_reactor_add(this)
        */
-      virtual void add_source(Source * src) = 0;
+      virtual void add_source(refcnt::brw<Source> src) = 0;
 
       /* remove source src from this reactor.
        * source must previously have been added by
@@ -26,7 +27,7 @@ namespace xo {
        *
        * on success, invoke src.notify_reactor_remove(this)
        */
-      virtual void remove_source(Source * src) = 0;
+      virtual void remove_source(refcnt::brw<Source> src) = 0;
 
       /* dispatch one reactor event,  borrowing the calling thread
        * amount of work this represents is Source/Sink specific.
@@ -34,6 +35,13 @@ namespace xo {
        * returns #of events dispatched (0 or 1)
        */
       virtual std::uint64_t run_one() = 0;
+
+      /* run indefinetly,  borrowing calling thread */
+      void run() {
+	for(;;) {
+	  this->run_one();
+	}
+      } /*run*/
     }; /*Reactor*/
   } /*namespace reactor*/
 } /*namespace xo*/

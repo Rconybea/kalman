@@ -3,17 +3,18 @@
 #include "queue/PollingReactor.hpp"
 
 namespace xo {
+  using refcnt::brw;
   using std::size_t;
   using std::uint64_t;
   using std::int64_t;
 
   namespace reactor {
     void
-    PollingReactor::add_source(Source * src)
+    PollingReactor::add_source(brw<Source> src)
     {
       /* make sure src does not already appear in .source_v[] */
-      for(Source * x : this->source_v_) {
-	if(x == src) {
+      for(SourcePtr const & x : this->source_v_) {
+	if(x == src.get()) {
 	  throw std::runtime_error("PollingReactor::add_source; source already present");
 	  return;
 	}
@@ -21,11 +22,11 @@ namespace xo {
 
       src->notify_reactor_add(this);
 
-      this->source_v_.push_back(src);
+      this->source_v_.push_back(src.get());
     } /*add_source*/
 
     void
-    PollingReactor::remove_source(Source * src)
+    PollingReactor::remove_source(brw<Source> src)
     {
       auto ix = std::find(this->source_v_.begin(),
 			  this->source_v_.end(),
@@ -45,7 +46,7 @@ namespace xo {
 
       /* search sources [ix .. z) */
       for(size_t ix = start_ix; ix < z; ++ix) {
-	Source * src = this->source_v_[ix];
+	brw<Source> src = this->source_v_[ix];
 
 	if(src->is_nonempty())
 	  return ix;
@@ -53,7 +54,7 @@ namespace xo {
 
       /* search source [0 .. ix) */
       for(size_t ix = 0, n = std::min(start_ix, z); ix < n; ++ix) {
-	Source * src = this->source_v_[ix];
+	brw<Source> src = this->source_v_[ix];
 
 	if(src->is_nonempty())
 	  return ix;
@@ -68,7 +69,7 @@ namespace xo {
       int64_t ix = this->find_nonempty_source(this->next_ix_);
 
       if(ix >= 0) {
-	Source * src = this->source_v_[ix];
+	brw<Source> src = this->source_v_[ix];
 
 	return src->deliver_one();
       } else {

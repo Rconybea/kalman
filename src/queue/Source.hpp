@@ -2,6 +2,7 @@
 
 #pragma once
 
+#include "refcnt/Refcounted.hpp"
 #include <cstdint>
 
 namespace xo {
@@ -22,7 +23,7 @@ namespace xo {
      *   .notify_reactor_add(), .notify_reactor_remove()
      * methods
      */
-    class Source {
+    class Source : public refcnt::Refcounted<Source> {
     public:
       virtual ~Source() = default;
 
@@ -50,6 +51,8 @@ namespace xo {
        */
       virtual void notify_reactor_remove(Reactor * /*reactor*/) {}
     }; /*Source*/
+
+    using SourcePtr = refcnt::rp<Source>;
   } /*namespace reactor*/
 } /*namespace xo*/
 
