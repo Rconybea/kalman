@@ -86,7 +86,7 @@ namespace xo {
       /* intensity parameter.
        * require: lambda > 0
        */
-      double lambda_;
+      double lambda_ = 1.0;
     }; /*Exponential*/
   } /*namespace distribution*/
 } /*namespace xo*/
