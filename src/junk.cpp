@@ -30,7 +30,7 @@
 namespace xo {
   using xo::process::BrownianMotion;
   using xo::random::xoshiro256ss;
-  using xo::refcnt::brw;
+  using xo::ref::brw;
   using xo::time::utc_nanos;
   using xo::time::days;
   //using logutil::operator<<;
@@ -297,7 +297,7 @@ main(int argc, char **argv)
 
         utc_nanos t0 = std::chrono::system_clock::now();
 
-	xo::refcnt::rp<BrownianMotion<xoshiro256ss>> bm
+	xo::ref::rp<BrownianMotion<xoshiro256ss>> bm
 	  = BrownianMotion<xoshiro256ss>::make(t0,
 					       0.5 /*50% annual volatility - sdev ~ .025/day*/,
 					       time(nullptr) /*seed*/);

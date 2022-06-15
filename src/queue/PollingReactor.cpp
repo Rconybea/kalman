@@ -3,7 +3,7 @@
 #include "queue/PollingReactor.hpp"
 
 namespace xo {
-  using refcnt::brw;
+  using ref::brw;
   using std::size_t;
   using std::uint64_t;
   using std::int64_t;

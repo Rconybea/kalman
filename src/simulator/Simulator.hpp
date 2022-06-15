@@ -46,7 +46,7 @@ namespace xo {
       /* true iff src has been added to this simulator
        * (by .add_source())
        */
-      bool is_source_present(refcnt::brw<SimulationSource> src) const;
+      bool is_source_present(ref::brw<SimulationSource> src) const;
 
       /* promise:
        *   .next_tm() > .t0() || .is_exhausted()
@@ -61,7 +61,7 @@ namespace xo {
        *
        * returns true if src added;  false if already present
        */
-      bool add_source(refcnt::brw<SimulationSource> src);
+      bool add_source(ref::brw<SimulationSource> src);
 
       /* emit the first available event from a single simulation source.
        * resolve ties arbitrarily

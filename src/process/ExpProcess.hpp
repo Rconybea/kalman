@@ -20,7 +20,7 @@ namespace xo {
     //
     class ExpProcess : public StochasticProcess<double> {
     public:
-      static refcnt::rp<ExpProcess> make(refcnt::brw<StochasticProcess<double>> exp_proc) {
+      static ref::rp<ExpProcess> make(ref::brw<StochasticProcess<double>> exp_proc) {
 	return new ExpProcess(exp_proc);
       }
 
@@ -66,11 +66,11 @@ namespace xo {
       } /*interior_sample*/
 
     private:
-      ExpProcess(refcnt::brw<StochasticProcess> exp_proc)
+      ExpProcess(ref::brw<StochasticProcess> exp_proc)
 	: exponent_process_{exp_proc.get()} {}
       
     private:
-      refcnt::rp<StochasticProcess<double>> exponent_process_;
+      ref::rp<StochasticProcess<double>> exponent_process_;
     }; /*ExpProcess*/
   } /*namespace process*/
 } /*namespace xo*/

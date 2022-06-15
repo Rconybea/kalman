@@ -14,7 +14,7 @@ namespace process {
 // can be adapted as a simulation source
 //
 template <typename T>
-class RealizationTracer : public refcnt::Refcount {
+class RealizationTracer : public ref::Refcount {
 public:
   using Process = xo::process::StochasticProcess<T>;
   /* something like std::pair<utc_nanos, T> */
@@ -23,7 +23,7 @@ public:
   using nanos = xo::time::nanos;
 
 public:
-  static refcnt::rp<RealizationTracer> make(StochasticProcess<T> * p) {
+  static ref::rp<RealizationTracer> make(StochasticProcess<T> * p) {
     return new RealizationTracer(p);
   }
 

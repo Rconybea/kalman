@@ -7,7 +7,7 @@
 #include <atomic>
 
 namespace xo {
-  namespace refcnt {
+  namespace ref {
     class Refcount;
 
     /* originally used boost::instrusive_ptr<>.
@@ -272,7 +272,7 @@ namespace xo {
     }; /*Refcounted*/
 #endif
 
-  } /*namespace refcnt*/
+  } /*namespace ref*/
 } /*namespace xo*/
 
 /* end Refcounted.hpp */

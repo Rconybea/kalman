@@ -23,7 +23,7 @@ namespace xo {
      *   .notify_reactor_add(), .notify_reactor_remove()
      * methods
      */
-    class Source : public refcnt::Refcount {
+    class Source : public ref::Refcount {
     public:
       virtual ~Source() = default;
 
@@ -52,7 +52,7 @@ namespace xo {
       virtual void notify_reactor_remove(Reactor * /*reactor*/) {}
     }; /*Source*/
 
-    using SourcePtr = refcnt::rp<Source>;
+    using SourcePtr = ref::rp<Source>;
   } /*namespace reactor*/
 } /*namespace xo*/
 

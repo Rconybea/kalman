@@ -62,7 +62,7 @@ namespace xo {
       virtual std::uint64_t deliver_one() override { return this->advance_one(); }
     }; /*SimulationSource*/
 
-    using SimulationSourcePtr = refcnt::rp<SimulationSource>;
+    using SimulationSourcePtr = ref::rp<SimulationSource>;
   } /*namespace sim*/
 } /*namespace xo*/
 

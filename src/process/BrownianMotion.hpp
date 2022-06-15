@@ -32,9 +32,9 @@ namespace xo {
        * seed.  initialize pseudorandom-number generator
        */
       template<class Seed>
-      static refcnt::rp<BrownianMotion<RngEngine>> make(utc_nanos t0,
-							double sdev,
-							Seed const & seed)
+      static ref::rp<BrownianMotion<RngEngine>> make(utc_nanos t0,
+						     double sdev,
+						     Seed const & seed)
       {
 	return new BrownianMotion<RngEngine>(t0, sdev, seed);
       } /*make*/

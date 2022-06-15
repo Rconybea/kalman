@@ -6,7 +6,7 @@
 #include <algorithm>
 
 namespace xo {
-  using xo::refcnt::brw;
+  using xo::ref::brw;
   using xo::time::utc_nanos;
   using logutil::scope;
   using logutil::xtag;

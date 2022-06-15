@@ -17,7 +17,7 @@ namespace xo {
   using xo::process::ExpProcess;
   using xo::process::BrownianMotion;
   using xo::random::xoshiro256ss;
-  using xo::refcnt::rp;
+  using xo::ref::rp;
   using xo::time::Time;
   using xo::time::seconds;
   using xo::time::utc_nanos;
@@ -88,7 +88,7 @@ namespace xo {
 
       REQUIRE(sim.is_exhausted());
 
-      refcnt::rp<BrownianMotion<xoshiro256ss>> bm
+      ref::rp<BrownianMotion<xoshiro256ss>> bm
 	= BrownianMotion<xoshiro256ss>::make(t0,
 					     0.30 /*sdev -- annualized volatility*/,
 					     12345678UL /*seed*/);

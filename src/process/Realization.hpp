@@ -23,7 +23,7 @@ namespace process {
 // - achieve this by allowing for caching behavior
 //
 template<typename T>
-class Realization : public refcnt::Refcount {
+class Realization : public ref::Refcount {
 public:
   using utc_nanos = xo::time::utc_nanos;
   using KnownMap = std::map<utc_nanos, T>;
@@ -31,11 +31,11 @@ public:
   using KnownRange = boost::iterator_range<KnownIterator>;
 
 public:
-  static refcnt::rp<Realization> make(refcnt::brw<StochasticProcess<T>> p) {
+  static ref::rp<Realization> make(ref::brw<StochasticProcess<T>> p) {
     return new Realization(p);
   } /*make*/
 
-  refcnt::brw<StochasticProcess<T>> process() const { return process_; }
+  ref::brw<StochasticProcess<T>> process() const { return process_; }
 
   utc_nanos t0() const { return process_->t0(); }
 
@@ -51,11 +51,11 @@ public:
   //   realized_range() -> iterator_range<IT>
 
 private:
-  Realization(refcnt::brw<StochasticProcess<T>> p) : process_{p} {}
+  Realization(ref::brw<StochasticProcess<T>> p) : process_{p} {}
 
 private:
   /* stochastic process from which this realization is sampled */
-  refcnt::rp<StochasticProcess<T>> process_;
+  ref::rp<StochasticProcess<T>> process_;
 
   /* process value (for this realization) has been established (sampled)
    * at each time t in {.known_map[].first}

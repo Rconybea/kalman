@@ -16,8 +16,8 @@ namespace xo {
 
       // ----- inherited from Reactor -----
 
-      virtual void add_source(refcnt::brw<Source> src);
-      virtual void remove_source(refcnt::brw<Source> src);
+      virtual void add_source(ref::brw<Source> src);
+      virtual void remove_source(ref::brw<Source> src);
       virtual std::uint64_t run_one();
 
     private:

@@ -19,7 +19,7 @@ namespace process {
 //   in which case will likely require some discretization
 //
 template<typename T>
-class StochasticProcess : public refcnt::Refcount {
+class StochasticProcess : public ref::Refcount {
 public:
   using value_type = T;
   using utc_nanos = xo::time::utc_nanos;
