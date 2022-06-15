@@ -3,6 +3,7 @@
 #pragma once
 
 #include "process/StochasticProcess.hpp"
+#include "refcnt/Refcounted.hpp"
 
 namespace xo {
 namespace process {
@@ -13,7 +14,7 @@ namespace process {
 // can be adapted as a simulation source
 //
 template <typename T>
-class RealizationTracer {
+class RealizationTracer : public refcnt::Refcount {
 public:
   using Process = xo::process::StochasticProcess<T>;
   /* something like std::pair<utc_nanos, T> */
@@ -22,8 +23,9 @@ public:
   using nanos = xo::time::nanos;
 
 public:
-  RealizationTracer(StochasticProcess<T> * p)
-    : current_(event_type(p->t0(), p->t0_value())), process_(p) {}
+  static refcnt::rp<RealizationTracer> make(StochasticProcess<T> * p) {
+    return new RealizationTracer(p);
+  }
 
   event_type const & current_ev() const { return current_; }
   utc_nanos current_tm() const { return current_.first; }
@@ -71,6 +73,10 @@ public:
    */
   virtual void advance_eps(double eps) = 0;
 #endif
+
+private:
+  RealizationTracer(StochasticProcess<T> * p)
+    : current_(event_type(p->t0(), p->t0_value())), process_(p) {}
 
 private:
   /* current (time, processvalue) associated with this realization */

@@ -92,7 +92,8 @@ namespace xo {
 	= BrownianMotion<xoshiro256ss>::make(t0,
 					     0.30 /*sdev -- annualized volatility*/,
 					     12345678UL /*seed*/);
-      RealizationTracer<double> tracer(bm.get());
+      rp<RealizationTracer<double>> tracer
+	= RealizationTracer<double>::make(bm.get());
 
       std::vector<std::pair<utc_nanos,double>> sample_v;
 
@@ -104,7 +105,7 @@ namespace xo {
       /* what is step dt? */
       rp<RealizationSimSource<double, decltype(sink)>>
 	sim_source
-	= RealizationSimSource<double, decltype(sink)>::make(&tracer,
+	= RealizationSimSource<double, decltype(sink)>::make(tracer,
 							     std::chrono::seconds(1) /*ev_interval_dt*/,
 							     sink);
 
@@ -151,7 +152,8 @@ namespace xo {
       /* recover the exponentiated process,  for testing */
       //StochasticProcess<double> * bm = ebm->exponent_process();
 
-      RealizationTracer<double> tracer(ebm.get());
+      rp<RealizationTracer<double>> tracer
+	= RealizationTracer<double>::make(ebm.get());
 
       /* will be: samples from log-normal brownian motion */
       std::vector<std::pair<utc_nanos,double>> sample_v;
@@ -164,7 +166,7 @@ namespace xo {
 
       rp<RealizationSimSource<double, decltype(sink)>>
 	sim_source
-	= RealizationSimSource<double, decltype(sink)>::make(&tracer,
+	= RealizationSimSource<double, decltype(sink)>::make(tracer,
 							     std::chrono::seconds(1) /*ev_interval_dt*/,
 							     sink);
 

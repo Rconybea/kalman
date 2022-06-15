@@ -37,7 +37,7 @@ namespace xo {
 	  lscope.log("delete instance", xtag("p", this));
       } /*dtor*/
 
-      static refcnt::rp<RealizationSimSource> make(RealizationTracer<T> * tracer,
+      static refcnt::rp<RealizationSimSource> make(refcnt::brw<RealizationTracer<T>> tracer,
 						   nanos ev_interval_dt,
 						   EventSink const & ev_sink)
       {
@@ -99,13 +99,13 @@ namespace xo {
       } /*advance_one*/
 
     private:
-      RealizationSimSource(RealizationTracer<T> * tracer,
+      RealizationSimSource(refcnt::brw<RealizationTracer<T>> tracer,
 			   nanos ev_interval_dt,
 			   EventSink const & ev_sink)
-	: tracer_(tracer),
+	: tracer_(tracer.get()),
 	  ev_sink_(ev_sink),
 	  ev_interval_dt_(ev_interval_dt) {}
-      RealizationSimSource(RealizationTracer<T> * tracer,
+      RealizationSimSource(refcnt::brw<RealizationTracer<T>> tracer,
 			   nanos ev_interval_dt,
 			   EventSink && ev_sink)
 	: tracer_(tracer),
@@ -114,7 +114,7 @@ namespace xo {
 
     private:
       /* produces events representing realized stochastic-process values */
-      RealizationTracer<T> * tracer_ = nullptr;
+      refcnt::rp<RealizationTracer<T>> tracer_;
       /* consume events coming from this sim source */
       EventSink ev_sink_;
       /* discretize process using this interval:
