@@ -17,6 +17,7 @@
 #include "random/GaussianPair.hpp"
 #include "random/xoshiro256.hpp"
 #include "random/random_seed.hpp"
+#include "refcnt/Refcounted.hpp"
 #include "logutil/scope.hpp"
 #include "logutil/tag.hpp"
 #include "logutil/array.hpp"
@@ -29,6 +30,7 @@
 namespace xo {
   using xo::process::BrownianMotion;
   using xo::random::xoshiro256ss;
+  using xo::refcnt::brw;
   using xo::time::utc_nanos;
   using xo::time::days;
   //using logutil::operator<<;
@@ -41,7 +43,7 @@ namespace xo {
   fill_interior_samples(utc_nanos t0,
 			uint32_t i_lo,
 			uint32_t i_hi,
-			BrownianMotion<xoshiro256ss> * p_bm,
+			brw<BrownianMotion<xoshiro256ss>> p_bm,
 			std::array<double, N> *p_v)
   {
     if (i_lo == i_hi)
@@ -295,16 +297,18 @@ main(int argc, char **argv)
 
         utc_nanos t0 = std::chrono::system_clock::now();
 
-        BrownianMotion<xoshiro256ss> bm(t0, 0.5 /*50% annual volatility - sdev ~ .025/day*/,
-					time(nullptr) /*seed*/);
+	xo::refcnt::rp<BrownianMotion<xoshiro256ss>> bm
+	  = BrownianMotion<xoshiro256ss>::make(t0,
+					       0.5 /*50% annual volatility - sdev ~ .025/day*/,
+					       time(nullptr) /*seed*/);
 
         {
-          double var_1day = bm.variance_dt(xo::time::days(1));
+          double var_1day = bm->variance_dt(xo::time::days(1));
           lscope.log(TAG2("var(1day)", var_1day));
           lscope.log(TAG2("sdev(1day)", ::sqrt(var_1day)));
         }
         {
-          double var_30day = bm.variance_dt(xo::time::days(30));
+          double var_30day = bm->variance_dt(xo::time::days(30));
           lscope.log(TAG2("var(30day)", var_30day));
           lscope.log(TAG2("sdev(30day)", ::sqrt(var_30day)));
         }
@@ -318,7 +322,7 @@ main(int argc, char **argv)
           utc_nanos ti_prev = t0 + days(i - 1);
           utc_nanos ti = t0 + days(i);
 
-          v[i] = bm.exterior_sample(
+          v[i] = bm->exterior_sample(
               ti, BrownianMotion<xoshiro256ss>::event_type(ti_prev, v[i - 1]));
 
           lscope.log(TAG(i), " ", TAG(v[i]));
@@ -326,7 +330,7 @@ main(int argc, char **argv)
 
         lscope.log("using interior_sample");
 
-        xo::fill_interior_samples<n>(t0, 0, n - 1, &bm, &v);
+        xo::fill_interior_samples<n>(t0, 0, n - 1, bm, &v);
 
         for (uint32_t i = 1; i < n; ++i) {
           lscope.log(TAG(i), " ", TAG(v[i]));

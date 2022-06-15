@@ -88,7 +88,7 @@ namespace xo {
 
       REQUIRE(sim.is_exhausted());
 
-      std::unique_ptr<BrownianMotion<xoshiro256ss>> bm
+      refcnt::rp<BrownianMotion<xoshiro256ss>> bm
 	= BrownianMotion<xoshiro256ss>::make(t0,
 					     0.30 /*sdev -- annualized volatility*/,
 					     12345678UL /*seed*/);
@@ -143,7 +143,7 @@ namespace xo {
 
       REQUIRE(sim.is_exhausted());
 
-      std::unique_ptr<ExpProcess> ebm
+      rp<ExpProcess> ebm
 	(LogNormalProcess::make<xoshiro256ss, uint64_t>
 	   (t0,
 	    0.30 /*sdev -- annualized volatility*/,

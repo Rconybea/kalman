@@ -20,13 +20,11 @@ namespace xo {
     //
     class ExpProcess : public StochasticProcess<double> {
     public:
-      ExpProcess(std::unique_ptr<StochasticProcess> exp_process)
-	: exponent_process_{std::move(exp_process)} {}
-      
-      static std::unique_ptr<ExpProcess> make(std::unique_ptr<StochasticProcess<double>> exp_process) {
-	return std::unique_ptr<ExpProcess>(new ExpProcess(std::move(exp_process)));
-      } /*make*/
+      static refcnt::rp<ExpProcess> make(refcnt::brw<StochasticProcess<double>> exp_proc) {
+	return new ExpProcess(exp_proc);
+      }
 
+    public:
       StochasticProcess<double> * exponent_process() const { return exponent_process_.get(); }
 
       // ----- inherited from StochasticProcess<...> -----
@@ -68,7 +66,11 @@ namespace xo {
       } /*interior_sample*/
 
     private:
-      std::unique_ptr<StochasticProcess<double>> exponent_process_ = nullptr;
+      ExpProcess(refcnt::brw<StochasticProcess> exp_proc)
+	: exponent_process_{exp_proc.get()} {}
+      
+    private:
+      refcnt::rp<StochasticProcess<double>> exponent_process_;
     }; /*ExpProcess*/
   } /*namespace process*/
 } /*namespace xo*/

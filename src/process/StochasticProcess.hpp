@@ -2,6 +2,7 @@
 
 #pragma once
 
+#include "refcnt/Refcounted.hpp"
 #include "time/Time.hpp"
 #include <utility>
 
@@ -18,14 +19,14 @@ namespace process {
 //   in which case will likely require some discretization
 //
 template<typename T>
-class StochasticProcess {
+class StochasticProcess : public refcnt::Refcount {
 public:
   using value_type = T;
   using utc_nanos = xo::time::utc_nanos;
   using event_type = std::pair<utc_nanos, T>;
 
 public:
-  virtual ~StochasticProcess() {}
+  virtual ~StochasticProcess() = default;
 
   /* starting time for this process */
   virtual utc_nanos t0() const = 0;

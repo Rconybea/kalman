@@ -16,8 +16,11 @@ namespace xo {
 
     public:
       template<typename RngEngine, typename Seed>
-      static std::unique_ptr<ExpProcess> make(utc_nanos t0, double sdev, Seed const & seed) {
-	return ExpProcess::make(BrownianMotion<RngEngine>::make(t0, sdev, seed));
+      static refcnt::rp<ExpProcess> make(utc_nanos t0, double sdev, Seed const & seed) {
+	refcnt::rp<BrownianMotion<RngEngine>> bm
+	  = BrownianMotion<RngEngine>::make(t0, sdev, seed);
+
+        return ExpProcess::make(bm);
       } /*make*/
     }; /*LogNormalProcess*/
 

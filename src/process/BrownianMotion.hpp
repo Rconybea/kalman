@@ -27,22 +27,19 @@ namespace xo {
       using nanos = xo::time::nanos;
 
     public:
-      template<class Seed>
-      BrownianMotion(utc_nanos t0, double sdev, Seed const & seed)
-          : t0_{t0}, volatility_{sdev}, vol2_day_{(sdev * sdev) *
-                                                  (1.0 / 365.25)},
-            rng_{NormalGen::make(seed, 0.0 /*mean*/, 1.0 /*sdev*/)} {}
-      virtual ~BrownianMotion() = default;
-
       /* t0.  start time,
        * sdev.  annual sqrt volatility
        * seed.  initialize pseudorandom-number generator
-       *
-       * TODO: return std::unique_ptr<> here
        */
-      static std::unique_ptr<BrownianMotion> make(utc_nanos t0, double sdev, uint64_t seed) {
-        return std::unique_ptr<BrownianMotion>(new BrownianMotion(t0, sdev, seed));
+      template<class Seed>
+      static refcnt::rp<BrownianMotion<RngEngine>> make(utc_nanos t0,
+							double sdev,
+							Seed const & seed)
+      {
+	return new BrownianMotion<RngEngine>(t0, sdev, seed);
       } /*make*/
+
+      virtual ~BrownianMotion() = default;
 
       /* brownian motion with constant volatility at this level */
       double volatility() const { return volatility_; }
@@ -79,6 +76,13 @@ namespace xo {
       virtual utc_nanos hitting_time(double const &a,
                                      event_type const &lo) override;
 #endif
+
+    private:
+      template<class Seed>
+      BrownianMotion(utc_nanos t0, double sdev, Seed const & seed)
+          : t0_{t0}, volatility_{sdev}, vol2_day_{(sdev * sdev) *
+                                                  (1.0 / 365.25)},
+            rng_{NormalGen::make(seed, 0.0 /*mean*/, 1.0 /*sdev*/)} {}
 
     private:
       /* starting time for this process */
