@@ -30,6 +30,11 @@ target_include_directories(${SELF_LIBRARY_NAME} PUBLIC
 			   ${PROJECT_BINARY_DIR})
 
 # ----------------------------------------------------------------
+# internal dependencies: logutil, ...
+
+target_link_libraries(queue PUBLIC logutil)
+
+# ----------------------------------------------------------------
 # make standard directories for std:: includes explicit
 # so that
 # (1) they appear in compile_commands.json.

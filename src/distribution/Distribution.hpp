@@ -10,7 +10,7 @@ namespace xo {
      * over supplied Domain
      */
     template<typename Domain>
-    class Distribution : public refcnt::Refcounted<Distribution<Domain>> {
+    class Distribution : public refcnt::Refcount {
     public:
       virtual double cdf(Domain const & x) const = 0;
     }; /*Distribution*/

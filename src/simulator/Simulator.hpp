@@ -28,7 +28,8 @@ namespace xo {
       
     public:
       explicit Simulator(utc_nanos t0) : t0_(t0) {}
-
+      ~Simulator();
+      
       /* value of .t0() is estabished in ctor.
        * it will not change except across call to .advance_one()
        * in particular .add_source() does not change .t0()
@@ -45,7 +46,7 @@ namespace xo {
       /* true iff src has been added to this simulator
        * (by .add_source())
        */
-      bool is_source_present(SimulationSource * src) const;
+      bool is_source_present(refcnt::brw<SimulationSource> src) const;
 
       /* promise:
        *   .next_tm() > .t0() || .is_exhausted()
@@ -60,7 +61,7 @@ namespace xo {
        *
        * returns true if src added;  false if already present
        */
-      bool add_source(SimulationSource * src);
+      bool add_source(refcnt::brw<SimulationSource> src);
 
       /* emit the first available event from a single simulation source.
        * resolve ties arbitrarily
@@ -94,8 +95,9 @@ namespace xo {
        *     2.1 s.is_exhausted() = false
        *     2.2 s.t0() >= .t0
        */
-      std::vector<SimulationSource *> src_v_;
+      std::vector<SimulationSourcePtr> src_v_;
     }; /*Simulator*/
+
   } /*namespace sim*/
 } /*namespace xo*/
 

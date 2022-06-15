@@ -61,6 +61,8 @@ namespace xo {
       virtual bool is_empty() const override { return this->is_exhausted(); }
       virtual std::uint64_t deliver_one() override { return this->advance_one(); }
     }; /*SimulationSource*/
+
+    using SimulationSourcePtr = refcnt::rp<SimulationSource>;
   } /*namespace sim*/
 } /*namespace xo*/
 

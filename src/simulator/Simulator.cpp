@@ -2,16 +2,44 @@
 
 #include "Simulator.hpp"
 #include "time/Time.hpp"
+#include "logutil/scope.hpp"
 #include <algorithm>
 
 namespace xo {
+  using xo::refcnt::brw;
   using xo::time::utc_nanos;
+  using logutil::scope;
+  using logutil::xtag;
 
   namespace sim {
+    Simulator::~Simulator() {
+      constexpr char const * c_self = "Simulator::dtor";
+      constexpr bool c_logging_enabled = false;
+
+      scope lscope(c_self, c_logging_enabled);
+
+      if(c_logging_enabled)
+	lscope.log(c_self, ": clear heap ..");
+
+      this->sim_heap_.clear();
+      
+      if(c_logging_enabled) {
+	lscope.log(c_self, ": visit .src_v", xtag("size", this->src_v_.size()));
+	for(size_t i=0; i<this->src_v_.size(); ++i) {
+	  lscope.log(c_self, ":src_v[", i, "] ", this->src_v_[i].get());
+	}
+      }
+
+      if(c_logging_enabled)
+	lscope.log(c_self, ": clear .src_v", xtag("size", this->src_v_.size()));
+      this->src_v_.clear();
+
+    } /*dtor*/
+
     bool
-    Simulator::is_source_present(SimulationSource * src) const
+    Simulator::is_source_present(brw<SimulationSource> src) const
     {
-      for(SimulationSource * s : this->src_v_) {
+      for(SimulationSourcePtr const & s : this->src_v_) {
 	if(s == src)
 	  return true;
       }
@@ -30,20 +58,28 @@ namespace xo {
     } /*next_tm*/
 
     bool
-    Simulator::add_source(SimulationSource * src)
+    Simulator::add_source(brw<SimulationSource> src)
     {
+      constexpr char const * c_self = "Simulator::add_source";
+      constexpr bool c_logging_enabled = false;
+
+      scope lscope(c_self, c_logging_enabled);
+
+      if(c_logging_enabled)
+	lscope.log(c_self, ": enter", xtag("src", src.get()));
+
       if(!src || this->is_source_present(src))
 	return false;
 
       src->advance_until(this->t0(), false /*!replay_flag*/);
 
-      this->src_v_.push_back(src);
+      this->src_v_.push_back(src.promote());
 
       if(src->is_exhausted()) {
 	;
       } else {
 	/* also add to simulation heap */
-	this->sim_heap_.push_back(SourceTimestamp(src->current_tm(), src));
+	this->sim_heap_.push_back(SourceTimestamp(src->current_tm(), src.get()));
 
 	/* use std::greater<> because we need a min-heap;
 	 * smallest timestamp at the front

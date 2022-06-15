@@ -14,7 +14,7 @@ namespace xo {
     {
       /* make sure src does not already appear in .source_v[] */
       for(SourcePtr const & x : this->source_v_) {
-	if(x == src.get()) {
+	if(x.get() == src.get()) {
 	  throw std::runtime_error("PollingReactor::add_source; source already present");
 	  return;
 	}

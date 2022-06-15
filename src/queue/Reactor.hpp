@@ -12,7 +12,7 @@ namespace xo {
     /* abtract api for a reactor:
      * something that arranges to have work done on a set of Sources.
      */
-    class Reactor : public refcnt::Refcounted<Reactor> {
+    class Reactor : public refcnt::Refcount {
     public:
       virtual ~Reactor() = default;
       

@@ -17,6 +17,7 @@ namespace xo {
   using xo::process::ExpProcess;
   using xo::process::BrownianMotion;
   using xo::random::xoshiro256ss;
+  using xo::refcnt::rp;
   using xo::time::Time;
   using xo::time::seconds;
   using xo::time::utc_nanos;
@@ -101,13 +102,13 @@ namespace xo {
 	{ sample_v.push_back(ev); });
 
       /* what is step dt? */
-      RealizationSimSource<double,
-			   decltype(sink)>
-	sim_source(&tracer,
-		   std::chrono::seconds(1) /*ev_interval_dt*/,
-		   sink);
+      rp<RealizationSimSource<double, decltype(sink)>>
+	sim_source
+	= RealizationSimSource<double, decltype(sink)>::make(&tracer,
+							     std::chrono::seconds(1) /*ev_interval_dt*/,
+							     sink);
 
-      sim.add_source(&sim_source);
+      sim.add_source(sim_source);
 
       utc_nanos t1 = t0 + minutes(1);
 
@@ -161,13 +162,13 @@ namespace xo {
 	   (std::pair<utc_nanos,double> const & ev)
 	{ sample_v.push_back(ev); });
 
-      RealizationSimSource<double,
-			   decltype(sink)>
-	sim_source(&tracer,
-		   std::chrono::seconds(1) /*ev_interval_dt*/,
-		   sink);
+      rp<RealizationSimSource<double, decltype(sink)>>
+	sim_source
+	= RealizationSimSource<double, decltype(sink)>::make(&tracer,
+							     std::chrono::seconds(1) /*ev_interval_dt*/,
+							     sink);
 
-      sim.add_source(&sim_source);
+      sim.add_source(sim_source);
 
       utc_nanos t1 = t0 + minutes(1);
 
@@ -184,7 +185,8 @@ namespace xo {
 	REQUIRE(sample_v[i].second > 0.0);
       }
 
-      //lscope.log(xtag("sample_v.size", sample_v.size()));
+      if(c_logging_enabled)
+	lscope.log(xtag("sample_v.size", sample_v.size()));
     } /*TEST_CASE("sim-lognormal")*/
   } /*namespace ut*/
 } /*namespace xo*/

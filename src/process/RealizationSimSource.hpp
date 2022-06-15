@@ -4,6 +4,7 @@
 
 #include "simulator/SimulationSource.hpp"
 #include "process/RealizationTracer.hpp"
+#include <logutil/scope.hpp>
 #include <functional>
 
 namespace xo {
@@ -24,18 +25,45 @@ namespace xo {
       using nanos = xo::time::nanos;
 
     public:
-      RealizationSimSource(RealizationTracer<T> * tracer,
-			   nanos ev_interval_dt,
-			   EventSink const & ev_sink)
-	: tracer_(tracer),
-	  ev_sink_(ev_sink),
-	  ev_interval_dt_(ev_interval_dt) {}
-      RealizationSimSource(RealizationTracer<T> * tracer,
-			   nanos ev_interval_dt,
-			   EventSink && ev_sink)
-	: tracer_(tracer),
-	  ev_sink_{std::move(ev_sink)},
-	  ev_interval_dt_(ev_interval_dt) {}
+      ~RealizationSimSource() {
+	using logutil::scope;
+	using logutil::xtag;
+
+	constexpr char const * c_self = "RealizationSimSource<>::dtor";
+	constexpr bool c_logging_enabled = false;
+	
+	scope lscope(c_self, c_logging_enabled);
+	if(c_logging_enabled)
+	  lscope.log("delete instance", xtag("p", this));
+      } /*dtor*/
+
+      static refcnt::rp<RealizationSimSource> make(RealizationTracer<T> * tracer,
+						   nanos ev_interval_dt,
+						   EventSink const & ev_sink)
+      {
+	using logutil::scope;
+	using logutil::xtag;
+
+	constexpr char const * c_self = "RealizationSimSource<>::make";
+	constexpr bool c_logging_enabled = false;
+
+	auto p = new RealizationSimSource(tracer, ev_interval_dt, ev_sink);
+
+	scope lscope(c_self, c_logging_enabled);
+	if(c_logging_enabled)
+	  lscope.log("create instance",
+		     xtag("p", p),
+		     xtag("bytes", sizeof(RealizationSimSource)));
+
+	return p;
+      } /*make*/
+
+      static refcnt::rp<RealizationSimSource> make(RealizationTracer<T> * tracer,
+						   nanos ev_interval_dt,
+						   EventSink && ev_sink)
+      {
+	return new RealizationSimSource(tracer, ev_interval_dt, ev_sink);
+      } /*make*/
 
       /* deliver current event to sink */
       void sink_one() const {
@@ -71,6 +99,20 @@ namespace xo {
       } /*advance_one*/
 
     private:
+      RealizationSimSource(RealizationTracer<T> * tracer,
+			   nanos ev_interval_dt,
+			   EventSink const & ev_sink)
+	: tracer_(tracer),
+	  ev_sink_(ev_sink),
+	  ev_interval_dt_(ev_interval_dt) {}
+      RealizationSimSource(RealizationTracer<T> * tracer,
+			   nanos ev_interval_dt,
+			   EventSink && ev_sink)
+	: tracer_(tracer),
+	  ev_sink_{std::move(ev_sink)},
+	  ev_interval_dt_(ev_interval_dt) {}
+
+    private:
       /* produces events representing realized stochastic-process values */
       RealizationTracer<T> * tracer_ = nullptr;
       /* consume events coming from this sim source */
@@ -81,7 +123,7 @@ namespace xo {
        */
       nanos ev_interval_dt_;
     }; /*RealizationSimSource*/
-} /*namespace process*/
+  } /*namespace process*/
 } /*namespace xo*/
 
 /* end RealizationSimSource.hpp */

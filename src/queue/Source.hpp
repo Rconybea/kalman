@@ -23,7 +23,7 @@ namespace xo {
      *   .notify_reactor_add(), .notify_reactor_remove()
      * methods
      */
-    class Source : public refcnt::Refcounted<Source> {
+    class Source : public refcnt::Refcount {
     public:
       virtual ~Source() = default;
 
