@@ -2,13 +2,15 @@
 
 #pragma once
 
+#include "refcnt/Refcounted.hpp"
+
 namespace xo {
   namespace distribution {
     /* abstract api for a cumulative probability distribution.
      * over supplied Domain
      */
     template<typename Domain>
-    class Distribution {
+    class Distribution : public refcnt::Refcounted<Distribution<Domain>> {
     public:
       virtual double cdf(Domain const & x) const = 0;
     }; /*Distribution*/
