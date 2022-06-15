@@ -5,6 +5,8 @@ file(GLOB SOURCE_FILES "*.cpp")
 add_executable(utest.option ${SOURCE_FILES})
 #target_link_libraries(utest.option PRIVATE Catch2::Catch2WithMain)
 
+add_test(NAME utest.option COMMAND utest.option)
+
 # ----------------------------------------------------------------
 # generic project dependency
 

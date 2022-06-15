@@ -1,8 +1,11 @@
-# build unittest 'redblacktree/unittest'
+# build unittest 'tree/utest/utest.tree'
 
 # These tests can use the Catch2-provided main
 file(GLOB SOURCE_FILES "*.cpp")
 add_executable(utest.tree ${SOURCE_FILES})
+
+add_test(NAME utest.tree COMMAND utest.tree)
+
 #target_link_libraries(utest.tree PRIVATE Catch2::Catch2WithMain)
 
 # ----------------------------------------------------------------

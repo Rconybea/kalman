@@ -3,6 +3,9 @@
 # These tests can use the Catch2-provided main
 file(GLOB SOURCE_FILES "*.cpp")
 add_executable(utest.process ${SOURCE_FILES})
+
+add_test(NAME utest.process COMMAND utest.process)
+
 #target_link_libraries(utest.process PRIVATE Catch2::Catch2WithMain)
 
 # ----------------------------------------------------------------
