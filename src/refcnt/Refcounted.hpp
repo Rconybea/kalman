@@ -182,6 +182,12 @@ namespace xo {
       Borrow(rp<S> const & x) : ptr_(x.get()) {}
       Borrow(Borrow const & x) = default;
 
+      /* dynamic cast from a pointer to an object of some convertible type */
+      template<typename S>
+      static Borrow<T> from(Borrow<S> x) {
+	  return Borrow(dynamic_cast<T *>(x.get()));
+      } /*from*/
+
       T * get() const { return ptr_; }
 
       rp<T> promote() const { return rp<T>(ptr_); }
@@ -198,6 +204,9 @@ namespace xo {
       static int32_t compare(rp<T> const & x, Borrow const & y) {
 	return ptrdiff_t(x.get() - y.get());
       } /*compare*/
+
+	private:
+      explicit Borrow(T * x) : ptr_(x) {}
 
     private:
       T * ptr_ = nullptr;
