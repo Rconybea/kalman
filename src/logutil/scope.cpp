@@ -101,11 +101,11 @@ namespace logutil {
     ostream & ss() { return ss_; }
 
     /* call on entry to new scope */
-    void preamble(char const * name);
+    void preamble(std::string_view name1, std::string_view name2);
     /* call before each new log entry */
     void indent(char pad_char);
     /* call on exit from scope */
-    void postamble(char const * name);
+    void postamble(std::string_view name1, std::string_view name2);
 
     /* write collected output to std::clog */
     void flush2clog();
@@ -118,7 +118,9 @@ namespace logutil {
 
   private:
     /* common implementation for .preamble(), .postamble() */
-    void entryexit_aux(char const * name, char label_char);
+    void entryexit_aux(std::string_view name1,
+		       std::string_view name2,
+		       char label_char);
 
   private:
     /* current nesting level for this thread */
@@ -173,7 +175,8 @@ namespace logutil {
   } /*indent*/
 
   void
-  state_impl::entryexit_aux(char const * name,
+  state_impl::entryexit_aux(std::string_view name1,
+			    std::string_view name2,
 			    char label_char)
   {
     log_streambuf * sbuf = this->p_sbuf_phase1_.get();
@@ -185,19 +188,21 @@ namespace logutil {
     this->ss_ << label_char;
 
     /* scope name */
-    this->ss_ << name << "\n";
+    this->ss_ << name1 << name2 << "\n";
   } /*entryexit_aux*/
 
   void
-  state_impl::preamble(char const * name)
+  state_impl::preamble(std::string_view name1,
+		       std::string_view name2)
   {
-    this->entryexit_aux(name, '+' /*label_char*/);
+    this->entryexit_aux(name1, name2, '+' /*label_char*/);
   } /*preamble*/
 
   void
-  state_impl::postamble(char const * name)
+  state_impl::postamble(std::string_view name1,
+			std::string_view name2)
   {
-    this->entryexit_aux(name, '-' /*label_char*/);
+    this->entryexit_aux(name1, name2, '-' /*label_char*/);
   }  /*postamble*/
 
   void
@@ -324,14 +329,15 @@ namespace logutil {
     logstate->flush2clog(); 
   } /*flush2clog*/
 
-  scope::scope(char const * fn, bool enabled_flag)
-    : name_(fn),
+  scope::scope(std::string_view fn1, std::string_view fn2, bool enabled_flag)
+    : name1_(fn1),
+      name2_(fn2),
       finalized_(!enabled_flag)
   {
     if(enabled_flag) {
       state_impl * logstate = scope::require_thread_local_state();
 
-      logstate->preamble(this->name_);
+      logstate->preamble(this->name1_, this->name2_);
       logstate->flush2clog();
 
       ///* next call to scope::log() can reset to beginning of buffer space */
@@ -341,7 +347,9 @@ namespace logutil {
     }
   } /*ctor*/
 
-  scope::scope(char const * fn) : scope(fn, true /*enabled_flag*/) {}
+  scope::scope(std::string_view fn1, bool enabled_flag) : scope(fn1, "", enabled_flag) {}
+
+  scope::scope(std::string_view fn) : scope(fn, true /*enabled_flag*/) {}
 
   void
   scope::end_scope()
@@ -354,7 +362,7 @@ namespace logutil {
 
       logstate->decr_nesting();
 
-      logstate->postamble(this->name_);
+      logstate->postamble(this->name1_, this->name2_);
       logstate->flush2clog();
     }
   } /*end_scope*/

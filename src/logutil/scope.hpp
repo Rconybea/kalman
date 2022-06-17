@@ -127,8 +127,9 @@ namespace logutil {
   //
   class scope {
   public:
-    scope(char const * fn);
-    scope(char const * fn, bool enabled_flag);
+    scope(std::string_view name1);
+    scope(std::string_view name1, bool enabled_flag);
+    scope(std::string_view name1, std::string_view name2, bool enabled_flag);
     ~scope();
 
     template<typename... Tn>
@@ -168,11 +169,17 @@ namespace logutil {
   private:
     /* logging state (strictly: not needed,  since will be thread-local) */
     state_impl * logstate_ = nullptr;
-    /* name of this scope */
-    char const * name_ = "<anonymous>";
+    /* name of this scope (part 1) */
+    std::string_view name1_ = "<name1>";
+    /* name of this scope (part 2) */
+    std::string_view name2_ = "::<name2>";
     /* set once per scope */
     bool finalized_ = false;
   }; /*scope*/
+
+  /* establish scope using current function name */
+#define XO_SCOPE(name) logutil::scope name(__FUNCTION__)
+#define XO_STUB() { XO_SCOPE(logr); logr.log("STUB"); }
 } /*namespace logutil*/
 
 /* end scope.hpp */
