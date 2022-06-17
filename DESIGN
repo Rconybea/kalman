@@ -1,0 +1,61 @@
+Memory Management
+
+1. using intrusive reference-counted pointers for heap-allocated objects.
+
+      ref::rp<Foo>
+
+   is a (possibly null) pointer to an instance of Foo.
+   Representation is the same as for
+
+      Foo *
+
+   ctor/dtor/copy/assignment are overloaded to maintain reference count.
+   Reference count is stored with the Foo instance;
+   the class Foo must inherit
+
+      ref::Refcount
+
+   Reference counts are 32-bits.  Reference count maintenace is threadsafe and
+   lock-free.  uses std::atomic with attention to memory_order details.
+
+2. Since reference-count maintenance is relatively expensive compared to native
+   pointer copy,   we try to mitigate unnecessary use or ref::rp<>.
+
+   Idea is to use ref::rp<> when storing pointer in struct/class instances,
+   and use something lighter for passing pointers in contexts where its safe to
+   assume refcount can't decrease to 0.
+
+   With this in mind:
+      ref::brw<Foo>
+   is a wrapper with native pointer semantics.
+
+   It's intended to serve as a reminder that Foo is reference counted.
+
+   Efficiency/safety tradeoff for refcounted objects:
+
+   a. use ref::rp<..> for instance variables.
+
+   b. use ref::rp<..> for function/method arguments that create
+      ref::rp<..> instances;   for example ctors, factory methods, setters.
+      
+   c. an expressions like:
+
+        dosomethingwith(ref::rp<Foo>(new Foo(...)).get())
+
+      is broken,   because ref::rp<Foo> dtor may run and delete Foo instance
+      before control enters dosomethingwith().
+   
+      instead write:
+
+        auto foo = ref::rp<Foo>(new Foo(...));
+	dosomethingwith(foo.get());
+
+      or have dosomethingwith() take a
+
+        ref::rp<Foo> const &
+
+      instead of a ref::brw<Foo>.    Note that a const-reference to ref::rp<>
+      involves double-indirection,   so isn't free.
+
+      With this in mind,  generally use ref::brw<Foo> for ctor/setter/factory functions.
+      

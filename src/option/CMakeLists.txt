@@ -1,7 +1,7 @@
 # option/CMakeLists.txt
 
 # build shared library 'process'
-add_library(option SHARED BlackScholes.cpp)
+add_library(option SHARED BlackScholes.cpp VanillaOption.cpp OptionExpirySet.cpp PricingContext.cpp StrikeSetMarketModel.cpp)
 
 set_target_properties(option PROPERTIES
 		      VERSION ${PROJECT_VERSION}
@@ -30,6 +30,7 @@ target_include_directories(option PUBLIC
 # internal dependencies: logutil, ...
 
 target_link_libraries(option PUBLIC logutil)
+target_link_libraries(option PUBLIC refcnt)
 
 # ----------------------------------------------------------------
 # make standard directories for std:: includes explicit

@@ -33,6 +33,7 @@ target_include_directories(${SELF_LIBRARY_NAME} PUBLIC
 # internal dependencies: logutil, ...
 
 target_link_libraries(queue PUBLIC logutil)
+target_link_libraries(queue PUBLIC refcnt)
 
 # ----------------------------------------------------------------
 # make standard directories for std:: includes explicit
