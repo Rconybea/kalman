@@ -4,6 +4,7 @@
 
 #include "simulator/SimulationSource.hpp"
 #include "simulator/SourceTimestamp.hpp"
+#include "refcnt/Refcounted.hpp"
 #include "time/Time.hpp"
 #include <vector>
 
@@ -22,14 +23,15 @@ namespace xo {
      *    Source.notify_reactor_add() / Source.notify_reactor_remove())
      * in a simulation context
      */
-    class Simulator {
+    class Simulator : public ref::Refcount {
     public:
       using utc_nanos = xo::time::utc_nanos;
       
     public:
-      explicit Simulator(utc_nanos t0) : t0_(t0) {}
       ~Simulator();
       
+      static ref::rp<Simulator> make(utc_nanos t0) { return new Simulator(t0); }
+
       /* value of .t0() is estabished in ctor.
        * it will not change except across call to .advance_one()
        * in particular .add_source() does not change .t0()
@@ -70,6 +72,9 @@ namespace xo {
 
       /* run simulation until earliest event time t satisfies t > t1 */
       void run_until(utc_nanos t1);
+
+    private:
+      explicit Simulator(utc_nanos t0) : t0_(t0) {}
 
     private:
       /* simulation heap:

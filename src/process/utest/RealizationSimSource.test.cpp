@@ -61,15 +61,15 @@ namespace xo {
 					162905 /*hms*/,
 					123456 /*usec*/);
 
-      Simulator sim(t0);
+      rp<Simulator> sim = Simulator::make(t0);
 
-      REQUIRE(sim.is_exhausted());
+      REQUIRE(sim->is_exhausted());
 
       utc_nanos t1 = t0 + hours(1);
 
-      sim.run_until(t1);
+      sim->run_until(t1);
 
-      REQUIRE((sim.is_exhausted() || (sim.next_tm() > t1)));
+      REQUIRE((sim->is_exhausted() || (sim->next_tm() > t1)));
     } /*TEST_CASE(empty-simulation)*/
 
     /* test simulator with a single source */
@@ -84,9 +84,9 @@ namespace xo {
 					162905 /*hms*/,
 					123456 /*usec*/);
 
-      Simulator sim(t0);
+      rp<Simulator> sim = Simulator::make(t0);
 
-      REQUIRE(sim.is_exhausted());
+      REQUIRE(sim->is_exhausted());
 
       lscope.log("create brownian motion process 'bm'..");
 
@@ -125,7 +125,7 @@ namespace xo {
 
       lscope.log("add sim source to simulator..");
 
-      sim.add_source(sim_source);
+      sim->add_source(sim_source);
 
       lscope.log("..done");
 
@@ -133,7 +133,7 @@ namespace xo {
 
       lscope.log("run sim..");
 
-      sim.run_until(t1);
+      sim->run_until(t1);
 
       lscope.log("..done");
 
@@ -165,9 +165,9 @@ namespace xo {
 					162905 /*hms*/,
 					123456 /*usec*/);
 
-      Simulator sim(t0);
+      rp<Simulator> sim = Simulator::make(t0);
 
-      REQUIRE(sim.is_exhausted());
+      REQUIRE(sim->is_exhausted());
 
       rp<ExpProcess> ebm
 	(LogNormalProcess::make<xoshiro256ss, uint64_t>
@@ -196,11 +196,11 @@ namespace xo {
 							     std::chrono::seconds(1) /*ev_interval_dt*/,
 							     sink);
 
-      sim.add_source(sim_source);
+      sim->add_source(sim_source);
 
       utc_nanos t1 = t0 + minutes(1);
 
-      sim.run_until(t1);
+      sim->run_until(t1);
 
       /* 1-minute simulation with 1-second samples */
       REQUIRE(sample_v.size() == 61);
