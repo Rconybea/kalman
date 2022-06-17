@@ -1,5 +1,6 @@
 /* @file BlackScholes.hpp */
 
+#include "option/VanillaOption.hpp"
 #include "option/Greeks.hpp"
 #include "option/Callput.hpp"
 #include "distribution/Normal.hpp"
@@ -9,6 +10,9 @@ namespace xo {
   namespace option {
     /* black-scholes option pricing model */
     class BlackScholes {
+    public:
+      using utc_nanos = xo::time::utc_nanos;
+
     public:
       /* with:
        *   N(d)  = cumulative normal distribution function
@@ -60,6 +64,10 @@ namespace xo {
        *     -K.t.exp(-r.t).N(-d2)
        */
       static Greeks greeks(Callput pc, double K, double S, double s, double r, double t);
+
+      /* variation,  using VanillaOption for (callput, strike, expiry) */
+      static Greeks greeks(ref::brw<VanillaOption> opt,
+			   double S, double s, double r, utc_nanos t0);
     }; /*BlackScholes*/
   } /*namespace option*/
 } /*namespace xo*/

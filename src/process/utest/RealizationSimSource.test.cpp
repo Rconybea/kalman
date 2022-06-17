@@ -75,7 +75,7 @@ namespace xo {
     /* test simulator with a single source */
     TEST_CASE("sim-brownian-motion", "[process][simulation]") {
       constexpr char const * c_self = "TEST_CASE:sim-brownian-motion";
-      constexpr bool c_logging_enabled = false;
+      constexpr bool c_logging_enabled = true;
 
       scope lscope(c_self, c_logging_enabled);
 
@@ -88,12 +88,22 @@ namespace xo {
 
       REQUIRE(sim.is_exhausted());
 
+      lscope.log("create brownian motion process 'bm'..");
+
       ref::rp<BrownianMotion<xoshiro256ss>> bm
 	= BrownianMotion<xoshiro256ss>::make(t0,
 					     0.30 /*sdev -- annualized volatility*/,
 					     12345678UL /*seed*/);
+      
+      lscope.log("..done");
+      
+
+      lscope.log("create realization tracer..");
+
       rp<RealizationTracer<double>> tracer
 	= RealizationTracer<double>::make(bm.get());
+
+      lscope.log("..done");
 
       std::vector<std::pair<utc_nanos,double>> sample_v;
 
@@ -102,6 +112,8 @@ namespace xo {
 	   (std::pair<utc_nanos,double> const & ev)
 	{ sample_v.push_back(ev); });
 
+      lscope.log("create sim source from tracer..");
+
       /* what is step dt? */
       rp<RealizationSimSource<double, decltype(sink)>>
 	sim_source
@@ -109,11 +121,23 @@ namespace xo {
 							     std::chrono::seconds(1) /*ev_interval_dt*/,
 							     sink);
 
+      lscope.log("..done");
+
+      lscope.log("add sim source to simulator..");
+
       sim.add_source(sim_source);
+
+      lscope.log("..done");
 
       utc_nanos t1 = t0 + minutes(1);
 
+      lscope.log("run sim..");
+
       sim.run_until(t1);
+
+      lscope.log("..done");
+
+      lscope.log("verify sample_v..");
 
       /* 1-minute simulation with 1-second samples */
       REQUIRE(sample_v.size() == 61);
@@ -123,6 +147,8 @@ namespace xo {
       for(size_t i = 0; i < sample_v.size(); ++i) {
 	REQUIRE(sample_v[i].first == t0 + seconds(i));
       }
+
+      lscope.log("..done");
 
       //lscope.log(xtag("sample_v.size", sample_v.size()));
 

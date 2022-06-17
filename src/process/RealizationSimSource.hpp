@@ -17,7 +17,7 @@ namespace xo {
      * 3. events are consumed by Sink
      *
      * Require:
-     * - EventSink(T)
+     * - invoke EventSink(std::pair<utc_nanos, T>)
      */
     template <typename T, typename EventSink>
     class RealizationSimSource : public xo::sim::SimulationSource {
@@ -37,19 +37,18 @@ namespace xo {
 	  lscope.log("delete instance", xtag("p", this));
       } /*dtor*/
 
-      static ref::rp<RealizationSimSource> make(ref::brw<RealizationTracer<T>> tracer,
+      static ref::rp<RealizationSimSource> make(ref::rp<RealizationTracer<T>> const & tracer,
 						nanos ev_interval_dt,
 						EventSink const & ev_sink)
       {
 	using logutil::scope;
 	using logutil::xtag;
 
-	constexpr char const * c_self = "RealizationSimSource<>::make";
-	constexpr bool c_logging_enabled = false;
+	constexpr bool c_logging_enabled = true;
 
 	auto p = new RealizationSimSource(tracer, ev_interval_dt, ev_sink);
 
-	scope lscope(c_self, c_logging_enabled);
+	scope lscope(sc_self_type, "::make", c_logging_enabled);
 	if(c_logging_enabled)
 	  lscope.log("create instance",
 		     xtag("p", p),
@@ -58,12 +57,17 @@ namespace xo {
 	return p;
       } /*make*/
 
-      static ref::rp<RealizationSimSource> make(RealizationTracer<T> * tracer,
+#ifdef NOT_IN_USE
+      static ref::rp<RealizationSimSource> make(ref::rp<RealizationTracer<T>> tracer,
 						nanos ev_interval_dt,
 						EventSink && ev_sink)
       {
 	return new RealizationSimSource(tracer, ev_interval_dt, ev_sink);
       } /*make*/
+#endif
+
+      /* supplying this to allow for setting up cyclic pointer references */
+      EventSink * ev_sink_addr() { return &(this->ev_sink_); }
 
       /* deliver current event to sink */
       void sink_one() const {
@@ -99,18 +103,21 @@ namespace xo {
       } /*advance_one*/
 
     private:
-      RealizationSimSource(ref::brw<RealizationTracer<T>> tracer,
+      RealizationSimSource(ref::rp<RealizationTracer<T>> const & tracer,
 			   nanos ev_interval_dt,
 			   EventSink const & ev_sink)
-	: tracer_(tracer.get()),
-	  ev_sink_(ev_sink),
-	  ev_interval_dt_(ev_interval_dt) {}
-      RealizationSimSource(ref::brw<RealizationTracer<T>> tracer,
+	: tracer_{tracer},
+	  ev_sink_{std::move(ev_sink)},
+	  ev_interval_dt_{ev_interval_dt} {}
+      RealizationSimSource(ref::rp<RealizationTracer<T>> const & tracer,
 			   nanos ev_interval_dt,
 			   EventSink && ev_sink)
-	: tracer_(tracer),
+	: tracer_{tracer},
 	  ev_sink_{std::move(ev_sink)},
 	  ev_interval_dt_(ev_interval_dt) {}
+
+    private:
+      static constexpr std::string_view sc_self_type = xo::reflect::type_name<RealizationSimSource<T, EventSink>>();
 
     private:
       /* produces events representing realized stochastic-process values */

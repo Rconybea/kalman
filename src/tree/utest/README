@@ -1,5 +1,5 @@
 * to run unit tests for this directory
 
    $ cd path/to/kalman/build
-   $ ./redblacktree/utest/utest
+   $ ./tree/utest/utest.tree
    

@@ -1,5 +1,7 @@
 /* @file Callput.hpp */
 
+#pragma once
+
 namespace xo {
   namespace option {
     enum class Callput { call, put };

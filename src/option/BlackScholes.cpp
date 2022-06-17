@@ -4,6 +4,8 @@
 #include "logutil/scope.hpp"
 
 namespace xo {
+  using xo::ref::brw;
+
   namespace option {
     Greeks
     BlackScholes::greeks(Callput pc, double K, double S, double s, double r, double t)
@@ -126,7 +128,25 @@ namespace xo {
       }
 
       return Greeks(tv, delta, gamma, vega, theta, rho);
-    } /*call_greeks*/
+    } /*greeks*/
+
+    Greeks
+    BlackScholes::greeks(brw<VanillaOption> opt,
+			 double S, double s, double r, utc_nanos t0)
+    {
+      double dt_dy
+	= std::chrono::duration_cast<std::chrono::days>(opt->expiry() - t0).count();
+
+      double dt_yr
+	= dt_dy / 365.25;
+
+      return greeks(opt->callput(),
+		    opt->effective_strike(),
+		    S,
+		    s,
+		    r,
+		    dt_yr);
+    } /*greeks*/
   } /*namespace option*/
 } /*namespace xo*/
 

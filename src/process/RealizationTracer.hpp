@@ -7,6 +7,7 @@
 
 namespace xo {
 namespace process {
+  //template<typename T, typename EventSink> class RealizationSimSource;
 
 // One-way iteration over a realization (i.e. sampled path)
 // belonging to a stochastic process.
