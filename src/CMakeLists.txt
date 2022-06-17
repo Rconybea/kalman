@@ -50,12 +50,14 @@ add_subdirectory(distribution)
 add_subdirectory(distribution_py)
 add_subdirectory(random)
 add_subdirectory(queue)
+add_subdirectory(refcnt)
 add_subdirectory(logutil)
 
 # add unittest subdirectories
 add_subdirectory(process/utest)
 add_subdirectory(option/utest)
 add_subdirectory(tree/utest)
+add_subdirectory(refcnt/utest)
 
 # add the executable
 add_executable(example junk.cpp)

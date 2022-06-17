@@ -3,12 +3,17 @@
 #pragma once
 
 #include "logutil/scope.hpp"
+#include "reflect/demangle.hpp"
 //#include <boost/intrusive_ptr.hpp>
 #include <atomic>
+#include <cassert>
 
 namespace xo {
   namespace ref {
     class Refcount;
+
+    template<typename T>
+    class Borrow;
 
     /* originally used boost::instrusive_ptr<>.
      * ran into a bug.  probably mine,  but implemented
@@ -17,59 +22,41 @@ namespace xo {
     template<typename T>
     class intrusive_ptr {
     public:
-      intrusive_ptr() = default;
+      intrusive_ptr() : ptr_(nullptr) {} 
       intrusive_ptr(T * x) : ptr_(x) {
-        using logutil::scope;
-        using logutil::xtag;
-
-        constexpr char const * c_self = "intrusive_ptr<>::ctor";
-        constexpr bool c_logging_enabled = false;
-
-        scope lscope(c_self, c_logging_enabled);
-        if (c_logging_enabled)
-          lscope.log("enter",
-		     xtag("this", this),
-		     xtag("x", x),
-		     xtag("refcount(x)", static_cast<Refcount *>(x)),
-		     xtag("n", intrusive_ptr_refcount(x)));
-
+	intrusive_ptr_log_ctor(sc_self_type, this, x);
         intrusive_ptr_add_ref(ptr_);
       } /*ctor*/
 
-      intrusive_ptr(intrusive_ptr<T> const & x) : ptr_(x.get()) {
-        using logutil::scope;
-        using logutil::xtag;
-
-        constexpr char const * c_self = "intrusive_ptr<>::cctor";
-        constexpr bool c_logging_enabled = false;
-
-        scope lscope(c_self, c_logging_enabled);
-        if (c_logging_enabled)
-          lscope.log("enter",
-		     xtag("this", this),
-		     xtag("x", x.get()),
-		     xtag("refcount(x)", static_cast<Refcount *>(x.get())),
-		     xtag("n", intrusive_ptr_refcount(x.get())));
-
+      /* NOTE: need exactly this form for copy-constructor
+       *       clang11 will not recognize template form below as
+       *       supplying copy ctor,   and default version is broken for
+       *       instrusive_ptr.
+       */
+      intrusive_ptr(intrusive_ptr const & x) : ptr_(x.get()) {
+	intrusive_ptr_log_cctor(sc_self_type, this, x.get());
 	intrusive_ptr_add_ref(ptr_);
+      } /*cctor*/
+
+      /* create from instrusive pointer to some related type S */
+      template<typename S>
+      intrusive_ptr(intrusive_ptr<S> const & x) : ptr_(x.get()) {
+	intrusive_ptr_log_cctor(sc_self_type, this, x.get());
+	intrusive_ptr_add_ref(ptr_);
+      } /*cctor*/
+
+      /* move ctor -- in this case don't need to update refcount */
+      intrusive_ptr(intrusive_ptr && x) : ptr_{std::move(x.ptr_)} {
+	/* since we're moving from x,  need to make sure x dtor
+	 * doesn't decrement refcount
+	 */
+	x.ptr_ = nullptr;
       }
 
       ~intrusive_ptr() {
-        using logutil::scope;
-        using logutil::xtag;
-
-        constexpr char const * c_self = "intrusive_ptr<>::dtor";
-        constexpr bool c_logging_enabled = false;
-
 	T * x = this->ptr_;
 
-	scope lscope(c_self, c_logging_enabled);
-	if (c_logging_enabled)
-	  lscope.log("enter",
-		     xtag("this", this),
-		     xtag("x", x),
-		     xtag("refcount(x)", static_cast<Refcount *>(x)),
-		     xtag("n", intrusive_ptr_refcount(this->ptr_)));
+	intrusive_ptr_log_dtor(sc_self_type, this, x);
 
 	this->ptr_ = nullptr;
 
@@ -82,23 +69,16 @@ namespace xo {
 	return ptrdiff_t(x.get() - y.get());
       }
 
+      Borrow<T> borrow() const;
+
       T * get() const { return ptr_; }
 
       T * operator->() const { return ptr_; }
 
       intrusive_ptr<T> & operator=(intrusive_ptr<T> const & rhs) {
-        using logutil::scope;
-        using logutil::xtag;
-
-        constexpr char const * c_self = "intrusive_ptr<>::assign";
-        constexpr bool c_logging_enabled = false;
-
-        scope lscope(c_self, c_logging_enabled);
-        if (c_logging_enabled)
-          lscope.log("enter",
-		     xtag("rhs", rhs.get()));
-
 	T * x = rhs.get();
+
+	intrusive_ptr_log_assign(sc_self_type, this, x);
 
 	T * old = this->ptr_;
 	this->ptr_ = x;
@@ -109,6 +89,17 @@ namespace xo {
 	return *this;
       } /*operator=*/
 
+      intrusive_ptr<T> & operator=(intrusive_ptr<T> && rhs) {
+	std::swap(this->ptr_, rhs.ptr_);
+
+	/* dtor on rhs will decrement refcount on old value of this->ptr_ */
+
+	return *this;
+      } /*operator=*/
+
+    private:
+      static constexpr std::string_view sc_self_type = xo::reflect::type_name<intrusive_ptr<T>>();
+
     private:
       T * ptr_ = nullptr;
     }; /*intrusive_ptr*/
@@ -116,17 +107,8 @@ namespace xo {
     template<typename T>
     inline bool operator==(intrusive_ptr<T> const & x, intrusive_ptr<T> const & y) { return intrusive_ptr<T>::compare(x, y) == 0; }
 
-#ifdef SET_ASIDE
-    /* template alias for reference-counted pointer */
-    template<typename T>
-    using rp = boost::intrusive_ptr<T>;
-    /* template alias for reference-counted pointer-to-const */
-    template<typename T>
-    using rcp = boost::intrusive_ptr<T const>;
-#else
     template<typename T>
     using rp = intrusive_ptr<T>;
-#endif
 
     class Refcount {
     public:
@@ -154,60 +136,26 @@ namespace xo {
     inline uint32_t
     intrusive_ptr_refcount(Refcount * x) {
       /* reporting accurately for diagnostics */
-      return x->reference_counter_.load();
+      if (x)
+	return x->reference_counter_.load();
+      else
+	return 0;
     } /*intrusive_ptr_refcount*/
 
-    inline void
-    intrusive_ptr_add_ref(Refcount * x) {
-      /* for adding reference -- can use relaxed order,
-       * since any reordering of a set of intrusive_ptr_add_ref()
-       * calls is ok,   provided no intervening intrusive_ptr_release()
-       * calls.
-       */
-      bool success = false;
-
-      do {
-	uint32_t n = x->reference_counter_.load(std::memory_order_relaxed);
-
-	success = x->reference_counter_.compare_exchange_strong(n, n+1,
-								std::memory_order_relaxed);
-      } while(!success);
-    } /*intrusive_ptr_add_ref*/
-
-    /* WARNING -- broken if not templated here 
-     */
-    //template<typename T>
-    inline void
-    intrusive_ptr_release(Refcount * x) {
-      using logutil::scope;
-      using logutil::xtag;
-
-      constexpr char const * c_self = "intrusive_ptr_release";
-      constexpr bool c_logging_enabled = false;
-
-      scope lscope(c_self, c_logging_enabled);
-      if(c_logging_enabled)
-	lscope.log("intrusive_ptr_release: enter",
-		   xtag("x", x),
-		   xtag("n", x->reference_counter_.load()));
-
-      /* for decrement,  need acq_rel ordering */
-      bool success = false;
-      uint32_t n = 0;
-
-      do {
-	n = x->reference_counter_.load(std::memory_order_acquire);
-
-	success = x->reference_counter_.compare_exchange_strong(n, n-1,
-								std::memory_order_acq_rel);
-      } while(!success);
-
-      if(n == 1) {
-	/* just deleted the last reference,  so recover the object */
-
-	delete x;
-      }
-    } /*intrusive_ptr_release*/
+    void intrusive_ptr_log_ctor(std::string_view const & self_type,
+				void * this_ptr,
+				Refcount * x);
+    void intrusive_ptr_log_cctor(std::string_view const & self_type,
+				 void * this_ptr,
+				 Refcount * x);
+    void intrusive_ptr_log_dtor(std::string_view const &self_type,
+				void * this_ptr,
+                                Refcount * x);
+    void intrusive_ptr_log_assign(std::string_view const &self_type,
+				  void * this_ptr,
+				  Refcount * x);
+    void intrusive_ptr_add_ref(Refcount * x);
+    void intrusive_ptr_release(Refcount * x);
 
     /* borrow a reference-counted pointer to pass down the stack
      * 1. borrowed pointer intended to replace:
@@ -264,13 +212,11 @@ namespace xo {
     template<typename T>
     using brw = Borrow<T>;
 
-#ifdef NOT_IN_USE
     template<typename T>
-    class Refcounted : public Refcount {
-    public:
-      Refcounted() = default;
-    }; /*Refcounted*/
-#endif
+    Borrow<T>
+    intrusive_ptr<T>::borrow() const {
+      return Borrow<T>(*this);
+    } /*borrow*/
 
   } /*namespace ref*/
 } /*namespace xo*/
