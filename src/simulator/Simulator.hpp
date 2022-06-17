@@ -2,6 +2,7 @@
 
 #pragma once
 
+#include "queue/Reactor.hpp"
 #include "simulator/SimulationSource.hpp"
 #include "simulator/SourceTimestamp.hpp"
 #include "refcnt/Refcounted.hpp"
@@ -23,7 +24,7 @@ namespace xo {
      *    Source.notify_reactor_add() / Source.notify_reactor_remove())
      * in a simulation context
      */
-    class Simulator : public ref::Refcount {
+    class Simulator : public reactor::Reactor {
     public:
       using utc_nanos = xo::time::utc_nanos;
       
@@ -58,20 +59,34 @@ namespace xo {
        */
       utc_nanos next_tm() const;
 
+      /* emit the first available event from a single simulation source.
+       * resolve ties arbitrarily.
+       *
+       * returns the #of events dispatched
+       */
+      std::uint64_t advance_one_event();
+
+      /* run simulation until earliest event time t satisfies t > t1 */
+      void run_until(utc_nanos t1);
+
+      // ----- inherited from Reactor -----
+
       /* add a new simulation source.
        * event that precede .t0 will be discarded.
        *
        * returns true if src added;  false if already present
        */
-      bool add_source(ref::brw<SimulationSource> src);
+      virtual bool add_source(ref::brw<reactor::Source> src) override;
 
-      /* emit the first available event from a single simulation source.
-       * resolve ties arbitrarily
+      /* remove simulation source.
+       * returns true if src removed;  false if was not present
+       *
+       * (not typically needed for simulations)
        */
-      void advance_one_event();
+      virtual bool remove_source(ref::brw<reactor::Source> src) override;
 
-      /* run simulation until earliest event time t satisfies t > t1 */
-      void run_until(utc_nanos t1);
+      /* synonym for .advance_one_event() */
+      virtual std::uint64_t run_one() override;
 
     private:
       explicit Simulator(utc_nanos t0) : t0_(t0) {}

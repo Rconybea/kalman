@@ -3,9 +3,11 @@
 #include "Simulator.hpp"
 #include "time/Time.hpp"
 #include "logutil/scope.hpp"
+#include <_types/_uint64_t.h>
 #include <algorithm>
 
 namespace xo {
+  using xo::reactor::Source;
   using xo::ref::brw;
   using xo::time::utc_nanos;
   using logutil::scope;
@@ -58,7 +60,7 @@ namespace xo {
     } /*next_tm*/
 
     bool
-    Simulator::add_source(brw<SimulationSource> src)
+    Simulator::add_source(brw<Source> src)
     {
       constexpr char const * c_self = "Simulator::add_source";
       constexpr bool c_logging_enabled = false;
@@ -68,18 +70,24 @@ namespace xo {
       if(c_logging_enabled)
 	lscope.log(c_self, ": enter", xtag("src", src.get()));
 
-      if(!src || this->is_source_present(src))
+      /* verify that src isa SimulationSource instance.
+       * Simulator does not support non-simulation sources.
+       */
+      brw<SimulationSource> sim_src = brw<SimulationSource>::from(src);
+
+      if(!sim_src || this->is_source_present(sim_src))
 	return false;
 
-      src->advance_until(this->t0(), false /*!replay_flag*/);
+      sim_src->advance_until(this->t0(), false /*!replay_flag*/);
 
-      this->src_v_.push_back(src.promote());
+      this->src_v_.push_back(sim_src.promote());
 
-      if(src->is_exhausted()) {
+      if(sim_src->is_exhausted()) {
 	;
       } else {
 	/* also add to simulation heap */
-	this->sim_heap_.push_back(SourceTimestamp(src->current_tm(), src.get()));
+	this->sim_heap_.push_back(SourceTimestamp(sim_src->current_tm(),
+						  sim_src.get()));
 
 	/* use std::greater<> because we need a min-heap;
 	 * smallest timestamp at the front
@@ -92,19 +100,58 @@ namespace xo {
       return true;
     } /*add_source*/
 
-    void
+    bool
+    Simulator::remove_source(brw<Source> src)
+    {
+      //constexpr char const * c_self = "Simulator::remove_source";
+
+      brw<SimulationSource> sim_src = brw<SimulationSource>::from(src);
+
+      if(!sim_src || !this->is_source_present(sim_src))
+	return false;
+
+      /* WARNING: O(n)implementation here */
+
+      /* rebuild .sim_heap,  with sim_src removed */
+      std::vector<SourceTimestamp> sim_heap2;
+
+      for(SourceTimestamp const & item : this->sim_heap_) {
+	if(item.src() == sim_src.get()) {
+	  /* item refers to the source we are removing -> discard */
+	  ;
+	} else {
+	  sim_heap2.push_back(item);
+
+	  std::push_heap(sim_heap2.begin(),
+			 sim_heap2.end(),
+			 std::greater<SourceTimestamp>());
+	}
+      }
+
+      /* now discard .sim_heap,  replacing with sim_heap2 */
+      this->sim_heap_ = std::move(sim_heap2);
+
+      return true;
+    } /*remove_source*/
+
+    std::uint64_t
+    Simulator::run_one() {
+      return this->advance_one_event();
+    } /*run_one*/
+
+    std::uint64_t
     Simulator::advance_one_event()
     {
       if(this->sim_heap_.empty()) {
 	/* nothing todo */
-	return;
+	return 0;
       }
 
       /* *src is source with earliest timestamp */
       SimulationSource * src
 	= this->sim_heap_.front().src();
 
-      src->advance_one();
+      uint64_t retval = src->advance_one();
 
       /* src.t0 may have advanced */
 
@@ -136,7 +183,9 @@ namespace xo {
 	std::push_heap(this->sim_heap_.begin(),
 		       this->sim_heap_.end(),
 		       std::greater<SourceTimestamp>());
-      }	
+      }
+
+      return retval;
     } /*advance_one_event*/
 
     void

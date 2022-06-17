@@ -18,16 +18,20 @@ namespace xo {
       
       /* add source src to this reactor.
        * on success, invoke src.notify_reactor_add(this)
+       *
+       * returns true if source added;  false if already present
        */
-      virtual void add_source(ref::brw<Source> src) = 0;
+      virtual bool add_source(ref::brw<Source> src) = 0;
 
       /* remove source src from this reactor.
        * source must previously have been added by
        * .add_source(src).
        *
        * on success, invoke src.notify_reactor_remove(this)
+       *
+       * returns true if source removed;  false if not present
        */
-      virtual void remove_source(ref::brw<Source> src) = 0;
+      virtual bool remove_source(ref::brw<Source> src) = 0;
 
       /* dispatch one reactor event,  borrowing the calling thread
        * amount of work this represents is Source/Sink specific.

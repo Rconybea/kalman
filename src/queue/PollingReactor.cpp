@@ -9,23 +9,25 @@ namespace xo {
   using std::int64_t;
 
   namespace reactor {
-    void
+    bool
     PollingReactor::add_source(brw<Source> src)
     {
       /* make sure src does not already appear in .source_v[] */
       for(SourcePtr const & x : this->source_v_) {
 	if(x.get() == src.get()) {
 	  throw std::runtime_error("PollingReactor::add_source; source already present");
-	  return;
+	  return false;
 	}
       }
 
       src->notify_reactor_add(this);
 
       this->source_v_.push_back(src.get());
+
+      return true;
     } /*add_source*/
 
-    void
+    bool
     PollingReactor::remove_source(brw<Source> src)
     {
       auto ix = std::find(this->source_v_.begin(),
@@ -36,7 +38,11 @@ namespace xo {
 	src->notify_reactor_remove(this);
 
 	this->source_v_.erase(ix);
+
+	return true;
       }
+
+      return false;
     } /*remove_source*/
 
     int64_t

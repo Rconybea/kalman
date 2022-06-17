@@ -16,9 +16,9 @@ namespace xo {
 
       // ----- inherited from Reactor -----
 
-      virtual void add_source(ref::brw<Source> src);
-      virtual void remove_source(ref::brw<Source> src);
-      virtual std::uint64_t run_one();
+      virtual bool add_source(ref::brw<Source> src) override;
+      virtual bool remove_source(ref::brw<Source> src) override;
+      virtual std::uint64_t run_one() override;
 
     private:
       /* find non-empty source,  starting from .source_v_[start_ix],
