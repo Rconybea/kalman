@@ -4,6 +4,7 @@
 
 #include "refcnt/Refcounted.hpp"
 #include "option/Callput.hpp"
+#include "option/Pxtick.hpp"
 #include "time/Time.hpp"
 
 namespace xo {
@@ -16,23 +17,31 @@ namespace xo {
       using utc_nanos = xo::time::utc_nanos;
 
     public:
-      static ref::rp<VanillaOption> make(Callput cp, double k, utc_nanos x) {
-	return new VanillaOption(cp, k, x);
+      static ref::rp<VanillaOption> make(Callput cp, double k, utc_nanos x, Pxtick pxtick) {
+	return new VanillaOption(cp, k, x, pxtick);
       } /*make*/
 	
       Callput callput() const { return callput_; }
       double stated_strike() const { return strike_; }
       utc_nanos expiry() const { return expiry_; }
+      Pxtick pxtick() const { return pxtick_; }
 
       /* ignoring pxmult/delivmult detail for now */
       uint32_t pxmult() const { return 100; }
       uint32_t delivmult() const { return 100; }
       double effective_strike() const { return strike_; }
 
+      /* convert a per-share quantity to per-contract quantity */
+      double sh2ct(double x) const { return x * this->delivmult(); }
+      /* convert a screen quantity to per-contract quantity */
+      double px2ct(double x) const { return x * this->pxmult(); }
+      /* convert a per-share quantity to screen units */
+      double sh2px(double x) const { return x * this->delivmult() / this->pxmult(); }
+
     private:
       VanillaOption() = default;
-      VanillaOption(Callput cp, double k, utc_nanos x)
-	: callput_{cp}, strike_{k}, expiry_{x} {}
+      VanillaOption(Callput cp, double k, utc_nanos x, Pxtick pxtick)
+	: callput_{cp}, strike_{k}, expiry_{x}, pxtick_(pxtick) {}
 
     private:
       /* call|put */
@@ -41,6 +50,8 @@ namespace xo {
       double strike_ = 0.0;
       /* expiration time */
       utc_nanos expiry_;
+      /* tick size encoding */
+      Pxtick pxtick_ = Pxtick::all_penny;
     }; /*VanillaOption*/
   } /*namespace option*/
 } /*namespace xo*/

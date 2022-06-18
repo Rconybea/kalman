@@ -5,6 +5,7 @@
 #include "option/OptionStrikeSet.hpp" 
 #include "option/PricingContext.hpp"
 #include "option/Greeks.hpp"
+#include "option/Px2.hpp"
 #include "process/RealizationTracer.hpp"
 #include "simulator/SimulationSource.hpp"
 
@@ -36,8 +37,11 @@ namespace xo {
       /* providing market model for this option */
       ref::rp<VanillaOption> option_;
 
-      /* greeks asof last call to .notify_ul() */
+      /* model greeks asof last call to .notify_ul() */
       Greeks last_greeks_;
+
+      /* model bbo asof last call to .notify_ul() */
+      Px2 last_bbo_px2_;
     }; /*OptionMarketModel*/
 
     /* model market, for a set of related options with similar terms

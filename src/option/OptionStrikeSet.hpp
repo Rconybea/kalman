@@ -27,7 +27,7 @@ namespace xo {
 
       /* create call/put pair for a particular strike and expiry
        */
-      static StrikePair make_callput_pair(double strike, utc_nanos expiry);
+      static StrikePair make_callput_pair(double strike, utc_nanos expiry, Pxtick pxtick);
 
       ref::brw<VanillaOption> call() const { return (*this)[0]; }
       ref::brw<VanillaOption>  put() const { return (*this)[1]; }
@@ -59,7 +59,8 @@ namespace xo {
       static ref::rp<OptionStrikeSet> regular(std::uint32_t n,
 					      double lo_strike,
 					      double  d_strike,
-					      utc_nanos expiry);
+					      utc_nanos expiry,
+					      Pxtick pxtick);
 
       void push_back(StrikePair const & x) { this->strike_v_.push_back(x); }
 

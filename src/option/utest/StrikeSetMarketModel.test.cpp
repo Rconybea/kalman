@@ -11,6 +11,7 @@ namespace xo {
   using xo::option::StrikeSetMarketModel;
   using xo::option::OptionStrikeSet;
   using xo::option::PricingContext;
+  using xo::option::Pxtick;
   using xo::process::LogNormalProcess;
   using xo::process::RealizationTracer;
   using xo::sim::Simulator;
@@ -88,7 +89,8 @@ namespace xo {
 	= OptionStrikeSet::regular(1 /*n*/,
 				   1000.0 /*lo_strike*/,
 				   5.0 /*d_strike*/,
-				   expiry1_tm);
+				   expiry1_tm,
+				   Pxtick::nickel_dime);
 
       REQUIRE(optionset.get() != nullptr);
 

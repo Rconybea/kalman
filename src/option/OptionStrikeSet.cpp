@@ -88,10 +88,10 @@ namespace xo {
     } /*verify_ok*/
 
     StrikePair
-    StrikePair::make_callput_pair(double strike, utc_nanos expiry)
+    StrikePair::make_callput_pair(double strike, utc_nanos expiry, Pxtick pxtick)
     {
-      return StrikePair(VanillaOption::make(Callput::call, strike, expiry),
-			VanillaOption::make(Callput::put,  strike, expiry));
+      return StrikePair(VanillaOption::make(Callput::call, strike, expiry, pxtick),
+			VanillaOption::make(Callput::put,  strike, expiry, pxtick));
     } /*make_callput_pair*/
 
     // ----- OptionStrikeSet -----
@@ -111,7 +111,8 @@ namespace xo {
     OptionStrikeSet::regular(uint32_t n,
 			     double lo_strike,
 			     double d_strike,
-			     utc_nanos expiry)
+			     utc_nanos expiry,
+			     Pxtick pxtick)
     {
       rp<OptionStrikeSet> retval
 	= OptionStrikeSet::empty();
@@ -119,7 +120,7 @@ namespace xo {
       for(uint32_t i = 0; i < n; ++i) {
 	double i_strike = lo_strike + (i * d_strike);
 
-	retval->push_back(StrikePair::make_callput_pair(i_strike, expiry));
+	retval->push_back(StrikePair::make_callput_pair(i_strike, expiry, pxtick));
       }
 
       return retval;

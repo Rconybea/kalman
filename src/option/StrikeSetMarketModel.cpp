@@ -29,6 +29,22 @@ namespace xo {
 						ul_pricing_cx,
 						ul_ev.second /*ul_spot*/,
 						ul_ev.first /*t0*/);
+
+      /* apply an arbitrary spread around tv.  $0.02/share = $2/contract */
+      constexpr double c_half_spread = 0.02; /* FIXME: parameterize */
+
+      double model_bid1
+	= this->option_->sh2px(this->last_greeks_.tv() - c_half_spread);
+      double model_ask1
+	= this->option_->sh2px(this->last_greeks_.tv() + c_half_spread);
+
+      Price model_bid
+	= PxtickUtil::glb_tick(this->option_->pxtick(), model_bid1);
+      Price model_ask
+	= PxtickUtil::lub_tick(this->option_->pxtick(), model_ask1);
+
+      this->last_bbo_px2_ = Px2(model_bid, model_ask);
+
       if (c_logging_enabled)
 	lscope.log("enter",
 		   xtag("tm", ul_ev.first),
@@ -36,7 +52,9 @@ namespace xo {
 		   xtag("callput", (this->option_->callput() == Callput::call) ? "C" : "P"),
 		   xtag("strike", this->option_->effective_strike()),
 		   xtag("tv", this->last_greeks_.tv()),
-		   xtag("delta", this->last_greeks_.delta())
+		   xtag("delta", this->last_greeks_.delta()),
+		   xtag("bid", model_bid.to_double()),
+		   xtag("ask", model_ask.to_double())
 		   );
 
     } /*notify_ul*/
