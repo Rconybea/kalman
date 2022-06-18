@@ -88,10 +88,11 @@ namespace xo {
     } /*verify_ok*/
 
     StrikePair
-    StrikePair::make_callput_pair(double strike, utc_nanos expiry, Pxtick pxtick)
+    StrikePair::make_callput_pair(OptionId call_id, OptionId put_id, 
+				  double strike, utc_nanos expiry, Pxtick pxtick)
     {
-      return StrikePair(VanillaOption::make(Callput::call, strike, expiry, pxtick),
-			VanillaOption::make(Callput::put,  strike, expiry, pxtick));
+      return StrikePair(VanillaOption::make(call_id, Callput::call, strike, expiry, pxtick),
+			VanillaOption::make( put_id, Callput::put,  strike, expiry, pxtick));
     } /*make_callput_pair*/
 
     // ----- OptionStrikeSet -----
@@ -109,6 +110,7 @@ namespace xo {
 
     rp<OptionStrikeSet>
     OptionStrikeSet::regular(uint32_t n,
+			     OptionId start_id,
 			     double lo_strike,
 			     double d_strike,
 			     utc_nanos expiry,
@@ -117,10 +119,18 @@ namespace xo {
       rp<OptionStrikeSet> retval
 	= OptionStrikeSet::empty();
 
+      OptionId next_id = start_id;
+
       for(uint32_t i = 0; i < n; ++i) {
 	double i_strike = lo_strike + (i * d_strike);
 
-	retval->push_back(StrikePair::make_callput_pair(i_strike, expiry, pxtick));
+	OptionId call_id = next_id;
+	OptionId  put_id(call_id.num() + 1);
+
+	retval->push_back(StrikePair::make_callput_pair(call_id, put_id,
+							i_strike, expiry, pxtick));
+
+	next_id = OptionId(put_id.num() + 1);
       }
 
       return retval;

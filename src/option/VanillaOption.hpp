@@ -3,6 +3,7 @@
 #pragma once
 
 #include "refcnt/Refcounted.hpp"
+#include "option/OptionId.hpp"
 #include "option/Callput.hpp"
 #include "option/Pxtick.hpp"
 #include "time/Time.hpp"
@@ -17,8 +18,8 @@ namespace xo {
       using utc_nanos = xo::time::utc_nanos;
 
     public:
-      static ref::rp<VanillaOption> make(Callput cp, double k, utc_nanos x, Pxtick pxtick) {
-	return new VanillaOption(cp, k, x, pxtick);
+      static ref::rp<VanillaOption> make(OptionId id, Callput cp, double k, utc_nanos x, Pxtick pxtick) {
+	return new VanillaOption(id, cp, k, x, pxtick);
       } /*make*/
 	
       Callput callput() const { return callput_; }
@@ -40,10 +41,12 @@ namespace xo {
 
     private:
       VanillaOption() = default;
-      VanillaOption(Callput cp, double k, utc_nanos x, Pxtick pxtick)
-	: callput_{cp}, strike_{k}, expiry_{x}, pxtick_(pxtick) {}
+      VanillaOption(OptionId id, Callput cp, double k, utc_nanos x, Pxtick pxtick)
+	: id_{id}, callput_{cp}, strike_{k}, expiry_{x}, pxtick_(pxtick) {}
 
     private:
+      /* unique id# for this option */
+      OptionId id_;
       /* call|put */
       Callput callput_ = Callput::call;
       /* option strike price */

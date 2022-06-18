@@ -3,8 +3,10 @@
 #include "time/Time.hpp" /*need this before xtag decl for some reason*/
 #include "StrikeSetMarketModel.hpp"
 #include "BlackScholes.hpp"
+#include "BboTick.hpp"
 #include "process/RealizationSimSource.hpp"
 #include "queue/Reactor.hpp"
+#include <vector>
 
 namespace xo {
   using xo::process::RealizationTracer;
@@ -20,8 +22,14 @@ namespace xo {
   namespace option {
     void
     OptionMarketModel::notify_ul(std::pair<utc_nanos, double> const & ul_ev,
-				 ref::brw<PricingContext> ul_pricing_cx)
+				 ref::brw<PricingContext> ul_pricing_cx,
+				 std::vector<BboTick> * p_omd_tick_v)
     {
+      /* PARAMETERS:
+       *   c_half_spread
+       *   c_max_spread
+       */
+
       bool c_logging_enabled = true;
       scope lscope("OptionMarketModel", "::notify_ul", c_logging_enabled);
 
@@ -38,12 +46,70 @@ namespace xo {
       double model_ask1
 	= this->option_->sh2px(this->last_greeks_.tv() + c_half_spread);
 
-      Price model_bid
-	= PxtickUtil::glb_tick(this->option_->pxtick(), model_bid1);
-      Price model_ask
-	= PxtickUtil::lub_tick(this->option_->pxtick(), model_ask1);
+      Px2 model_px2(PxtickUtil::glb_tick(this->option_->pxtick(), model_bid1),
+		    PxtickUtil::lub_tick(this->option_->pxtick(), model_ask1));
 
-      this->last_bbo_px2_ = Px2(model_bid, model_ask);
+      Px2 old_bbo_px2 = this->last_bbo_px2_;
+
+      Px2 new_inside_px2 = model_px2;
+
+      /* apply some hysteresis,  as a function of delta.
+       * absent an explicit volume model,  we assume that:
+       * 1. high-delta options don't trade (low volume)
+       * 2. market-makers minimize updates for options that don't trade
+       *    (since they pay for bandwidth,  and need to use it productively)
+       */
+      Px2 new_bbo_px2 = old_bbo_px2;
+
+      Px2 compete_px2;
+
+      for(Side s : SideIter()) {
+	/* consider a price to be competitive if it does not fade w.r.t. this level */
+	Price cutoff_px
+	  = Price::from_double(this->option_->sh2px(fade_by(s,
+							    this->last_greeks_.tv(),
+							    1.5 * c_half_spread)));
+
+	compete_px2.assign_px(s, cutoff_px);
+      }
+
+      for(Side s : SideIter()) {
+	if(new_inside_px2.fades(s, old_bbo_px2)) {
+	  /* always publish fades
+	   * presume that failing to publish would
+	   * promptly trigger opportunistic trade at no-longer-desirable price
+	   */
+	  new_bbo_px2.assign_px(s, new_inside_px2);
+	} else {
+	  /* for improves: update as function of delta
+	   * - always update for delta < 0.75
+	   *   if new price is 'competitive' (within 1.5 * c_half_spread of tv);
+	   *   otherwise delay
+	   * - always delay update for delta >= 0.75 
+	   */
+	  
+	  if((std::abs(this->last_greeks_.delta()) < 0.75)
+	     && side_matches_or_improves_px(s,
+					    new_inside_px2,
+					    compete_px2))
+	  {
+	    new_bbo_px2.assign_px(s, compete_px2);
+	  }
+	}
+      }
+
+      constexpr Price c_max_spread = Price::from_double(2.0);
+
+      /* in spite of hysteresis rules,   prevent super-wide quotes;
+       * apply max displayed bbo of $2
+       */
+      if(new_bbo_px2.spread() > c_max_spread) {
+	/* refresh to inside price */
+	new_bbo_px2 = new_inside_px2;
+      } /*if*/
+       
+      /* for now fix size at 1 contract */
+      this->last_bbo_px2_ = new_bbo_px2;
 
       if (c_logging_enabled)
 	lscope.log("enter",
@@ -53,8 +119,10 @@ namespace xo {
 		   xtag("strike", this->option_->effective_strike()),
 		   xtag("tv", this->last_greeks_.tv()),
 		   xtag("delta", this->last_greeks_.delta()),
-		   xtag("bid", model_bid.to_double()),
-		   xtag("ask", model_ask.to_double())
+		   xtag("old-bbo-px2", old_bbo_px2),
+		   xtag("model-px2", model_px2),
+		   xtag("compete-px2", compete_px2),
+		   xtag("bbo-px2", new_bbo_px2)
 		   );
 
     } /*notify_ul*/
@@ -138,10 +206,14 @@ namespace xo {
 		   xtag("tm", ul_ev.first),
 		   xtag("px", ul_ev.second));
 
+      /* TODO: save this across calls to .notify_ul() to avoid re-allocating */
+      std::vector<BboTick> omd_tick_v;
+
       /* update option-market models */
       for(OptionMarketModel & opt_mkt : this->market_v_) {
 	opt_mkt.notify_ul(ul_ev,
-			  this->ul_pricing_cx_.borrow());
+			  this->ul_pricing_cx_.borrow(),
+			  &omd_tick_v);
       }
     } /*update_ul*/
 

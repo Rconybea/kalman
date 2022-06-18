@@ -12,6 +12,7 @@ namespace xo {
   using xo::option::OptionStrikeSet;
   using xo::option::PricingContext;
   using xo::option::Pxtick;
+  using xo::option::OptionId;
   using xo::process::LogNormalProcess;
   using xo::process::RealizationTracer;
   using xo::sim::Simulator;
@@ -85,8 +86,11 @@ namespace xo {
 
       utc_nanos expiry1_tm = t0_sod + std::chrono::days(7);
 
+      OptionId start_id(0);
+
       auto optionset
 	= OptionStrikeSet::regular(1 /*n*/,
+				   start_id,
 				   1000.0 /*lo_strike*/,
 				   5.0 /*d_strike*/,
 				   expiry1_tm,

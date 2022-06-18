@@ -1,10 +1,12 @@
 /* @file StrikeSetMarketModel.hpp */
 
+#include "option/StrikeSetOmdSimSource.hpp"
 #include "option/VanillaOption.hpp"
 #include "option/PricingContext.hpp"
 #include "option/OptionStrikeSet.hpp" 
 #include "option/PricingContext.hpp"
 #include "option/Greeks.hpp"
+#include "option/BboTick.hpp"
 #include "option/Px2.hpp"
 #include "process/RealizationTracer.hpp"
 #include "simulator/SimulationSource.hpp"
@@ -31,7 +33,8 @@ namespace xo {
       ref::brw<VanillaOption> option() const { return option_; }
 
       void notify_ul(std::pair<utc_nanos, double> const & ul_ev,
-		     ref::brw<PricingContext> ul_pricing_cx);
+		     ref::brw<PricingContext> ul_pricing_cx,
+		     std::vector<BboTick> * p_omd_tick_v);
 
     private:
       /* providing market model for this option */
@@ -45,7 +48,11 @@ namespace xo {
     }; /*OptionMarketModel*/
 
     /* model market, for a set of related options with similar terms
-     * and shared expiry
+     * and shared expiry.
+     *
+     * Provide simulation sources for:
+     * 1. simulated option market data
+     * 2. simulated option greeks
      */
     class StrikeSetMarketModel : public ref::Refcount {
     public:
@@ -105,6 +112,8 @@ namespace xo {
        */
       std::vector<OptionMarketModel> market_v_;
 
+      /* publish simmed option market data here */
+      ref::rp<StrikeSetOmdSimSource> omd_publisher_;
     }; /*StrikeSetMarketModel*/
   } /*namespace option*/
 } /*namespace xo*/
