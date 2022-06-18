@@ -9,6 +9,48 @@
 
 namespace xo {
   namespace process {
+    class BrownianMotionBase : public StochasticProcess<double> {
+    public:
+      using nanos = xo::time::nanos;
+
+    public:
+      BrownianMotionBase(utc_nanos t0,
+			 double volatility)
+	: t0_{t0},
+	  volatility_(volatility),
+	  vol2_day_{(volatility * volatility) * (1.0 / 365.25)}
+      {}
+
+      /* brownian motion with constant volatility at this level */
+      double volatility() const { return volatility_; }
+      double vol2_day() const { return vol2_day_; }
+
+      /* compute variance that accumulates over time interval dt
+       * for this brownian motion
+       */
+      double variance_dt(nanos dt) const;
+
+      // ----- inherited from StochasticProcess<double> -----
+
+      virtual utc_nanos t0() const override { return t0_; }
+
+    protected:
+      /* generate sample given a random number from N(0,1) */
+      double exterior_sample_impl(utc_nanos t,
+				  event_type const & lo,
+				  double x0);
+
+    private:
+      /* starting time for this process */
+      utc_nanos t0_;
+      /* annual volatility (1-year := 365.25 days) for this process */
+      double volatility_ = 0.0;
+      /* daily variance for this brownian motion */
+      double vol2_day_ = 0.0;
+
+
+    }; /*BrownianMotionBase*/
+
     /* representation for brownian motion.
      *
      * starting value of zero at time t0.
@@ -21,7 +63,7 @@ namespace xo {
      * value_type:  double
      */
     template<class RngEngine>
-    class BrownianMotion : public StochasticProcess<double> {
+    class BrownianMotion : public BrownianMotionBase {
     public:
       using NormalGen = xo::random::NormalGen<RngEngine>;
       using nanos = xo::time::nanos;
@@ -41,17 +83,10 @@ namespace xo {
 
       virtual ~BrownianMotion() = default;
 
-      /* brownian motion with constant volatility at this level */
-      double volatility() const { return volatility_; }
-
-      /* compute variance that accumulates over time interval dt
-       * for this brownian motion
-       */
-      double variance_dt(nanos dt) const;
+      // ----- inherited from BrownianMotionBase -----
 
       // ----- inherited from StochasticProcess<> -----
 
-      virtual utc_nanos t0() const override { return t0_; }
       virtual double t0_value() const override { return 0.0; }
 
       /* sample this process at time t,
@@ -80,39 +115,15 @@ namespace xo {
     private:
       template<class Seed>
       BrownianMotion(utc_nanos t0, double sdev, Seed const & seed)
-          : t0_{t0}, volatility_{sdev}, vol2_day_{(sdev * sdev) *
-                                                  (1.0 / 365.25)},
-            rng_{NormalGen::make(seed, 0.0 /*mean*/, 1.0 /*sdev*/)} {}
+	: BrownianMotionBase(t0, sdev),
+          rng_{NormalGen::make(seed, 0.0 /*mean*/, 1.0 /*sdev*/)} {}
 
     private:
-      /* starting time for this process */
-      utc_nanos t0_;
-
-      /* annual volatility (1-year := 365.25 days) for this process */
-      double volatility_ = 0.0;
-
-      /* daily variance for this brownian motion */
-      double vol2_day_ = 0.0;
-
       /* generates normally-distributed pseudorandom numbers,
        * distributed according to N(0,1)
        */
       typename NormalGen::generator_type rng_;
     }; /*BrownianMotion*/
-
-    template<typename RngEngine>
-    double
-    BrownianMotion<RngEngine>::variance_dt(nanos dt) const
-    {
-      constexpr uint64_t c_sec_per_day = (24L * 3600L);
-      constexpr double c_day_per_sec = (1.0 / c_sec_per_day);
-
-      /* time-to-horizon in nanos */
-      double dt_sec = std::chrono::duration<double>(dt).count();
-      double dt_day = dt_sec * c_day_per_sec;
-
-      return this->vol2_day_ * dt_day;
-    } /*variance_dt*/
 
     template<typename RngEngine>
     double
@@ -236,23 +247,9 @@ namespace xo {
        * offset by lo.second
        */
 
-      utc_nanos lo_tm = lo.first;
-      double lo_x = lo.second;
-      
-      nanos dt = (t - lo_tm);
-
-      /* variance at horizon t,  relative to value at lo.first */
-      double var = this->variance_dt(dt);
-
-      /* sample from N(0,1) */
       double x0 = this->rng_();
 
-      /* scale for variance of B(t) - B(lo) */
-      double dx = ::sqrt(var) * x0;
-
-      double sample = lo_x + dx;
-
-      return sample;
+      return this->exterior_sample_impl(t, lo, x0);
     } /*exterior_sample*/
 
 

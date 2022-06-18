@@ -1,37 +1,51 @@
 /* @file StrikeSetMarketModel.cpp */
 
+#include "time/Time.hpp" /*need this before xtag decl for some reason*/
 #include "StrikeSetMarketModel.hpp"
 #include "process/RealizationSimSource.hpp"
+#include "queue/Reactor.hpp"
 
 namespace xo {
   using xo::process::RealizationTracer;
   using xo::process::RealizationSimSource;
   using xo::sim::SimulationSource;
+  using xo::reactor::Reactor;
   using xo::ref::rp;
+  using xo::ref::brw;
   using xo::time::utc_nanos;
+  using logutil::scope;
+  using logutil::xtag;
 
   namespace option {
-    namespace {
-      /* forward underlying price updates to a StrikeSetMarketModel instance */
-      class NotifyMarketModel {
-      public:
-	NotifyMarketModel() = default;
+    void OptionMarketModel::notify_ul(std::pair<utc_nanos, double> const &ul_ev) {
+      bool c_logging_enabled = true;
+      scope lscope("OptionMarketModel", "::notify_ul", c_logging_enabled);
 
-	void assign_model(StrikeSetMarketModel * p) {
-	  this->p_mkt_model_ = p;
-	}
+      if (c_logging_enabled)
+	lscope.log("enter",
+		   xtag("tm", ul_ev.first),
+		   xtag("px", ul_ev.second));
+    } /*notify_ul*/
 
-	void operator()(std::pair<utc_nanos, double> const & ul_px) const {
-	  StrikeSetMarketModel * p = this->p_mkt_model_;
+  namespace {
+  /* forward underlying price updates to a StrikeSetMarketModel instance */
+  class NotifyMarketModel {
+  public:
+    NotifyMarketModel() = default;
 
-	  if(p)
-	    p->notify_ul(ul_px);
-	} /*operator()*/
+    void assign_model(StrikeSetMarketModel *p) { this->p_mkt_model_ = p; }
 
-      private:
-	StrikeSetMarketModel * p_mkt_model_ = nullptr;
+    void operator()(std::pair<utc_nanos, double> const &ul_px) const {
+      StrikeSetMarketModel *p = this->p_mkt_model_;
+
+      if (p)
+        p->notify_ul(ul_px);
+    } /*operator()*/
+
+  private:
+    StrikeSetMarketModel *p_mkt_model_ = nullptr;
       }; /*NotifyMarketModel*/
-    } /*namespace*/
+      }  /*namespace*/
 
     ref::rp<StrikeSetMarketModel>
     StrikeSetMarketModel::make(ref::rp<OptionStrikeSet> option_set,
@@ -41,25 +55,76 @@ namespace xo {
       /* sim source for underlying prices.
        * feeds updates to *this
        */
-      rp<RealizationSimSource<double, NotifyMarketModel>> src
+      rp<RealizationSimSource<double, NotifyMarketModel>> ul_sim_src
 	= RealizationSimSource<double, NotifyMarketModel>::make(ul_tracer,
 								ul_ev_interval_dt,
 								NotifyMarketModel());
 								
       rp<StrikeSetMarketModel> retval
 	(new StrikeSetMarketModel(std::move(option_set),
-				  std::move(ul_tracer)));
+				  std::move(ul_tracer),
+				  std::move(ul_sim_src)));
 
-      src->ev_sink_addr()->assign_model(retval.get());
+      ul_sim_src->ev_sink_addr()->assign_model(retval.get());
 
       return retval;
     } /*make*/
 
-    void
-    StrikeSetMarketModel::notify_ul(std::pair<utc_nanos, double> const & ul_px)
+    StrikeSetMarketModel::StrikeSetMarketModel(ref::rp<OptionStrikeSet> option_set,
+					       ref::rp<RealizationTracer<double>> ul_realization,
+					       ref::rp<SimulationSource> ul_sim_src)
+      : option_set_{std::move(option_set)},
+	ul_realization_tracer_{std::move(ul_realization)},
+	ul_sim_src_{std::move(ul_sim_src)}
     {
-      XO_STUB();
+      this->option_set_->verify_ok(true);
+
+      /* populate .market_v */
+      auto visitor_fn
+	= ([this]
+	   (StrikePair const & k_pair)
+	{
+	  this->market_v_.push_back(OptionMarketModel(k_pair.call().promote()));
+	  this->market_v_.push_back(OptionMarketModel(k_pair.put().promote()));
+	});
+
+      this->option_set_->visit_strikes(visitor_fn);
+    } /*ctor*/
+
+    void
+    StrikeSetMarketModel::notify_ul(std::pair<utc_nanos, double> const & ul_ev)
+    {
+      bool c_logging_enabled = true;
+      scope lscope("StrikeSetMarketModel", "::notify_ul", c_logging_enabled);
+
+      if (c_logging_enabled)
+	lscope.log("enter",
+		   xtag("tm", ul_ev.first),
+		   xtag("px", ul_ev.second));
+
+      /* update option-market models */
+      for(OptionMarketModel & opt_mkt : this->market_v_) {
+	opt_mkt.notify_ul(ul_ev);
+      }
     } /*update_ul*/
+
+    void
+    StrikeSetMarketModel::bind_reactor(brw<Reactor> reactor)
+    {
+      assert(reactor.get());
+
+      if(this->ul_sim_src_)
+	reactor->add_source(this->ul_sim_src_);
+    } /*bind_reactor*/
+
+    void
+    StrikeSetMarketModel::detach_reactor(brw<Reactor> reactor)
+    {
+      assert(reactor.get());
+
+      if(this->ul_sim_src_)
+	reactor->remove_source(this->ul_sim_src_);
+    } /*detach_reactor*/
   } /*namespace option*/
 } /*namespace xo*/
 

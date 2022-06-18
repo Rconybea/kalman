@@ -151,9 +151,11 @@ namespace xo {
 				 spec.rate_,
 				 spec.ttx_);
 
+#ifdef OBSOLETE_DEBUG
 	char buf[100];
 	snprintf(buf, sizeof(buf), "tv=%.7e delta=%.7e gamma=%.7e theta=%.7e rho=%.7e", greeks.tv(), greeks.delta(), greeks.gamma(), greeks.theta(), greeks.rho());
 	std::cout << buf << std::endl;
+#endif
 
 	REQUIRE(greeks.tv() == Approx(spec.exp_tv_).epsilon(5e-7));
 	REQUIRE(greeks.delta() == Approx(spec.exp_delta_).epsilon(5e-7));

@@ -1,7 +1,7 @@
 # process/CMakeLists.txt
 
 # build shared library 'process'
-add_library(process SHARED BrownianMotion.cpp Realization.cpp)
+add_library(process SHARED BrownianMotion.cpp ExpProcess.cpp Realization.cpp)
 
 set_target_properties(process PROPERTIES
  			      VERSION ${PROJECT_VERSION}

@@ -29,6 +29,7 @@ target_include_directories(option PUBLIC
 # ----------------------------------------------------------------
 # internal dependencies: logutil, ...
 
+target_link_libraries(option PUBLIC process)
 target_link_libraries(option PUBLIC logutil)
 target_link_libraries(option PUBLIC refcnt)
 

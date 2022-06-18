@@ -1,5 +1,6 @@
 /* @file RealizationSimSource.test.cpp */
 
+#include "time/Time.hpp"
 #include "process/RealizationSimSource.hpp"
 #include "process/LogNormalProcess.hpp"
 #include "process/BrownianMotion.hpp"
@@ -172,6 +173,7 @@ namespace xo {
       rp<ExpProcess> ebm
 	(LogNormalProcess::make<xoshiro256ss, uint64_t>
 	   (t0,
+	    1.0 /*x0*/,
 	    0.30 /*sdev -- annualized volatility*/,
 	    12345678UL /*seed*/));
 

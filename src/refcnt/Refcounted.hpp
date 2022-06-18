@@ -75,6 +75,8 @@ namespace xo {
 
       T * operator->() const { return ptr_; }
 
+      operator bool() const { return ptr_ != nullptr; }
+
       intrusive_ptr<T> & operator=(intrusive_ptr<T> const & rhs) {
 	T * x = rhs.get();
 
@@ -180,7 +182,12 @@ namespace xo {
     public:
       template<typename S>
       Borrow(rp<S> const & x) : ptr_(x.get()) {}
+
       Borrow(Borrow const & x) = default;
+
+      /* convert from another borrow,   if it has compatible pointer type */
+      template<typename S>
+      Borrow(Borrow<S> const & x) : ptr_(x.get()) {}
 
       /* dynamic cast from a pointer to an object of some convertible type */
       template<typename S>

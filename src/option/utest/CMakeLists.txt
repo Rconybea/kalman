@@ -3,6 +3,7 @@
 # These tests can use the Catch2-provided main
 file(GLOB SOURCE_FILES "*.cpp")
 add_executable(utest.option ${SOURCE_FILES})
+
 #target_link_libraries(utest.option PRIVATE Catch2::Catch2WithMain)
 
 add_test(NAME utest.option COMMAND utest.option)
@@ -26,6 +27,7 @@ target_include_directories(utest.option PUBLIC
 # internal dependencies: logutil, ...
 
 target_link_libraries(utest.option PUBLIC option)
+target_link_libraries(utest.option PUBLIC simulator)
 target_link_libraries(utest.option PUBLIC logutil)
 
 # ----------------------------------------------------------------

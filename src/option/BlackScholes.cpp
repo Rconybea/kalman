@@ -14,8 +14,8 @@ namespace xo {
       using logutil::scope;
       using logutil::xtag;
       
-      constexpr char const * c_self = "BlackScholes::call_greeks";
-      constexpr bool c_logging_enabled = true;
+      constexpr char const * c_self = "BlackScholes::greeks";
+      constexpr bool c_logging_enabled = false; 
 
       scope lscope(c_self, c_logging_enabled);
 

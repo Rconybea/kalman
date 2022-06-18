@@ -65,6 +65,14 @@ namespace xo {
 
       bool verify_ok(bool may_throw) const;
 
+      /* call fn(p) for each pair p in .strike_v[] */
+      template<typename Fn>
+      void visit_strikes(Fn fn) const {
+	for(StrikePair const & strike_pair : this->strike_v_) {
+	  fn(strike_pair);
+	}
+      } /*visit_strikes*/
+
     private:
       OptionStrikeSet() = default;
 
