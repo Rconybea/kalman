@@ -2,7 +2,7 @@
 
 /* Time.hpp: need to see logutil::operator<< before xtag header gets pulled in */
 #include "time/Time.hpp"
-#include "OptionExpirySet.hpp"
+#include "OptionStrikeSet.hpp"
 #include "logutil/scope.hpp"
 
 namespace xo {

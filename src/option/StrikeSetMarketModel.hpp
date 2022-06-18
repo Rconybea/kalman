@@ -2,7 +2,7 @@
 
 #include "option/VanillaOption.hpp"
 #include "option/PricingContext.hpp"
-#include "option/OptionExpirySet.hpp" /* for OptionStrikeSet */
+#include "option/OptionStrikeSet.hpp" 
 #include "process/RealizationTracer.hpp"
 #include "simulator/SimulationSource.hpp"
 
