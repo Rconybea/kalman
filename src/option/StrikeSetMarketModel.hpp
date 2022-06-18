@@ -3,6 +3,7 @@
 #include "option/VanillaOption.hpp"
 #include "option/PricingContext.hpp"
 #include "option/OptionStrikeSet.hpp" 
+#include "option/PricingContext.hpp"
 #include "process/RealizationTracer.hpp"
 #include "simulator/SimulationSource.hpp"
 
@@ -52,10 +53,12 @@ namespace xo {
        * - option_set.  model market for this set of related options
        * - ul_model.    model for timeseries of underlying prices.
        *                (package as sim source feeding updates to StrikeSetMarketModel)
+       * - ul_pricing_cx.       option pricing inputs (rates, divs, volsfc, ..)
        * - ul_ev_interval_dt.   underlying prices will change with this regular period
        */
       static ref::rp<StrikeSetMarketModel> make(ref::rp<OptionStrikeSet> option_set,
 						ref::rp<RealizationTracer<double>> ul_tracer,
+						ref::rp<PricingContext> ul_pricing_cx,
 						nanos ul_ev_interval_dt);
 
       /* notify option market-model on underlying price change */
@@ -72,7 +75,8 @@ namespace xo {
     private:
       StrikeSetMarketModel(ref::rp<OptionStrikeSet> option_set,
 			   ref::rp<RealizationTracer<double>> ul_realization,
-			   ref::rp<SimulationSource> ul_sim_src);
+			   ref::rp<SimulationSource> ul_sim_src,
+			   ref::rp<PricingContext> ul_pricing_cx);
 
     private:
       /* option terms for this market */
@@ -83,6 +87,9 @@ namespace xo {
 
       /* simulation source for underlying prices */
       ref::rp<SimulationSource> ul_sim_src_;
+
+      /* pricing context for options on this underlying */
+      ref::rp<PricingContext> ul_pricing_cx_;
 
       /* model for each option in .option_set
        * model includes invented market prices and greeks

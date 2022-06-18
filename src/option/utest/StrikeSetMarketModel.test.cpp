@@ -10,6 +10,7 @@
 namespace xo {
   using xo::option::StrikeSetMarketModel;
   using xo::option::OptionStrikeSet;
+  using xo::option::PricingContext;
   using xo::process::LogNormalProcess;
   using xo::process::RealizationTracer;
   using xo::sim::Simulator;
@@ -42,9 +43,18 @@ namespace xo {
 
       REQUIRE(tracer.get() != nullptr);
 
+      auto pricing_cx
+	= PricingContext::make(t0,
+			       1000.0 /*ref_spot*/,
+			       2.5 /*volatility*/,
+			       0.05 /*rate (yctx)*/);
+
+      REQUIRE(pricing_cx.get() != nullptr);
+
       auto model
 	= StrikeSetMarketModel::make(optionset,
 				     tracer,
+				     pricing_cx,
 				     std::chrono::seconds(1) /*ul_ev_interval_dt*/);
 
       REQUIRE(model.get() != nullptr);
@@ -96,9 +106,18 @@ namespace xo {
 
       REQUIRE(tracer.get() != nullptr);
 
+      auto pricing_cx
+	= PricingContext::make(t0,
+			       1000.0 /*ref_spot*/,
+			       2.5 /*volatility*/,
+			       0.05 /*rate (yctx)*/);
+
+      REQUIRE(pricing_cx.get() != nullptr);
+
       auto model
 	= StrikeSetMarketModel::make(optionset,
 				     tracer,
+				     pricing_cx,
 				     std::chrono::seconds(1) /*ul_ev_interval_dt*/);
 
       REQUIRE(model.get() != nullptr);

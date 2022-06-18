@@ -50,6 +50,7 @@ namespace xo {
     ref::rp<StrikeSetMarketModel>
     StrikeSetMarketModel::make(ref::rp<OptionStrikeSet> option_set,
 			       ref::rp<RealizationTracer<double>> ul_tracer,
+			       ref::rp<PricingContext> ul_pricing_cx,
 			       nanos ul_ev_interval_dt)
     {
       /* sim source for underlying prices.
@@ -63,7 +64,8 @@ namespace xo {
       rp<StrikeSetMarketModel> retval
 	(new StrikeSetMarketModel(std::move(option_set),
 				  std::move(ul_tracer),
-				  std::move(ul_sim_src)));
+				  ul_sim_src,
+				  std::move(ul_pricing_cx)));
 
       ul_sim_src->ev_sink_addr()->assign_model(retval.get());
 
@@ -72,10 +74,12 @@ namespace xo {
 
     StrikeSetMarketModel::StrikeSetMarketModel(ref::rp<OptionStrikeSet> option_set,
 					       ref::rp<RealizationTracer<double>> ul_realization,
-					       ref::rp<SimulationSource> ul_sim_src)
+					       ref::rp<SimulationSource> ul_sim_src,
+					       ref::rp<PricingContext> ul_pricing_cx)
       : option_set_{std::move(option_set)},
 	ul_realization_tracer_{std::move(ul_realization)},
-	ul_sim_src_{std::move(ul_sim_src)}
+	ul_sim_src_{std::move(ul_sim_src)},
+	ul_pricing_cx_{std::move(ul_pricing_cx)}
     {
       this->option_set_->verify_ok(true);
 
