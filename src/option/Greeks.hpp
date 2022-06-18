@@ -1,5 +1,7 @@
 /* @file Greeks.hpp */
 
+#pragma once
+
 namespace xo {
   namespace option {
     class Greeks {

@@ -1,6 +1,7 @@
 /* @file BlackScholes.hpp */
 
 #include "option/VanillaOption.hpp"
+#include "option/PricingContext.hpp"
 #include "option/Greeks.hpp"
 #include "option/Callput.hpp"
 #include "distribution/Normal.hpp"
@@ -68,6 +69,15 @@ namespace xo {
       /* variation,  using VanillaOption for (callput, strike, expiry) */
       static Greeks greeks(ref::brw<VanillaOption> opt,
 			   double S, double s, double r, utc_nanos t0);
+
+      /* variation,  using:
+       *  VanillaOption for (callput, strike, expiry)
+       *  PricingContext for (s, r)
+       */
+      static Greeks greeks(ref::brw<VanillaOption> opt,
+			   ref::brw<PricingContext> pcx,
+			   double ul_spot,
+			   utc_nanos t0);
     }; /*BlackScholes*/
   } /*namespace option*/
 } /*namespace xo*/

@@ -147,6 +147,17 @@ namespace xo {
 		    r,
 		    dt_yr);
     } /*greeks*/
+
+    Greeks
+    BlackScholes::greeks(brw<VanillaOption> opt,
+			 brw<PricingContext> pcx,
+			 double ul_spot, utc_nanos t0)
+    {
+      double s = pcx->volatility();
+      double r = pcx->rate();
+
+      return greeks(opt, ul_spot, s, r, t0);
+    } /*greeks*/
   } /*namespace option*/
 } /*namespace xo*/
 

@@ -2,6 +2,7 @@
 
 #include "time/Time.hpp" /*need this before xtag decl for some reason*/
 #include "StrikeSetMarketModel.hpp"
+#include "BlackScholes.hpp"
 #include "process/RealizationSimSource.hpp"
 #include "queue/Reactor.hpp"
 
@@ -24,10 +25,20 @@ namespace xo {
       bool c_logging_enabled = true;
       scope lscope("OptionMarketModel", "::notify_ul", c_logging_enabled);
 
+      this->last_greeks_ = BlackScholes::greeks(this->option_.borrow(),
+						ul_pricing_cx,
+						ul_ev.second /*ul_spot*/,
+						ul_ev.first /*t0*/);
       if (c_logging_enabled)
 	lscope.log("enter",
 		   xtag("tm", ul_ev.first),
-		   xtag("px", ul_ev.second));
+		   xtag("upx", ul_ev.second),
+		   xtag("callput", (this->option_->callput() == Callput::call) ? "C" : "P"),
+		   xtag("strike", this->option_->effective_strike()),
+		   xtag("tv", this->last_greeks_.tv()),
+		   xtag("delta", this->last_greeks_.delta())
+		   );
+
     } /*notify_ul*/
 
   namespace {
