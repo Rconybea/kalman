@@ -17,7 +17,10 @@ namespace xo {
   using logutil::xtag;
 
   namespace option {
-    void OptionMarketModel::notify_ul(std::pair<utc_nanos, double> const &ul_ev) {
+    void
+    OptionMarketModel::notify_ul(std::pair<utc_nanos, double> const & ul_ev,
+				 ref::brw<PricingContext> ul_pricing_cx)
+    {
       bool c_logging_enabled = true;
       scope lscope("OptionMarketModel", "::notify_ul", c_logging_enabled);
 
@@ -108,7 +111,8 @@ namespace xo {
 
       /* update option-market models */
       for(OptionMarketModel & opt_mkt : this->market_v_) {
-	opt_mkt.notify_ul(ul_ev);
+	opt_mkt.notify_ul(ul_ev,
+			  this->ul_pricing_cx_.borrow());
       }
     } /*update_ul*/
 

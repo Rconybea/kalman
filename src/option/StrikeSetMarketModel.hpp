@@ -28,7 +28,8 @@ namespace xo {
 
       ref::brw<VanillaOption> option() const { return option_; }
 
-      void notify_ul(std::pair<utc_nanos, double> const & ul_ev);
+      void notify_ul(std::pair<utc_nanos, double> const & ul_ev,
+		     ref::brw<PricingContext> ul_pricing_cx);
 
     private:
       /* providing market model for this option */
