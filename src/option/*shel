@@ -1,0 +1,27 @@
+-*- mode: compilation; default-directory: "~/proj/kalman/src/option/" -*-
+Compilation started at Mon Jun 20 14:43:28
+
+make -k -C /Users/roland/proj/kalman/build
+[  4%] Built target logutil
+[  9%] Built target refcnt
+[ 13%] Built target simulator
+[ 22%] Built target process
+[ 27%] Built target example
+[ 31%] Built target simulator_py
+Consolidate compiler generated dependencies of target option
+[ 34%] Building CXX object option/CMakeFiles/option.dir/StrikeSetOmdSimSource.cpp.o
+[ 36%] Linking CXX shared library liboption.dylib
+[ 50%] Built target option
+[ 54%] Built target distribution
+[ 59%] Built target distribution_py
+[ 63%] Built target random
+[ 70%] Built target queue
+[ 77%] Built target utest.process
+Consolidate compiler generated dependencies of target utest.option
+[ 79%] Building CXX object option/utest/CMakeFiles/utest.option.dir/StrikeSetMarketModel.test.cpp.o
+[ 81%] Linking CXX executable utest.option
+[ 86%] Built target utest.option
+[ 93%] Built target utest.tree
+[100%] Built target utest.refcnt
+
+Compilation finished at Mon Jun 20 14:43:30

@@ -43,6 +43,10 @@ namespace xo {
        */
       virtual void advance_until(utc_nanos tm, bool replay_flag) = 0;
 
+      // ----- inherited from reactor::Source -----
+
+      virtual bool is_empty() const override = 0;
+      virtual bool is_exhausted() const override = 0;
       /* release one event from this source.
        *
        * promise:
@@ -50,13 +54,7 @@ namespace xo {
        *
        * returns #of events actually released (0 or 1)
        */
-      virtual std::uint64_t advance_one() = 0;
-
-      // ----- inherited from reactor::Source -----
-
-      virtual bool is_empty() const override = 0;
-      virtual bool is_exhausted() const override = 0;
-      virtual std::uint64_t deliver_one() override { return this->advance_one(); }
+      virtual std::uint64_t deliver_one() override = 0;
       virtual void notify_reactor_add(Reactor * /*reactor*/) override {}
       virtual void notify_reactor_remove(Reactor * /*reactor*/) override {}
     }; /*SimulationSource*/

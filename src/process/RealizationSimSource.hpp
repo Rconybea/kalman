@@ -85,20 +85,13 @@ namespace xo {
       virtual void advance_until(utc_nanos tm, bool replay_flag) override {
 	if(replay_flag) {
 	  while(this->current_tm() < tm) {
-	    this->advance_one();
+	    this->deliver_one();
 	  }
 	} else {
 	  this->tracer_->advance_until(tm);
 	}
       } /*advance_until*/
 	
-      virtual std::uint64_t advance_one() override {
-	this->sink_one();
-	this->tracer_->advance_dt(this->ev_interval_dt_);
-
-	return 1;
-      } /*advance_one*/
-
       // ----- inherited from Source -----
 
       /* process realizations are always primed (at least for now) */
@@ -107,6 +100,13 @@ namespace xo {
        * will need simulator to impose one
        */
       virtual bool is_exhausted() const override { return false; }
+
+      virtual std::uint64_t deliver_one() override {
+	this->sink_one();
+	this->tracer_->advance_dt(this->ev_interval_dt_);
+
+	return 1;
+      } /*deliver_one*/
 
     private:
       RealizationSimSource(ref::rp<RealizationTracer<T>> const & tracer,

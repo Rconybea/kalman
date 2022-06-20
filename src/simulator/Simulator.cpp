@@ -187,7 +187,7 @@ namespace xo {
       SimulationSource * src
 	= this->sim_heap_.front().src();
 
-      uint64_t retval = src->advance_one();
+      uint64_t retval = src->deliver_one();
 
       /* src.t0 may have advanced */
 

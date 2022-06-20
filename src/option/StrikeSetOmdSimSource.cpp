@@ -98,7 +98,7 @@ namespace xo {
 	utc_nanos tm = this->current_tm();
 
 	if(tm < target_tm) {
-	  this->advance_one_aux(replay_flag);
+	  this->deliver_one_aux(replay_flag);
 	} else {
 	  break;
 	}
@@ -122,7 +122,7 @@ namespace xo {
     } /*advance_until*/
 
     std::uint64_t
-    StrikeSetOmdSimSource::advance_one_aux(bool replay_flag)
+    StrikeSetOmdSimSource::deliver_one_aux(bool replay_flag)
     {
       if (omd_heap_.empty()) {
 	return 0;
@@ -144,13 +144,13 @@ namespace xo {
       }
 
       return 1;
-    } /*advance_one_aux*/
+    } /*deliver_one_aux*/
 
     std::uint64_t
-    StrikeSetOmdSimSource::advance_one()
+    StrikeSetOmdSimSource::deliver_one()
     {
-      return this->advance_one_aux(true /*replay_flag*/);
-    } /*advance_one*/
+      return this->deliver_one_aux(true /*replay_flag*/);
+    } /*deliver_one*/
 
     void
     StrikeSetOmdSimSource::notify_reactor_add(Reactor * reactor)
