@@ -21,8 +21,8 @@ namespace xo {
 
       // ----- inherited from SimulationSource -----
 
+      virtual bool is_empty() const override;
       virtual bool is_exhausted() const override;
-      virtual bool is_primed() const override;
       virtual utc_nanos current_tm() const override;
       virtual void advance_until(utc_nanos tm, bool replay_flag) override;
       virtual std::uint64_t advance_one() override;

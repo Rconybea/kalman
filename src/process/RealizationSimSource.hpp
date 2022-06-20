@@ -77,12 +77,6 @@ namespace xo {
 
       // ----- inherited from SimulationSource -----
 
-      /* stochastic process api doesn't have an end time;
-       * will need simulator to impose one
-       */
-      virtual bool is_exhausted() const override { return false; }
-      /* process realizations are always primed (at least for now) */
-      virtual bool is_primed() const override { return true; }
       virtual utc_nanos current_tm() const override { return this->tracer_->current_tm(); } 
 
       /* note:
@@ -104,6 +98,15 @@ namespace xo {
 
 	return 1;
       } /*advance_one*/
+
+      // ----- inherited from Source -----
+
+      /* process realizations are always primed (at least for now) */
+      virtual bool is_empty() const override { return false; }
+      /* stochastic process api doesn't have an end time;
+       * will need simulator to impose one
+       */
+      virtual bool is_exhausted() const override { return false; }
 
     private:
       RealizationSimSource(ref::rp<RealizationTracer<T>> const & tracer,

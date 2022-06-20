@@ -31,6 +31,21 @@ namespace xo {
       virtual bool is_empty() const = 0;
       bool is_nonempty() const { return !this->is_empty(); }
 
+      /* true when source doesn't know its next event
+       * A source that isn't primed is also excluded from simulation
+       * heap until it becomes primed.
+       * This make feasible simulation sources that
+       * depend on other simulation sources
+       */
+      virtual bool is_primed() const { return !this->is_empty(); }
+      virtual bool is_notprimed() const { return this->is_empty(); }
+
+      /* if true, this source has no events,  and will never publish more events
+       * - for sim,  return true for a standalone source that has replayed all events
+       * - for rt,  set during orderly 
+       */
+      virtual bool is_exhausted() const = 0;
+
       /* deliver one  event to attached sink
        * interpretation of 'one event' is source-specific;
        * could be a collapsed or batched event in practice.

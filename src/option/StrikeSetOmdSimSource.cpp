@@ -55,10 +55,10 @@ namespace xo {
     } /*is_exhausted*/
 
     bool
-    StrikeSetOmdSimSource::is_primed() const
+    StrikeSetOmdSimSource::is_empty() const
     {
-      return !(this->omd_heap_.empty());
-    } /*is_primed*/
+      return this->omd_heap_.empty();
+    } /*is_empty*/
 
     time::utc_nanos
     StrikeSetOmdSimSource::current_tm() const
