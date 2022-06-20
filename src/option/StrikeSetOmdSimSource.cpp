@@ -90,15 +90,17 @@ namespace xo {
     } /*current_tm*/
 
     /* TODO: return #of events published */
-    void
+    std::uint64_t
     StrikeSetOmdSimSource::advance_until(utc_nanos target_tm,
 					 bool replay_flag)
     {
+      uint64_t retval;
+
       while(!this->omd_heap_.empty()) {
 	utc_nanos tm = this->current_tm();
 
 	if(tm < target_tm) {
-	  this->deliver_one_aux(replay_flag);
+	  retval += this->deliver_one_aux(replay_flag);
 	} else {
 	  break;
 	}
@@ -119,6 +121,8 @@ namespace xo {
 				       xtag("replay_flag", replay_flag)));
       }
 #endif
+
+      return retval;
     } /*advance_until*/
 
     std::uint64_t

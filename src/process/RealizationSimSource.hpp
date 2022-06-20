@@ -82,14 +82,18 @@ namespace xo {
       /* note:
        *   with replay_flag=true,  treats tm as lower bound
        */
-      virtual void advance_until(utc_nanos tm, bool replay_flag) override {
+      virtual std::uint64_t advance_until(utc_nanos tm, bool replay_flag) override {
+	std::uint64_t retval = 0ul;
+
 	if(replay_flag) {
 	  while(this->current_tm() < tm) {
-	    this->deliver_one();
+	    retval += this->deliver_one();
 	  }
 	} else {
 	  this->tracer_->advance_until(tm);
 	}
+
+	return retval;
       } /*advance_until*/
 	
       // ----- inherited from Source -----

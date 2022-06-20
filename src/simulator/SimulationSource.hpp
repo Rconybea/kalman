@@ -40,8 +40,12 @@ namespace xo {
        * - .t0() > tm || .is_exhausted() = true
        * - if replay_flag is true,   then any events between
        *   prev .t0() and new .t0() will have been published
+       *
+       * returns #of events delivered.
+       * does not count events that were skipped, so always returns 0 if
+       * replay_flag is false
        */
-      virtual void advance_until(utc_nanos tm, bool replay_flag) = 0;
+      virtual std::uint64_t advance_until(utc_nanos tm, bool replay_flag) = 0;
 
       // ----- inherited from reactor::Source -----
 
