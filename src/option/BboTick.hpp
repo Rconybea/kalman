@@ -19,6 +19,22 @@ namespace xo {
     public:
       BboTick(OptionId id, PxSize2 const & pxz2) : id_{id}, pxz2_{pxz2} {}
 
+      /* compare ticks by timestamp,  then id */
+      static int64_t compare(BboTick const & x,
+			     BboTick const & y)
+      {
+	using xo::time::nanos;
+
+	nanos dt = x.tm() - y.tm();
+
+	if(dt != nanos(0))
+	  return dt.count();
+
+	/* timestamps equal -> compare ids */
+	return OptionId::compare(x.id(), y.id());
+      } /*compare*/
+
+      utc_nanos tm() const { return tm_; }
       OptionId id() const { return id_; }
       PxSize2 const & pxz2() const { return pxz2_; }
 
@@ -35,6 +51,16 @@ namespace xo {
        */
       PxSize2 pxz2_;
     }; /*BboTick*/
+
+    /* consider ticks equal if they have the same instrument + timestamp */
+    inline bool operator==(BboTick const & x, BboTick const & y) { return BboTick::compare(x, y) == 0; }
+    inline bool operator!=(BboTick const & x, BboTick const & y) { return BboTick::compare(x, y) != 0; }
+    inline bool operator< (BboTick const & x, BboTick const & y) { return BboTick::compare(x, y) <  0; }
+    inline bool operator<=(BboTick const & x, BboTick const & y) { return BboTick::compare(x, y) <= 0; }
+    inline bool operator> (BboTick const & x, BboTick const & y) { return BboTick::compare(x, y) >  0; }
+    inline bool operator>=(BboTick const & x, BboTick const & y) { return BboTick::compare(x, y) >= 0; }
+      
+    
   } /*namespace option*/
 } /*namespace xo*/
 

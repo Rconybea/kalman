@@ -13,6 +13,10 @@ namespace xo {
 
       static OptionId invalid() { return OptionId(-1); }
 
+      static int32_t compare(OptionId x, OptionId y) {
+	return x.num() - y.num();
+      } /*compare*/
+
       uint32_t num() const { return num_; }
 
     private:
