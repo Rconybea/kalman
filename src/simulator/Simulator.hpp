@@ -71,6 +71,10 @@ namespace xo {
 
       // ----- inherited from Reactor -----
 
+      /* notification when nonprimed source becomes primed
+       */
+      void notify_source_primed(ref::brw<reactor::Source> src) override;
+
       /* add a new simulation source.
        * event that precede .t0 will be discarded.
        *
@@ -90,6 +94,13 @@ namespace xo {
 
     private:
       explicit Simulator(utc_nanos t0) : t0_(t0) {}
+
+      /* insert source into simulation heap.
+       *
+       * Require:
+       * - src->is_primed()
+       */
+      void heap_insert_source(SimulationSource * src);
 
     private:
       /* simulation heap:

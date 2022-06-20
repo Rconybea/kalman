@@ -25,6 +25,7 @@ namespace xo {
      */
     class SimulationSource : public reactor::Source {
     public:
+      using Reactor = reactor::Reactor;
       using utc_nanos = xo::time::utc_nanos;
 
     public:
@@ -32,6 +33,15 @@ namespace xo {
        * have been replayed
        */
       virtual bool is_exhausted() const = 0;
+
+      /* true when source doesn't know its next event
+       * A source that isn't primed is also excluded from simulation
+       * heap until it becomes primed.
+       * This make feasible simulation sources that
+       * depend on other simulation sources
+       */
+      virtual bool is_primed() const = 0;
+      virtual bool is_notprimed() const { return !this->is_primed(); }
 
       /* if .is_exhausted = false:
        *   - next event time.
@@ -60,6 +70,8 @@ namespace xo {
 
       virtual bool is_empty() const override { return this->is_exhausted(); }
       virtual std::uint64_t deliver_one() override { return this->advance_one(); }
+      virtual void notify_reactor_add(Reactor * /*reactor*/) override {}
+      virtual void notify_reactor_remove(Reactor * /*reactor*/) override {}
     }; /*SimulationSource*/
 
     using SimulationSourcePtr = ref::rp<SimulationSource>;

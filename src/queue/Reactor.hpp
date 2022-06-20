@@ -16,6 +16,11 @@ namespace xo {
     public:
       virtual ~Reactor() = default;
       
+      /* notification when non-primed source (source with no known events)
+       * becomes primed (source with at least one event)
+       */
+      virtual void notify_source_primed(ref::brw<Source> src) = 0;
+
       /* add source src to this reactor.
        * on success, invoke src.notify_reactor_add(this)
        *

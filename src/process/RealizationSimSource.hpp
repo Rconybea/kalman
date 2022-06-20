@@ -80,6 +80,8 @@ namespace xo {
        * will need simulator to impose one
        */
       virtual bool is_exhausted() const override { return false; }
+      /* process realizations are always primed (at least for now) */
+      virtual bool is_primed() const override { return true; }
       virtual utc_nanos current_tm() const override { return this->tracer_->current_tm(); } 
 
       /* note:

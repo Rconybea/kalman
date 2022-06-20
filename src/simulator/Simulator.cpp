@@ -59,6 +59,24 @@ namespace xo {
       return this->sim_heap_.front().t0();
     } /*next_tm*/
 
+    void
+    Simulator::notify_source_primed(brw<Source> src)
+    {
+      brw<SimulationSource> sim_src = brw<SimulationSource>::from(src);
+
+      if(!sim_src)
+	return;
+
+      /* inform Simulator when a source transitions from
+       * 'notready' to 'ready'.
+       *
+       * this means:
+       * - source knows its next event
+       * - source should be put back into .sim_heap
+       */
+      this->heap_insert_source(sim_src.get());
+    } /*notify_source_primed*/
+
     bool
     Simulator::add_source(brw<Source> src)
     {
@@ -139,6 +157,24 @@ namespace xo {
       return this->advance_one_event();
     } /*run_one*/
 
+    void
+    Simulator::heap_insert_source(SimulationSource * src)
+    {
+      std::size_t simheap_z
+	= this->sim_heap_.size();
+
+      /* re-insert at new timestamp */
+      this->sim_heap_[simheap_z - 1]
+	= SourceTimestamp(src->current_tm(), src);
+
+      /* use std::greater<> because we need a min-heap;
+       * smallest timestamp at the front
+       */
+      std::push_heap(this->sim_heap_.begin(),
+		     this->sim_heap_.end(),
+		     std::greater<SourceTimestamp>());
+    } /*heap_insert_source*/
+
     std::uint64_t
     Simulator::advance_one_event()
     {
@@ -166,23 +202,15 @@ namespace xo {
        * with stale timestamp 
        */
 
-      if(src->is_exhausted()) {
-	/* permanently remove src from .sim_heap */
+      if(src->is_exhausted() || src->is_notprimed()) {
+	/* remove src from .sim_
+	 * - if src->is_exhausted(),  permanently
+	 * - if src->is_notready(),  until source calls
+	 *   .notify_source_ready()
+	 */
 	this->sim_heap_.pop_back();
       } else {
-	std::size_t simheap_z
-	  = this->sim_heap_.size();
-
-	/* re-insert at new timestamp */
-	this->sim_heap_[simheap_z - 1]
-	  = SourceTimestamp(src->current_tm(), src);
-
-	/* use std::greater<> because we need a min-heap;
-	 * smallest timestamp at the front
-	 */
-	std::push_heap(this->sim_heap_.begin(),
-		       this->sim_heap_.end(),
-		       std::greater<SourceTimestamp>());
+	this->heap_insert_source(src);
       }
 
       return retval;
