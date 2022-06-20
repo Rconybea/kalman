@@ -127,25 +127,25 @@ namespace xo {
 
     } /*notify_ul*/
 
-  namespace {
-  /* forward underlying price updates to a StrikeSetMarketModel instance */
-  class NotifyMarketModel {
-  public:
-    NotifyMarketModel() = default;
+    namespace {
+      /* forward underlying price updates to a StrikeSetMarketModel instance */
+      class NotifyMarketModel {
+      public:
+	NotifyMarketModel() = default;
 
-    void assign_model(StrikeSetMarketModel *p) { this->p_mkt_model_ = p; }
+	void assign_model(StrikeSetMarketModel *p) { this->p_mkt_model_ = p; }
 
-    void operator()(std::pair<utc_nanos, double> const &ul_px) const {
-      StrikeSetMarketModel *p = this->p_mkt_model_;
+	void operator()(std::pair<utc_nanos, double> const &ul_px) const {
+	  StrikeSetMarketModel *p = this->p_mkt_model_;
 
-      if (p)
-        p->notify_ul(ul_px);
-    } /*operator()*/
+	  if (p)
+	    p->notify_ul(ul_px);
+	} /*operator()*/
 
-  private:
-    StrikeSetMarketModel *p_mkt_model_ = nullptr;
+      private:
+	StrikeSetMarketModel *p_mkt_model_ = nullptr;
       }; /*NotifyMarketModel*/
-      }  /*namespace*/
+    }  /*namespace*/
 
     ref::rp<StrikeSetMarketModel>
     StrikeSetMarketModel::make(ref::rp<OptionStrikeSet> option_set,
@@ -194,6 +194,14 @@ namespace xo {
 
       this->option_set_->visit_strikes(visitor_fn);
     } /*ctor*/
+
+    void
+    StrikeSetMarketModel::notify_ul_exhausted()
+    {
+      if (this->omd_publisher_) {
+	this->omd_publisher_->notify_upstream_exhausted();
+      }
+    } /*notify_ul_exhausted*/
 
     void
     StrikeSetMarketModel::notify_ul(std::pair<utc_nanos, double> const & ul_ev)

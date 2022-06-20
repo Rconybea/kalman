@@ -77,6 +77,12 @@ namespace xo {
 						ref::rp<PricingContext> ul_pricing_cx,
 						nanos ul_ev_interval_dt);
 
+      /* notify underlying sim source exhausted
+       * NOTE: in practice, not called in sim since RealizationSimSource
+       *       is inexhaustible
+       */
+      void notify_ul_exhausted();
+
       /* notify option market-model on underlying price change */
       void notify_ul(std::pair<utc_nanos, double> const & ul_ev);
 

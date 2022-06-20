@@ -29,7 +29,8 @@ namespace xo {
 
       // ----- inherited from Source -----
 
-      virtual void notify_reactor_add(Reactor * /*reactor*/) override {}
+      /* note: native pointer to avoid cycle */
+      virtual void notify_reactor_add(Reactor * /*reactor*/) override;
       virtual void notify_reactor_remove(Reactor * /*reactor*/) override {}
 
     private:
@@ -51,6 +52,9 @@ namespace xo {
 
       /* queued events to be delivered to reactor */
       std::vector<BboTick> omd_heap_;
+
+      /* reactor being used to schedule consumption from this source */
+      Reactor * parent_reactor_ = nullptr;
     }; /*StrikeSetOmdSimSource*/
   } /*namespace option*/
 } /*namespace xo*/

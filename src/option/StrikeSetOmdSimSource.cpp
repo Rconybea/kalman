@@ -1,10 +1,13 @@
 /* @file StrikeSetOmdSimSource.cpp */
 
 #include "StrikeSetOmdSimSource.hpp"
+#include "queue/Reactor.hpp"
 #include "time/Time.hpp"
 #include <cstdint>
 
 namespace xo {
+  using reactor::Source;
+  using ref::brw;
   using logutil::xtag;
 
   namespace option {
@@ -25,6 +28,8 @@ namespace xo {
       if(this->current_tm_ < tick.tm())
 	this->current_tm_ = tick.tm();
 
+      bool is_priming = this->omd_heap_.empty();
+
       this->omd_heap_.push_back(tick);
 
       /* restore heap property:
@@ -34,7 +39,13 @@ namespace xo {
       std::push_heap(this->omd_heap_.begin(),
 		     this->omd_heap_.end(),
 		     std::greater<BboTick>());
-    } /*publish_bbo*/
+
+      Reactor * r = this->parent_reactor_;
+
+      if (is_priming && r) {
+        r->notify_source_primed(brw<Source>::from_native(this));
+      }
+    } /*notify_bbo*/
 
     bool
     StrikeSetOmdSimSource::is_exhausted() const
@@ -140,6 +151,14 @@ namespace xo {
     {
       return this->advance_one_aux(true /*replay_flag*/);
     } /*advance_one*/
+
+    void
+    StrikeSetOmdSimSource::notify_reactor_add(Reactor * reactor)
+    {
+      assert(!this->parent_reactor_);
+
+      this->parent_reactor_ = reactor;
+    } /*notify_reactor_add*/
   } /*namespace option*/
 } /*namespace xo*/
 

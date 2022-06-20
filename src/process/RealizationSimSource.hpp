@@ -17,6 +17,7 @@ namespace xo {
      * 3. events are consumed by Sink
      *
      * Require:
+     * - EventSink.notify_source_exhausted()
      * - invoke EventSink(std::pair<utc_nanos, T>)
      */
     template <typename T, typename EventSink>
