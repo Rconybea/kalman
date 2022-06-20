@@ -195,6 +195,11 @@ namespace xo {
 	  return Borrow(dynamic_cast<T *>(x.get()));
       } /*from*/
 
+      /* promote from native pointer */
+      static Borrow<T> from_native(T * x) {
+	return Borrow(x);
+      } /*from_native*/
+
       T * get() const { return ptr_; }
 
       rp<T> promote() const { return rp<T>(ptr_); }
