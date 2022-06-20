@@ -1,9 +1,12 @@
 1.
-* write stochastic process generator (see kloeden+platen ?)
+DONE write stochastic process generator (see kloeden+platen ?)
   - e.g. realization of brownian motion
   - can use to generate time series of underlying prices
-* write black-scholes pricer for options
-  - maybe also PDE pricer... 
-* write generator for family of related options
+DONE write black-scholes pricer for options
+  .. maybe also PDE pricer... 
+DONE write generator for family of related options
+* write StrikeSetOmdSimSource::advance_until()
 * simulate order flow!   random price-taking orders
-
+* generalize simulator,  allow not-ready sources
+* StrikeSetMarketModel to forward omd events to StrikeSetOmdSimSource
+* add callbacks to StrikeSetOmdSimSource
