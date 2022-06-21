@@ -1,5 +1,7 @@
 /* @file StrikeSetOmdSimSource.hpp */
 
+#pragma once
+
 #include "simulator/SimulationSource.hpp"
 #include "option/BboTick.hpp"
 #include <vector>
@@ -11,13 +13,20 @@ namespace xo {
      */
     class StrikeSetOmdSimSource : public sim::SimulationSource {
     public:
-      ref::rp<StrikeSetOmdSimSource> make() { return new StrikeSetOmdSimSource(); }
+      static ref::rp<StrikeSetOmdSimSource> make() { return new StrikeSetOmdSimSource(); }
       
       /* flag upstream as exhausted:
        * .notify_bbo() should not be called after .notify_upstream_exhausted()
        */
       void notify_upstream_exhausted();
+
       void notify_bbo(BboTick const & tick);
+
+      template<typename T>
+      void notify_bbo_v(T const & v) {
+	for(BboTick const & tk : v)
+	  this->notify_bbo(tk);
+      } /*notify_bbo_v*/
 
       // ----- inherited from SimulationSource -----
 

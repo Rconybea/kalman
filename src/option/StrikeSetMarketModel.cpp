@@ -2,6 +2,7 @@
 
 #include "time/Time.hpp" /*need this before xtag decl for some reason*/
 #include "StrikeSetMarketModel.hpp"
+#include "StrikeSetOmdSimSource.hpp"
 #include "BlackScholes.hpp"
 #include "BboTick.hpp"
 #include "process/RealizationSimSource.hpp"
@@ -188,7 +189,8 @@ namespace xo {
       : option_set_{std::move(option_set)},
 	ul_realization_tracer_{std::move(ul_realization)},
 	ul_sim_src_{std::move(ul_sim_src)},
-	ul_pricing_cx_{std::move(ul_pricing_cx)}
+	ul_pricing_cx_{std::move(ul_pricing_cx)},
+	omd_publisher_(StrikeSetOmdSimSource::make())
     {
       this->option_set_->verify_ok(true);
 
@@ -232,6 +234,9 @@ namespace xo {
 			  this->ul_pricing_cx_.borrow(),
 			  &omd_tick_v);
       }
+
+      /* publish updates in omd_tick_v */
+      this->omd_publisher_->notify_bbo_v(omd_tick_v);
     } /*update_ul*/
 
     void
