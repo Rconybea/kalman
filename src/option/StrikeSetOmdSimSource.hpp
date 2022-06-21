@@ -26,6 +26,9 @@ namespace xo {
        */
       void notify_upstream_exhausted();
 
+      /* send a marketdata tick to OmdSimSource;
+       * source will forward to attached callbacks
+       */
       void notify_bbo(BboTick const & tick);
 
       template<typename T>
@@ -33,6 +36,11 @@ namespace xo {
 	for(BboTick const & tk : v)
 	  this->notify_bbo(tk);
       } /*notify_bbo_v*/
+
+      /* invoke cb->notify_bbo() for each tick */
+      void add_callback(ref::rp<OmdCallback> const & cb);
+      /* drop cb from this source's callback set */
+      void remove_callback(ref::rp<OmdCallback> const & cb);
 
       // ----- inherited from SimulationSource -----
 
@@ -71,6 +79,7 @@ namespace xo {
       /* reactor being used to schedule consumption from this source */
       Reactor * parent_reactor_ = nullptr;
 
+      /* invoke callbacks in this set for each marketdata event */
       CallbackSet<ref::rp<OmdCallback>> cb_set_;
     }; /*StrikeSetOmdSimSource*/
   } /*namespace option*/

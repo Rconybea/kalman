@@ -103,7 +103,7 @@ namespace xo {
 	  /* defer until callback execution completes */
 	  this->reentrant_cmd_v_.push_back(ReentrantCbsetCmd<Fn>::remove(target_fn));
 	} else {
-	  this->cb_v_.erase(target_fn);
+	  this->remove_callback_impl(target_fn);
 	}
       } /*remove_callback*/
 
@@ -119,10 +119,17 @@ namespace xo {
 	  if(cmd.is_add()) {
 	    this->cb_v_.push_back(cmd.fn());
 	  } else if(cmd.is_remove()) {
-	    this->cb_v_.erase(cmd.fn());
+	    this->remove_callback_impl(cmd.fn());
 	  }
 	} 
       } /*make_deferred_changes*/
+
+      void remove_callback_impl(Fn const & target_fn) {
+	auto ix = std::find(this->cb_v_.begin(), this->cb_v_.end(), target_fn);
+
+	if(ix != this->cb_v_.end())
+	  this->cb_v_.erase(ix);
+      } /*remove_callback_impl*/
 
     private:
       bool cb_running_ = false;

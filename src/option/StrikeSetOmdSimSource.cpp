@@ -7,10 +7,23 @@
 
 namespace xo {
   using reactor::Source;
+  using ref::rp;
   using ref::brw;
   using logutil::xtag;
 
   namespace option {
+    void
+    StrikeSetOmdSimSource::add_callback(rp<OmdCallback> const & cb)
+    {
+      this->cb_set_.add_callback(cb);
+    } /*add_callback*/
+
+    void
+    StrikeSetOmdSimSource::remove_callback(rp<OmdCallback> const & cb)
+    {
+      this->cb_set_.remove_callback(cb);
+    } /*remove_callback*/
+
     void
     StrikeSetOmdSimSource::notify_upstream_exhausted()
     {
