@@ -3,7 +3,9 @@
 #pragma once
 
 #include "simulator/SimulationSource.hpp"
+#include "option/OmdCallback.hpp"
 #include "option/BboTick.hpp"
+#include "callback/CallbackSet.hpp"
 #include <vector>
 
 namespace xo {
@@ -12,6 +14,10 @@ namespace xo {
      * provided by StrikeSetMarketModel / OptionMarketModel
      */
     class StrikeSetOmdSimSource : public sim::SimulationSource {
+    public:
+      template<typename Fn>
+      using CallbackSet = fn::CallbackSet<Fn>;
+
     public:
       static ref::rp<StrikeSetOmdSimSource> make() { return new StrikeSetOmdSimSource(); }
       
@@ -64,6 +70,8 @@ namespace xo {
 
       /* reactor being used to schedule consumption from this source */
       Reactor * parent_reactor_ = nullptr;
+
+      CallbackSet<ref::rp<OmdCallback>> cb_set_;
     }; /*StrikeSetOmdSimSource*/
   } /*namespace option*/
 } /*namespace xo*/

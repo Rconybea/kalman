@@ -142,7 +142,7 @@ namespace xo {
       this->omd_heap_.pop_back();
 
       if(replay_flag) {
-	/* publish bbo_tick */
+	/* publish first bbo tick */
 	XO_STUB();
       }
 
