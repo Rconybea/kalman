@@ -2,7 +2,7 @@
 
 #pragma once
 
-#include "option/Price.hpp"
+#include "option/Px2.hpp"
 #include "option/Size.hpp"
 
 namespace xo {
@@ -13,6 +13,8 @@ namespace xo {
       PxSize2() = default;
       PxSize2(Size bid_sz, Price bid_px, Price ask_px, Size ask_sz)
 	: bid_sz_{bid_sz}, bid_px_{bid_px}, ask_px_{ask_px}, ask_sz_{ask_sz} {}
+
+      static PxSize2 with_size(Size z, Px2 const & px2);
 
       Size bid_sz() const { return bid_sz_; }
       Price bid_px() const { return bid_px_; }

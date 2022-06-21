@@ -115,7 +115,7 @@ namespace xo {
       auto pricing_cx
 	= PricingContext::make(t0,
 			       1000.0 /*ref_spot*/,
-			       2.5 /*volatility*/,
+			       1.25 /*volatility*/,
 			       0.05 /*rate (yctx)*/);
 
       REQUIRE(pricing_cx.get() != nullptr);

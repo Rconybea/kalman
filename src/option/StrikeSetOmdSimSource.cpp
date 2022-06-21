@@ -89,7 +89,6 @@ namespace xo {
       }
     } /*current_tm*/
 
-    /* TODO: return #of events published */
     std::uint64_t
     StrikeSetOmdSimSource::advance_until(utc_nanos target_tm,
 					 bool replay_flag)

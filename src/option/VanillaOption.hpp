@@ -22,6 +22,7 @@ namespace xo {
 	return new VanillaOption(id, cp, k, x, pxtick);
       } /*make*/
 	
+      OptionId id() const { return id_; }
       Callput callput() const { return callput_; }
       double stated_strike() const { return strike_; }
       utc_nanos expiry() const { return expiry_; }

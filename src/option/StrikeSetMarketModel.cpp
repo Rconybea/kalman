@@ -108,7 +108,8 @@ namespace xo {
 	new_bbo_px2 = new_inside_px2;
       } /*if*/
        
-      /* for now fix size at 1 contract */
+      bool publish_flag = (new_bbo_px2 != this->last_bbo_px2_);
+      
       this->last_bbo_px2_ = new_bbo_px2;
 
       if (c_logging_enabled)
@@ -122,9 +123,17 @@ namespace xo {
 		   xtag("old-bbo-px2", old_bbo_px2),
 		   xtag("model-px2", model_px2),
 		   xtag("compete-px2", compete_px2),
-		   xtag("bbo-px2", new_bbo_px2)
+		   xtag("bbo-px2", new_bbo_px2),
+		   xtag("publish", publish_flag)
 		   );
 
+      if(publish_flag) {
+	/* for now fix size at 1 contract */
+	BboTick bbo_tick(this->option()->id(),
+			 PxSize2::with_size(Size::from_int(1), new_bbo_px2));
+
+	p_omd_tick_v->push_back(bbo_tick);
+      }
     } /*notify_ul*/
 
     namespace {

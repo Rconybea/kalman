@@ -5,8 +5,8 @@ DONE write stochastic process generator (see kloeden+platen ?)
 DONE write black-scholes pricer for options
   .. maybe also PDE pricer... 
 DONE write generator for family of related options
-* write StrikeSetOmdSimSource::advance_until()
+DONE write StrikeSetOmdSimSource::advance_until()
+COMPILES generalize simulator,  allow not-ready sources
 * simulate order flow!   random price-taking orders
-* generalize simulator,  allow not-ready sources
 * StrikeSetMarketModel to forward omd events to StrikeSetOmdSimSource
 * add callbacks to StrikeSetOmdSimSource
