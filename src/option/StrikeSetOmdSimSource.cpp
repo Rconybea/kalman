@@ -167,7 +167,7 @@ namespace xo {
 
       if(replay_flag) {
 	/* publish first bbo tick */
-	XO_STUB();
+	this->cb_set_.invoke(&OmdCallback::notify_bbo, bbo_tick);
       }
 
       return 1;
