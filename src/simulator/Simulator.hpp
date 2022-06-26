@@ -95,10 +95,17 @@ namespace xo {
     private:
       explicit Simulator(utc_nanos t0) : t0_(t0) {}
 
-      /* insert source into simulation heap.
+      /* updates source timestamp in simulation heap.
+       * preserves
        *
        * Require:
        * - src->is_primed()
+       * - .sim_heap[.sim_heap.size - 1] already refers to src
+       */
+      void heap_update_source(SimulationSource * src);
+
+      /* insert source into .sim_heap.
+       * increase sim_heap.size() by +1
        */
       void heap_insert_source(SimulationSource * src);
 

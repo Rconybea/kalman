@@ -1,7 +1,7 @@
 /* @file Simulator.cpp */
 
+#include "time/Time.hpp" /*need this 1st for tag(., time_point)*/
 #include "Simulator.hpp"
-#include "time/Time.hpp"
 #include "logutil/scope.hpp"
 #include <_types/_uint64_t.h>
 #include <algorithm>
@@ -62,10 +62,19 @@ namespace xo {
     void
     Simulator::notify_source_primed(brw<Source> src)
     {
-      brw<SimulationSource> sim_src = brw<SimulationSource>::from(src);
+      constexpr bool c_logging_enabled_flag = true;
+      scope lscope("Simulator::notify_source_primed", c_logging_enabled_flag);
+
+      brw<SimulationSource> sim_src
+	= brw<SimulationSource>::from(src);
+
+      lscope.log(xtag("sim_src", (sim_src.get() != nullptr)));
 
       if(!sim_src)
 	return;
+
+      lscope.log(xtag("src.current_tm", sim_src->current_tm()),
+		 xtag("sim_heap.size", this->sim_heap_.size()));
 
       /* inform Simulator when a source transitions from
        * 'notready' to 'ready'.
@@ -103,6 +112,8 @@ namespace xo {
       if(sim_src->is_exhausted()) {
 	;
       } else {
+	sim_src->notify_reactor_add(this /*reactor*/);
+
 	/* also add to simulation heap */
 	this->sim_heap_.push_back(SourceTimestamp(sim_src->current_tm(),
 						  sim_src.get()));
@@ -158,8 +169,13 @@ namespace xo {
     } /*run_one*/
 
     void
-    Simulator::heap_insert_source(SimulationSource * src)
+    Simulator::heap_update_source(SimulationSource * src)
     {
+      /* Require:
+       *   .sim_heap[.sim_heap.size - 1] already refers to src
+       * just updating timestamp here
+       */
+
       std::size_t simheap_z
 	= this->sim_heap_.size();
 
@@ -173,6 +189,14 @@ namespace xo {
       std::push_heap(this->sim_heap_.begin(),
 		     this->sim_heap_.end(),
 		     std::greater<SourceTimestamp>());
+    } /*heap_update_source*/
+
+    void
+    Simulator::heap_insert_source(SimulationSource * src)
+    {
+      this->sim_heap_.push_back(SourceTimestamp(src->current_tm(), src));
+
+      this->heap_update_source(src);
     } /*heap_insert_source*/
 
     std::uint64_t
@@ -187,6 +211,9 @@ namespace xo {
       SimulationSource * src
 	= this->sim_heap_.front().src();
 
+      /* NOTE: src.current_tm() isn't preserved across
+       *       call to src.deliver_one(
+       */
       uint64_t retval = src->deliver_one();
 
       /* src.t0 may have advanced */
@@ -210,7 +237,7 @@ namespace xo {
 	 */
 	this->sim_heap_.pop_back();
       } else {
-	this->heap_insert_source(src);
+	this->heap_update_source(src);
       }
 
       return retval;

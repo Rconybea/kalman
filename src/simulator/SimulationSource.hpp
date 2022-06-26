@@ -54,7 +54,7 @@ namespace xo {
       /* release one event from this source.
        *
        * promise:
-       * - new .t0() >= old .t0() || .is_exhausted()
+       * - new .current_tm() >= old .current_tm() || .is_exhausted()
        *
        * returns #of events actually released (0 or 1)
        */
