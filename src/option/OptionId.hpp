@@ -2,6 +2,7 @@
 
 #pragma once
 
+#include <iostream>
 #include <cstdint>
 
 namespace xo {
@@ -23,7 +24,14 @@ namespace xo {
       /* unique id# for an option */
       uint32_t num_ = 0;
     }; /*OptionId*/
+
+    inline std::ostream &
+    operator<<(std::ostream & os, OptionId id) {
+      os << id.num();
+      return os;
+    } /*operator<<*/
   } /*namespace option*/
+
 } /*namespace xo*/
 
 /* end OptionId.hpp */

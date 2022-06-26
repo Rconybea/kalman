@@ -1,14 +1,15 @@
 /* @file StrikeSetOmdSimSource.cpp */
 
+#include "time/Time.hpp"
 #include "StrikeSetOmdSimSource.hpp"
 #include "queue/Reactor.hpp"
-#include "time/Time.hpp"
 #include <cstdint>
 
 namespace xo {
   using reactor::Source;
   using ref::rp;
   using ref::brw;
+  using logutil::scope;
   using logutil::xtag;
 
   namespace option {
@@ -33,6 +34,9 @@ namespace xo {
     void
     StrikeSetOmdSimSource::notify_bbo(BboTick const & tick)
     {
+      constexpr bool c_logging_enabled_flag = true;
+      scope lscope("StrikeSetOmdSimSource::notify_bbo", c_logging_enabled_flag);
+
       if(this->upstream_exhausted_) {
 	throw std::runtime_error("StrikeSetOmdSimSource::notify_bbo"
 				 ": not allowed after upstream exhausted");
@@ -54,6 +58,13 @@ namespace xo {
 		     std::greater<BboTick>());
 
       Reactor * r = this->parent_reactor_;
+
+      if (c_logging_enabled_flag)
+	lscope.log("publish",
+		   xtag("is-priming", is_priming),
+		   xtag("reactor", r),
+		   xtag("omd_heap.size", this->omd_heap_.size()),
+		   xtag("tick.tm", tick.tm()));
 
       if (is_priming && r) {
         r->notify_source_primed(brw<Source>::from_native(this));

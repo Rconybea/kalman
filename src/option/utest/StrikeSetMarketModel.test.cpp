@@ -1,6 +1,7 @@
 /* @file StrikeSetMarketModel.cpp */
 
 #include "option/StrikeSetMarketModel.hpp"
+#include "option/OmdCallback.hpp"
 #include "process/LogNormalProcess.hpp"
 #include "simulator/Simulator.hpp"
 #include "random/xoshiro256.hpp"
@@ -11,6 +12,7 @@ namespace xo {
   using xo::option::StrikeSetMarketModel;
   using xo::option::OptionStrikeSet;
   using xo::option::PricingContext;
+  using xo::option::BboTick;
   using xo::option::Pxtick;
   using xo::option::OptionId;
   using xo::process::LogNormalProcess;
@@ -19,6 +21,8 @@ namespace xo {
   using xo::random::xoshiro256ss;
   using xo::time::Time;
   using xo::time::utc_nanos;
+  using logutil::scope;
+  using logutil::xtag;
   using std::chrono::minutes;
 
   namespace ut {
@@ -128,6 +132,24 @@ namespace xo {
 
       REQUIRE(model.get() != nullptr);
 
+      std::uint32_t n_tick = 0;
+
+      auto fn = ([&n_tick]
+		 (BboTick const & tk)
+      {
+	constexpr bool c_logging_enabled = true;
+	scope lscope("TEST_CASE(strikeset-market-model-empty):lambda", c_logging_enabled);
+
+	if (c_logging_enabled) {
+	  lscope.log("enter",
+		     xtag("tk", tk));
+	}
+
+	++n_tick;
+      });
+
+      model->add_omd_callback(new option::FunctionOmdCb(fn));
+
       auto simulator
 	= Simulator::make(t0);
 
@@ -140,6 +162,10 @@ namespace xo {
       utc_nanos t1 = t0 + minutes(1);
 
       simulator->run_until(t1);
+
+      /* verify simulation invoked our custom callback */
+
+      REQUIRE(n_tick == 1);
     } /*TEST_CASE(strikeset-market-model-empty)*/
 
   } /*namespace ut*/

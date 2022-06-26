@@ -2,6 +2,7 @@
 
 #pragma once
 
+#include <iostream>
 #include <cstdint>
 
 namespace xo {
@@ -26,5 +27,11 @@ namespace xo {
     private:
       uint32_t rep_ = sc_invalid_rep;
     }; /*Size*/
+
+    inline std::ostream &
+    operator<<(std::ostream & os, Size x) {
+      os << x.to_int();
+      return os;
+    } /*operator<<*/
   } /*namespace option*/
 } /*namespace xo*/

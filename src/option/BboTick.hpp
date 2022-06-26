@@ -17,7 +17,8 @@ namespace xo {
       using utc_nanos = xo::time::utc_nanos;
       
     public:
-      BboTick(OptionId id, PxSize2 const & pxz2) : id_{id}, pxz2_{pxz2} {}
+      BboTick(utc_nanos tm, OptionId id, PxSize2 const & pxz2)
+	: tm_{tm}, id_{id}, pxz2_{pxz2} {}
 
       /* compare ticks by timestamp,  then id */
       static int64_t compare(BboTick const & x,
@@ -41,6 +42,8 @@ namespace xo {
       bool is_bid_present() const { return pxz2_.is_bid_present(); }
       bool is_ask_present() const { return pxz2_.is_ask_present(); }
 
+      void display(std::ostream & os) const;
+
     private:
       /* timestamp for this tick */
       utc_nanos tm_;
@@ -60,6 +63,11 @@ namespace xo {
     inline bool operator> (BboTick const & x, BboTick const & y) { return BboTick::compare(x, y) >  0; }
     inline bool operator>=(BboTick const & x, BboTick const & y) { return BboTick::compare(x, y) >= 0; }
       
+    inline std::ostream &
+    operator<<(std::ostream & os, BboTick const & tk) {
+      tk.display(os);
+      return os;
+    } /*operator<<*/
     
   } /*namespace option*/
 } /*namespace xo*/

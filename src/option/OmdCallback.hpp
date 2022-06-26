@@ -18,6 +18,20 @@ namespace xo {
       virtual void notify_remove_callback() {}
     }; /*OmdCallback*/
    
+    /* connect .notify_bbo() up to a std::function */
+    class FunctionOmdCb : public OmdCallback {
+    public:
+      FunctionOmdCb(std::function<void (BboTick const &)> const & fn) : fn_(fn) {}
+
+      // ----- inherited from OmdCallback -----
+
+      virtual void notify_bbo(BboTick const & bbo_tick) override;
+      
+    private:
+      /* .notify_bbo() call this function */
+      std::function<void (BboTick const &)> fn_;
+    }; /*FunctionOmdCb*/
+
   } /*namespace option*/
 } /*namespace xo*/
 

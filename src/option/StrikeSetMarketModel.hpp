@@ -86,6 +86,11 @@ namespace xo {
       /* notify option market-model on underlying price change */
       void notify_ul(std::pair<utc_nanos, double> const & ul_ev);
 
+      /* add callback to receive generated option market data */
+      void add_omd_callback(ref::rp<OmdCallback> const & cb);
+      /* reverse the effect of .add_omd_callback(cb) */
+      void remove_omd_callback(ref::rp<OmdCallback> const & cb);
+
       /* add this models' sources to reactor:
        * for example reactor will trigger events that flow into .notify_ul()
        */

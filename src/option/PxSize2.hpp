@@ -24,14 +24,22 @@ namespace xo {
       bool is_bid_present() const { return bid_sz_.is_valid(); }
       bool is_ask_present() const { return ask_sz_.is_valid(); }
 
+      void display(std::ostream & os) const;
+
     private:
       Size bid_sz_;
       Price bid_px_;
       Price ask_px_;
       Size ask_sz_;
     }; /*PxSize2*/
+
+    inline std::ostream &
+    operator<<(std::ostream & os, PxSize2 const & x) {
+      x.display(os);
+      return os;
+    } /*operator<<*/
   } /*namespace option*/
-  } /*namespace xo*/
+} /*namespace xo*/
 
   /* end PxSize2.hpp */
   

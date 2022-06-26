@@ -129,8 +129,12 @@ namespace xo {
 		   );
 
       if(publish_flag) {
+	/* apply small delay to ul price source */
+	utc_nanos omd_tm = ul_ev.first + std::chrono::microseconds(500);
+
 	/* for now fix size at 1 contract */
-	BboTick bbo_tick(this->option()->id(),
+	BboTick bbo_tick(omd_tm,
+			 this->option()->id(),
 			 PxSize2::with_size(Size::from_int(1), new_bbo_px2));
 
 	p_omd_tick_v->push_back(bbo_tick);
@@ -207,6 +211,18 @@ namespace xo {
     } /*ctor*/
 
     void
+    StrikeSetMarketModel::add_omd_callback(rp<OmdCallback> const & cb)
+    {
+      this->omd_publisher_->add_callback(cb);
+    } /*add_omd_callback*/
+
+    void
+    StrikeSetMarketModel::remove_omd_callback(rp<OmdCallback> const & cb)
+    {
+      this->omd_publisher_->remove_callback(cb);
+    } /*remove_omd_callback*/
+
+    void
     StrikeSetMarketModel::notify_ul_exhausted()
     {
       if (this->omd_publisher_) {
@@ -235,6 +251,10 @@ namespace xo {
 			  &omd_tick_v);
       }
 
+      if (c_logging_enabled)
+	lscope.log("publish",
+		   xtag("n-ticks", omd_tick_v.size()));
+
       /* publish updates in omd_tick_v */
       this->omd_publisher_->notify_bbo_v(omd_tick_v);
     } /*update_ul*/
@@ -246,6 +266,8 @@ namespace xo {
 
       if(this->ul_sim_src_)
 	reactor->add_source(this->ul_sim_src_);
+      if(this->omd_publisher_)
+	reactor->add_source(this->omd_publisher_);
     } /*bind_reactor*/
 
     void
@@ -255,6 +277,8 @@ namespace xo {
 
       if(this->ul_sim_src_)
 	reactor->remove_source(this->ul_sim_src_);
+      if(this->omd_publisher_)
+	reactor->remove_source(this->omd_publisher_);
     } /*detach_reactor*/
   } /*namespace option*/
 } /*namespace xo*/
