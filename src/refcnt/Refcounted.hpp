@@ -22,6 +22,9 @@ namespace xo {
     template<typename T>
     class intrusive_ptr {
     public:
+      using destination_type = T;
+
+    public:
       intrusive_ptr() : ptr_(nullptr) {} 
       intrusive_ptr(T * x) : ptr_(x) {
 	intrusive_ptr_log_ctor(sc_self_type, this, x);
