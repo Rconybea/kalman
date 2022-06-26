@@ -64,16 +64,25 @@ namespace xo {
     template<typename Fn>
     class CallbackSet {
     public:
+      using callback_type = typename Fn::destination_type;
+
+    public:
       CallbackSet() = default;
 
       /* invoke callbacks registered with this callback set */
-      template<typename ... Tn>
-      void invoke(void (Fn::* member_fn)(Tn... args), Tn&&... args) {
+      template<typename ... Tn, typename ... Sn>
+      void invoke(void (callback_type::* member_fn)(Sn... args), Tn&&... args) {
 	this->cb_running_ = true;
 
 	try {
 	  for(Fn const & cb : this->cb_v_) {
-	    (cb->*member_fn)(args...);
+	    callback_type * native_cb = cb.get();
+
+	    /* clang11 doesn't like
+	     *   cb->*member_fn
+	     * when cb-> is overloaded
+	     */
+	    (native_cb->*member_fn)(args...);
 	  }
 
 	  this->make_deferred_changes();
@@ -118,6 +127,8 @@ namespace xo {
 	for(ReentrantCbsetCmd<Fn> const & cmd : cmd_v) {
 	  if(cmd.is_add()) {
 	    this->cb_v_.push_back(cmd.fn());
+
+	    cmd.fn()->notify_add_callback();
 	  } else if(cmd.is_remove()) {
 	    this->remove_callback_impl(cmd.fn());
 	  }
@@ -129,6 +140,8 @@ namespace xo {
 
 	if(ix != this->cb_v_.end())
 	  this->cb_v_.erase(ix);
+
+	target_fn->notify_remove_callback();
       } /*remove_callback_impl*/
 
     private:
