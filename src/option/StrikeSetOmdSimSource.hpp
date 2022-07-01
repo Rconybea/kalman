@@ -2,6 +2,16 @@
 
 #pragma once
 
+#include "simulator/SecondarySimSource.hpp"
+#include "option/OmdCallback.hpp"
+
+namespace xo {
+  namespace option {
+    using StrikeSetOmdSimSource = xo::sim::SecondarySimSource<BboTick, OmdCallback, &OmdCallback::notify_bbo>;
+  } /*namespace option*/
+} /*namespace xo*/
+
+#ifdef OBSOLETE
 #include "simulator/SimulationSource.hpp"
 #include "option/OmdCallback.hpp"
 #include "option/BboTick.hpp"
@@ -53,7 +63,7 @@ namespace xo {
 
       virtual std::uint64_t deliver_one() override;
       /* note: native pointer to avoid cycle */
-      virtual void notify_reactor_add(Reactor * /*reactor*/) override;
+      virtual void notify_reactor_add(Reactor * reactor) override;
       virtual void notify_reactor_remove(Reactor * /*reactor*/) override {}
 
     private:
@@ -85,5 +95,6 @@ namespace xo {
     }; /*StrikeSetOmdSimSource*/
   } /*namespace option*/
 } /*namespace xo*/
+#endif
 
 /* end StrikeSetOmdSimSource.hpp */

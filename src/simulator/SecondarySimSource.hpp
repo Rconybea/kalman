@@ -3,7 +3,7 @@
 #pragma once
 
 #include "time/Time.hpp"
-#include "queue/Source.hpp"
+#include "simulator/SimulationSource.hpp"
 #include "queue/Reactor.hpp"
 #include "callback/CallbackSet.hpp"
 #include <vector>
@@ -36,7 +36,7 @@ namespace xo {
     template<typename Event,
 	     typename Callback,
 	     void (Callback::*member_fn)(Event const &)>
-    class SecondarySimSource : public reactor::Source {
+    class SecondarySimSource : public sim::SimulationSource {
     public:
       using Reactor = reactor::Reactor;
       template<typename Fn>
@@ -113,7 +113,7 @@ namespace xo {
 
       virtual bool is_empty() const override { return this->event_heap_.empty(); }
       virtual bool is_exhausted() const override { return this->upstream_exhausted_ && this->is_empty(); }      
-      virtual utc_nanos current_tm() const {
+      virtual utc_nanos current_tm() const override {
 	if(this->event_heap_.empty()) {
 	  /* this is a tricky case.
 	   * it means this source doesn't
@@ -135,7 +135,7 @@ namespace xo {
       } /*current_tm*/
 
       std::uint64_t advance_until(utc_nanos target_tm,
-				  bool replay_flag)
+				  bool replay_flag) override
       {
 	uint64_t retval;
 
@@ -155,6 +155,14 @@ namespace xo {
       // ----- inherited from Source -----
 
       virtual std::uint64_t deliver_one() override { return this->deliver_one_aux(true /*replay_flag*/); }
+
+      virtual void notify_reactor_add(Reactor * reactor) override {
+	assert(!this->parent_reactor_);
+
+	this->parent_reactor_ = reactor;
+      } /*notify_reactor_add*/
+
+      virtual void notify_reactor_remove(Reactor * /*reactor*/) override {}
 
     private:
       /* deliver one event from .event_heap[];   invoke callback for that event

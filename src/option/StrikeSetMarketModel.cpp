@@ -257,7 +257,7 @@ namespace xo {
 		   xtag("n-ticks", omd_tick_v.size()));
 
       /* publish updates in omd_tick_v */
-      this->omd_publisher_->notify_bbo_v(omd_tick_v);
+      this->omd_publisher_->notify_event_v(omd_tick_v);
     } /*update_ul*/
 
     void

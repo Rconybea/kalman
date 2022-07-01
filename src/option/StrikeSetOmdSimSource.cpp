@@ -5,6 +5,7 @@
 #include "queue/Reactor.hpp"
 #include <cstdint>
 
+#ifdef OBSOLETE
 namespace xo {
   using reactor::Source;
   using ref::rp;
@@ -188,5 +189,6 @@ namespace xo {
     } /*notify_reactor_add*/
   } /*namespace option*/
 } /*namespace xo*/
+#endif
 
 /* end StrikeSetOmdSimSource.cpp */
