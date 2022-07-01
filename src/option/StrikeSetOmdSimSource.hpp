@@ -68,8 +68,9 @@ namespace xo {
       /* current time for this source */
       utc_nanos current_tm_;
 
-      /* set irrevocably to true once upstream announces
-       * it will send no more events
+      /* may set this to true, just once, to announce that upstream
+       * will send no more events.
+       * see .notify_upstream_exhausted()
        */
       bool upstream_exhausted_ = false;
 

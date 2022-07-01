@@ -7,7 +7,7 @@
 #include "option/PricingContext.hpp"
 #include "option/Greeks.hpp"
 #include "option/BboTick.hpp"
-#include "option/Px2.hpp"
+#include "option_util/Px2.hpp"
 #include "process/RealizationTracer.hpp"
 #include "simulator/SimulationSource.hpp"
 

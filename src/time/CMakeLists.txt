@@ -1,5 +1,5 @@
 # build library 'logutil'
-add_library(logutil scope.cpp)
+#add_library(logutil scope.cpp)
 
 # make standard directories for std:: includes explicit
 # so that

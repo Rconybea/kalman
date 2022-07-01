@@ -1,7 +1,7 @@
 # option/CMakeLists.txt
 
 # build shared library 'process'
-add_library(option SHARED BlackScholes.cpp VanillaOption.cpp OptionStrikeSet.cpp PricingContext.cpp StrikeSetMarketModel.cpp StrikeSetOmdSimSource.cpp BboTick.cpp PxSize2.cpp OmdCallback.cpp)
+add_library(option SHARED BlackScholes.cpp VanillaOption.cpp OptionStrikeSet.cpp PricingContext.cpp StrikeSetMarketModel.cpp StrikeSetOmdSimSource.cpp BboTick.cpp OmdCallback.cpp)
 
 set_target_properties(option PROPERTIES
 		      VERSION ${PROJECT_VERSION}
@@ -29,6 +29,7 @@ target_include_directories(option PUBLIC
 # ----------------------------------------------------------------
 # internal dependencies: logutil, ...
 
+target_link_libraries(option PUBLIC option_util)
 target_link_libraries(option PUBLIC process)
 target_link_libraries(option PUBLIC logutil)
 target_link_libraries(option PUBLIC refcnt)

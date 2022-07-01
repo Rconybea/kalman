@@ -2,8 +2,8 @@
 
 #pragma once
 
-#include "option/Px2.hpp"
-#include "option/Size.hpp"
+#include "option_util/Px2.hpp"
+#include "option_util/Size.hpp"
 
 namespace xo {
   namespace option {
@@ -24,6 +24,13 @@ namespace xo {
       bool is_bid_present() const { return bid_sz_.is_valid(); }
       bool is_ask_present() const { return ask_sz_.is_valid(); }
 
+      /* e.g.
+       *   PxSize2 p(1, 1.2, 1.25, 3);
+       *   p.display(os)
+       * writes
+       *   {pxz2 1x 1.20-1.25 x3}
+       * on stream os
+       */
       void display(std::ostream & os) const;
 
     private:

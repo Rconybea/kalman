@@ -3,7 +3,7 @@
 #pragma once
 
 #include "option/OptionId.hpp"
-#include "option/PxSize2.hpp"
+#include "option_util/PxSize2.hpp"
 #include "time/Time.hpp"
 
 namespace xo {

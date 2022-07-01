@@ -2,8 +2,8 @@
 
 #pragma once
 
-#include "option/Price.hpp"
-#include "option/Side.hpp"
+#include "option_util/Price.hpp"
+#include "option_util/Side.hpp"
 #include "logutil/fixed.hpp"
 
 namespace xo {

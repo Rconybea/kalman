@@ -4,6 +4,7 @@
 
 namespace xo {
   namespace option {
+    /* encapsulate result of greeks calculation for an option */
     class Greeks {
     public:
       Greeks() = default;
