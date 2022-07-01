@@ -6,7 +6,8 @@ DONE write black-scholes pricer for options
   .. maybe also PDE pricer... 
 DONE write generator for family of related options
 DONE write StrikeSetOmdSimSource::advance_until()
-COMPILES generalize simulator,  allow not-ready sources
+DONE StrikeSetMarketModel to forward omd events to StrikeSetOmdSimSource
+DONE generalize simulator,  allow not-ready sources
+
 * simulate order flow!   random price-taking orders
-* StrikeSetMarketModel to forward omd events to StrikeSetOmdSimSource
 * add callbacks to StrikeSetOmdSimSource
