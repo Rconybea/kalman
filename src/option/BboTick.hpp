@@ -22,18 +22,7 @@ namespace xo {
 
       /* compare ticks by timestamp,  then id */
       static int64_t compare(BboTick const & x,
-			     BboTick const & y)
-      {
-	using xo::time::nanos;
-
-	nanos dt = x.tm() - y.tm();
-
-	if(dt != nanos(0))
-	  return dt.count();
-
-	/* timestamps equal -> compare ids */
-	return OptionId::compare(x.id(), y.id());
-      } /*compare*/
+			     BboTick const & y);
 
       utc_nanos tm() const { return tm_; }
       OptionId id() const { return id_; }

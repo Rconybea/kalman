@@ -1,6 +1,7 @@
 /* @file StrikeSetMarketModel.hpp */
 
 #include "option/StrikeSetOmdSimSource.hpp"
+#include "option/StrikeSetGreeksSimSource.hpp"
 #include "option/VanillaOption.hpp"
 #include "option/PricingContext.hpp"
 #include "option/OptionStrikeSet.hpp" 
@@ -123,8 +124,11 @@ namespace xo {
        */
       std::vector<OptionMarketModel> market_v_;
 
-      /* publish simmed option market data here */
+      /* publish simmed option market data (BboTick events) here */
       ref::rp<StrikeSetOmdSimSource> omd_publisher_;
+
+      /* publish simmed greeks (Greeks events) here */
+      ref::rp<StrikeSetGreeksSimSource> greeks_publisher_;
     }; /*StrikeSetMarketModel*/
   } /*namespace option*/
 } /*namespace xo*/

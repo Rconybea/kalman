@@ -194,7 +194,8 @@ namespace xo {
 	ul_realization_tracer_{std::move(ul_realization)},
 	ul_sim_src_{std::move(ul_sim_src)},
 	ul_pricing_cx_{std::move(ul_pricing_cx)},
-	omd_publisher_(StrikeSetOmdSimSource::make())
+	omd_publisher_{StrikeSetOmdSimSource::make()},
+	greeks_publisher_{StrikeSetGreeksSimSource::make()}
     {
       this->option_set_->verify_ok(true);
 
