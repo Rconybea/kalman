@@ -29,10 +29,12 @@
   +- build                 run builds from here; excluded from git
   +- ccov                  run coverage build from here; excluded from git (not working as of 3jun2022)
   +- src/                  root of source tree
+     +- README             file layout for source tree
      +- CmakeLists.txt     configure cmake build
      +- KalmanConfig.h.in  configuration file template;  generates kalman/build/KalmanConfig.h
      +- matrix/
      +- tree/              red-black tree
+     ...                   subdirs for other libraries,  organized by function
 
 * To build this project using nix:
    $ nix-build -A path/to/kalman

@@ -9,5 +9,7 @@ DONE write StrikeSetOmdSimSource::advance_until()
 DONE StrikeSetMarketModel to forward omd events to StrikeSetOmdSimSource
 DONE generalize simulator,  allow not-ready sources
 
+* StrikeSetOmdSim
+
 * simulate order flow!   random price-taking orders
 * add callbacks to StrikeSetOmdSimSource

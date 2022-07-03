@@ -132,7 +132,9 @@ namespace xo {
 	/* apply small delay to ul price source */
 	utc_nanos omd_tm = ul_ev.first + std::chrono::microseconds(500);
 
-	/* for now fix size at 1 contract */
+	/* for now fix size at 1 contract
+	 * (in lieu of something more sophisticated)
+	 */
 	BboTick bbo_tick(omd_tm,
 			 this->option()->id(),
 			 PxSize2::with_size(Size::from_int(1), new_bbo_px2));

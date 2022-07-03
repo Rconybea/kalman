@@ -1,0 +1,28 @@
+* Directory Layout
+  src
+  +- README              this file
+  +- CMakeLists.txt      project cmake file
+  +- KalmanConfig.h.in   cmake template for path/to/build/KalmanConfig.h
+  +- cmake               cmake support files
+  +- junk.cpp            example application,  thrown together.
+  +- pxsfc               option prices/greeks for related options
+  +- simulator_py        python bindings for simulator/
+  +- queue               event reactor:  Reactor, PollingReactor, ..
+  +- simulator           simulator: Simulator, SimulationSource, ..
+  +- option              option pricing: StrikeSetMarketModel, BlackScholes, ..
+  |  +- utest            option unit tests
+  +- option_util         option utilties: PxSize2, Callput, Side, ..
+  +- process             stochastic processes: BrownianMotion, RealizationSimSource, ...
+  |  +- utest            process unit tests
+  +- distribution_py     python bindings for distribution/
+  +- distribution        probability distributions: KolmogorovSmirnov, Normal, Empirical, ...
+  +- random              random number generators: GaussianPair, Normal, xoshiro256ss, ...
+  +- statistics          statistics gathering: Accumulator, Histogram, SampleStatistics
+  +- tree                red-black tree with order statistics (i.e. reduce/fold)
+  |  +- utest            tree unit tests
+  +- time                utilities for working with time: utc_nanos, ymd_hms, ..
+  +- refcnt              intrusive threadsafe reference counting
+  |  +- utest            refcnt unit tests
+  +- reflect             symbol demangler: should work for clang / gcc / vs
+  +- logutil             logging support: scope, xtag, ...
+  

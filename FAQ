@@ -1,0 +1,8 @@
+Build Issues
+Q. after adding a new subdirectory,   build fails with something like:
+
+    ld: library not found for -loption_util
+
+A. check directory added to src/CMakeLists.txt
+
+    add_subdirectory(option_util)
