@@ -28,6 +28,7 @@ namespace xo {
       OptionId id() const { return id_; }
       PxSize2 const & pxz2() const { return pxz2_; }
 
+      bool is_side_present(Side s) const { return pxz2_.is_side_present(s); }
       bool is_bid_present() const { return pxz2_.is_bid_present(); }
       bool is_ask_present() const { return pxz2_.is_ask_present(); }
 

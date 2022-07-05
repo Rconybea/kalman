@@ -8,6 +8,9 @@ namespace xo {
   namespace option {
     enum class Side { bid=0, ask=1, end=2 };
 
+    /* get integer representation for side x */
+    inline int32_t side2int(Side x) { return static_cast<int32_t>(x); }
+
     /* s=Side::bid:
      *   -ve if x < y    (fades)
      *     0 if x == y
@@ -43,6 +46,11 @@ namespace xo {
       }
     } /*fade_by*/
 
+    /* Use:
+     *   for(Side s : SideIter()) {
+     *     // do something with s
+     *   }
+     */
     class SideIter {
     public:
       SideIter() : side_{Side::bid} {}

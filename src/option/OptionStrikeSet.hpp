@@ -67,17 +67,19 @@ namespace xo {
 					      utc_nanos expiry,
 					      Pxtick pxtick);
 
-      void push_back(StrikePair const & x) { this->strike_v_.push_back(x); }
-
-      bool verify_ok(bool may_throw) const;
-
-      /* call fn(p) for each pair p in .strike_v[] */
+      std::size_t n_strike() const { return strike_v_.size(); }
+      
+      /* call fn(p) for each option pair p in .strike_v[] */
       template<typename Fn>
       void visit_strikes(Fn fn) const {
 	for(StrikePair const & strike_pair : this->strike_v_) {
 	  fn(strike_pair);
 	}
       } /*visit_strikes*/
+
+      void push_back(StrikePair const & x) { this->strike_v_.push_back(x); }
+
+      bool verify_ok(bool may_throw) const;
 
     private:
       OptionStrikeSet() = default;

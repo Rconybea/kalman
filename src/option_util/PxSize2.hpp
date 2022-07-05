@@ -4,6 +4,7 @@
 
 #include "option_util/Px2.hpp"
 #include "option_util/Size.hpp"
+#include <array>
 
 namespace xo {
   namespace option {
@@ -12,17 +13,22 @@ namespace xo {
     public:
       PxSize2() = default;
       PxSize2(Size bid_sz, Price bid_px, Price ask_px, Size ask_sz)
-	: bid_sz_{bid_sz}, bid_px_{bid_px}, ask_px_{ask_px}, ask_sz_{ask_sz} {}
+	: sz_v_{bid_sz, ask_sz}, px2_{bid_px, ask_px} {}
 
       static PxSize2 with_size(Size z, Px2 const & px2);
 
-      Size bid_sz() const { return bid_sz_; }
-      Price bid_px() const { return bid_px_; }
-      Price ask_px() const { return ask_px_; }
-      Size ask_sz() const { return ask_sz_; }
+      Size bid_sz() const { return sz_v_[side2int(Side::bid)]; }
+      Price bid_px() const { return px2_.px(Side::bid); }
+      Price ask_px() const { return px2_.px(Side::ask); }
+      Size ask_sz() const { return sz_v_[side2int(Side::ask)]; }
 
-      bool is_bid_present() const { return bid_sz_.is_valid(); }
-      bool is_ask_present() const { return ask_sz_.is_valid(); }
+      Size size(Side s) const { return sz_v_[side2int(s)]; }
+      Price px(Side s) const { return px2_.px(s); }
+
+      bool is_side_present(Side s) const { return sz_v_[side2int(s)].is_valid(); }
+
+      bool is_bid_present() const { return sz_v_[side2int(Side::bid)].is_valid(); }
+      bool is_ask_present() const { return sz_v_[side2int(Side::ask)].is_valid(); }
 
       /* e.g.
        *   PxSize2 p(1, 1.2, 1.25, 3);
@@ -33,11 +39,14 @@ namespace xo {
        */
       void display(std::ostream & os) const;
 
+      /* set state for side s from corresponding fields in pxz2 */
+      void assign_pxz(Side s, PxSize2 const & pxz2);
+      
     private:
-      Size bid_sz_;
-      Price bid_px_;
-      Price ask_px_;
-      Size ask_sz_;
+      /* bid,ask size */
+      std::array<Size, 2> sz_v_;
+      /* bid,ask price */
+      Px2 px2_;
     }; /*PxSize2*/
 
     inline std::ostream &
@@ -48,5 +57,5 @@ namespace xo {
   } /*namespace option*/
 } /*namespace xo*/
 
-  /* end PxSize2.hpp */
+/* end PxSize2.hpp */
   

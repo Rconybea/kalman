@@ -18,11 +18,19 @@ namespace xo {
        */
 
       os << "{pxz2 "
-	 << bid_sz_ << "x "
-	 << Px2(bid_px_, ask_px_)
-	 << " x" << ask_sz_
+	 << sz_v_[side2int(Side::bid)] << "x "
+	 << px2_
+	 << " x" << sz_v_[side2int(Side::ask)]
 	 << "}";
     } /*display*/
+
+    void
+    PxSize2::assign_pxz(Side s,
+			PxSize2 const & pxz2)
+    {
+      this->sz_v_[side2int(s)] = pxz2.size(s);
+      this->px2_.assign_px(s, pxz2.px(s));
+    } /*set_side*/
   } /*namespace option*/
 } /*namespace xo*/
 

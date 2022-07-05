@@ -18,11 +18,25 @@ namespace xo {
 	return x.num() - y.num();
       } /*compare*/
 
+      bool is_valid() const { return num_ != -1; }
+      bool is_invalid() const { return num_ == -1; }
       uint32_t num() const { return num_; }
+
+      /* option id#'s are always generated in pairs;
+       * call id#'s are always even
+       * put id#'s are always odd
+       */
+      uint32_t strike_ix() const { return num_ / 2; }
+
+      /* index into a {call, put} pair:
+       * - 0 for even index values (call options)
+       * - 1 for odd  index values (put  options)
+       */
+      uint32_t strike_pair_ix() const { return num_ % 2; }
 
     private:
       /* unique id# for an option */
-      uint32_t num_ = 0;
+      uint32_t num_ = -1;
     }; /*OptionId*/
 
     inline std::ostream &

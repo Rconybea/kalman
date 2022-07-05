@@ -1,7 +1,7 @@
 # option/CMakeLists.txt
 
 # build shared library 'process'
-add_library(option SHARED BlackScholes.cpp VanillaOption.cpp OptionStrikeSet.cpp PricingContext.cpp StrikeSetMarketModel.cpp StrikeSetOmdSimSource.cpp BboTick.cpp Greeks.cpp OmdCallback.cpp GreeksCallback.cpp)
+add_library(option SHARED BlackScholes.cpp VanillaOption.cpp OptionStrikeSet.cpp PricingContext.cpp StrikeSetMarketModel.cpp StrikeSetOmdSimSource.cpp BboTick.cpp Greeks.cpp OmdCallback.cpp GreeksCallback.cpp StrikeSetOmd.cpp)
 
 set_target_properties(option PROPERTIES
 		      VERSION ${PROJECT_VERSION}
