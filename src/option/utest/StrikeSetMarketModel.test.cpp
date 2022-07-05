@@ -165,7 +165,7 @@ namespace xo {
 
       /* verify simulation invoked our custom callback */
 
-      /* 1-minute simulation generates ticks, depending on hysteresis  etc */
+      /* 1-minute simulation generates several ticks, depending on hysteresis etc */
 
       REQUIRE(n_tick == 90);
     } /*TEST_CASE(strikeset-market-model-empty)*/

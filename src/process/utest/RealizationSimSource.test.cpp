@@ -102,7 +102,7 @@ namespace xo {
       lscope.log("create realization tracer..");
 
       rp<RealizationTracer<double>> tracer
-	= RealizationTracer<double>::make(bm.get());
+	= RealizationTracer<double>::make(bm);
 
       lscope.log("..done");
 

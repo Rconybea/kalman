@@ -25,13 +25,14 @@ namespace xo {
     class RealizationTracer : public ref::Refcount {
     public:
       using Process = xo::process::StochasticProcess<T>;
+      using process_type = Process;
       /* something like std::pair<utc_nanos, T> */
       using event_type = typename Process::event_type;
       using utc_nanos = xo::time::utc_nanos;
       using nanos = xo::time::nanos;
 
     public:
-      static ref::rp<RealizationTracer> make(StochasticProcess<T> * p) {
+      static ref::rp<RealizationTracer> make(ref::rp<Process> const & p) {
 	return new RealizationTracer(p);
       }
 
@@ -88,7 +89,7 @@ namespace xo {
 #endif
 
     private:
-      RealizationTracer(StochasticProcess<T> * p)
+      RealizationTracer(ref::rp<Process> const & p)
 	: current_(event_type(p->t0(), p->t0_value())), process_(p) {}
 
     private:
@@ -96,7 +97,7 @@ namespace xo {
       event_type current_;
 
       /* develop a sampled realization of this stochastic process */
-      StochasticProcess<T> * process_ = nullptr;
+      ref::rp<Process> process_;
     }; /*RealizationTracer*/
 
   } /*namespace process*/
