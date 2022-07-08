@@ -2,7 +2,7 @@
 
 # These tests can use the Catch2-provided main
 file(GLOB SOURCE_FILES "*.cpp")
-add_executable(utest.option ${SOURCE_FILES})
+add_executable(utest.option ${SOURCE_FILES} StrikeSetOmd.test.cpp)
 
 #target_link_libraries(utest.option PRIVATE Catch2::Catch2WithMain)
 

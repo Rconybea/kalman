@@ -168,7 +168,7 @@ namespace xo {
       /* 1-minute simulation generates several ticks, depending on hysteresis etc */
 
       REQUIRE(n_tick == 90);
-    } /*TEST_CASE(strikeset-market-model-empty)*/
+    } /*TEST_CASE(strikeset-market-model-one)*/
 
   } /*namespace ut*/
 
