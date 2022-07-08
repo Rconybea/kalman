@@ -86,6 +86,7 @@ namespace xo {
 	return moment2 + (x - mean_n) * (x - mean_np1);
       } /*update_online_moment2*/
 
+      uint32_t n_sample() const { return n_sample_; }
       double mean() const { return mean_; }
       double moment2() const { return moment2_; }
       /* 'sample variance' = variance estimate,
