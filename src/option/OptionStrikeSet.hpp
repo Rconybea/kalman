@@ -36,6 +36,21 @@ namespace xo {
       ref::brw<VanillaOption> call() const { return (*this)[0]; }
       ref::brw<VanillaOption>  put() const { return (*this)[1]; }
 
+      /* return #of options for this strike pair.
+       * must be one of:
+       * - 2 (call + put)
+       * - 1 (call or put)
+       * - 0 (empty strike pair)
+       */
+      std::size_t n_option() const {
+	std::size_t n = 0;
+	for(std::size_t i = 0; i<2; ++i) {
+	  if ((*this)[i])
+	    ++n;
+	}
+	return n;
+      } /*n_option*/
+
       /* if true,  may throw exception when verification fails.
        * if false,  will return success/fail without throwing.
        */
@@ -68,6 +83,12 @@ namespace xo {
 					      Pxtick pxtick);
 
       std::size_t n_strike() const { return strike_v_.size(); }
+      std::size_t n_option() const {
+	std::size_t n = 0;
+	auto fn = [&n](StrikePair const & k) { n += k.n_option(); };
+	this->visit_strikes(fn);
+	return n;
+      } /*n_option*/
       
       /* call fn(p) for each option pair p in .strike_v[] */
       template<typename Fn>
