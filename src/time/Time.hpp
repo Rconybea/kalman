@@ -48,6 +48,13 @@ namespace xo {
 	return std::chrono::system_clock::from_time_t(epoch_time);
       } /*ymd_hms*/
 
+      /* midnight UTC on date ymd.
+       *   e.g. ymd_midnight(20220707) -> midnight UTC on 7jul22
+       */
+      static utc_nanos ymd_midnight(uint32_t ymd) {
+	return ymd_hms(ymd, 0);
+      } /*ymd_midnight*/
+
       static utc_nanos ymd_hms_usec(uint32_t ymd, uint32_t hms, uint32_t usec) {
 	utc_nanos s = ymd_hms(ymd, hms);
 
