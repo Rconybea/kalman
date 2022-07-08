@@ -1,0 +1,68 @@
+scaffold kalman filter implementation here
+
+
+notation:
+
+x_(k) : n x 1 : true system state that we want to estimate
+F(k)  : n x n : state transition matrix at time t(k)
+w_(k) : n x 1 : system noise,  with mean 0, covariance Q(k)
+Q(k)  : n x n : covariance of systen noise
+
+v_(k) : m x 1 : observation errors at time t(k)
+R(k)  : m x m : observation error covariance matrix at time t(k)
+
+x(k)  : n x 1 : state vector estimate for time t(k)
+P(k)  : n x n : covariance matrix for x(k)
+z(k)  : m x 1 : observation vector at time t(k)
+H(k)  : m x n : observation matrix at time t(k)
+
+K(k)  :       : kalman gain - measures information gain from observation z(k)
+                relative to prior P(k | k-1)
+
+use shorthand:
+  xT, F(k)T   for transpose(x), transpose(F(k))
+  x(k+1 | k)  for "estimate x(k+1) given information known at t(k)"
+  
+1. model:
+     x_(k+1) = F(k).x_(k) + w_(k)
+
+   i.e. expected behavior of system from t(k) -> t(k+1),
+   absent system noise, is given by linear transformation F(k)
+
+   ofc model is not directly observable,
+   since we don't know x_(k) or w_(k),
+   instead we will be estimating it.
+
+2. prior:
+     x(0), P(0)
+
+   must be supplied as initial input
+
+3. pre-estimate for t(k+1) system state:
+   (before incorporating z(k+1) and accounting for system noise)
+     x(k+1|k) := F(k).x(k)
+
+   in other words propagate t(k) estimate to t(k+1),
+   using F(k)
+   
+4. pre-estimate for t(k+1) estimate covariance
+   (before incorporating z(k+1) and accounting for system noise)
+     P(k+1|k) := F(k).P(k).F(k)T + Q(k)
+
+5. kalman gain matrix
+     K(k+1) := P(k+1|k).H(k)T.inverse(H(k).P(k+1|k).H(k)T + R(k))
+
+   note that the matrix-to-be-inverted in the gain expression
+   is symmetric and positive-definite (so can use cholesky decomposition)
+
+6. innovation: difference between actual observation vector and
+   observation predicted from state estimate x(k+1|k):
+     z(k+1) - H(k+1).x(k+1|k)
+
+7. corrected state estimate for t(k+1):
+     x(k+1) := x(k+1|k) + K(k+1)[z(k+1) - H(k+1).x(k+1|k)]
+
+8. correct state covariance for t(k+1):
+     P(k+1) := [I - K(k+1).H(k+1)].P(k+1|k)
+     
+  
