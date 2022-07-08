@@ -22,6 +22,7 @@ namespace xo {
 
       utc_nanos tm(Side s) const { return this->tm_v_[side2int(s)]; }
       Size size(Side s) const { return this->bbo_pxz2_.size(s); }
+      Price px(Side s) const { return this->bbo_pxz2_.px(s); }
 
       bool is_bid_present() const { return bbo_pxz2_.is_bid_present(); }
       bool is_ask_present() const { return bbo_pxz2_.is_ask_present(); }
@@ -37,7 +38,7 @@ namespace xo {
     }; /*Omd*/
 
     /* market data for a (call, put) pair (i.e. all other terms shared) */
-    class OmdPair : std::array<Omd, 2> {
+    class OmdPair : public std::array<Omd, 2> {
     public:
       OmdPair() = default;
 
@@ -56,6 +57,10 @@ namespace xo {
 
       /* create instance */
       static ref::rp<StrikeSetOmd> make(ref::rp<OptionStrikeSet> const & oset);
+
+      /* lookup current state for a particular option */
+      Omd const & lookup(OptionId id) const;
+      Omd & lookup(OptionId id);
 
       /* notification on incoming bbo tick;
        * update .omd_v[] for corresponding option
