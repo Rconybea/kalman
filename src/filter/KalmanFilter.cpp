@@ -44,6 +44,42 @@ namespace xo {
 			       P_ext);
     } /*extrapolate*/
 
+    VectorXd
+    KalmanFilterEngine::kalman_gain1(KalmanFilterState const & skp1_ext,
+				     KalmanFilterObservable const & h,
+				     uint32_t j)
+    {
+      /* P(k+1|k) :: [n x n] */
+      MatrixXd const & P_ext = skp1_ext.state_cov();
+
+      /* H(k) :: [m x n] */
+      MatrixXd const & H = h.observable();
+
+      /* i'th col of H couples element #i of filter state to each member of input z(k);
+       * j'th row of H couples filter state to j'th observable
+       *
+       * Hj :: [1 x n]    Hj is a row-vector
+       */
+      auto Hj = H.row(j);
+
+      /*                            T
+       *   M(k) = Hj * P(k+1|k) * Hj
+       *
+       * is a [1 x 1] matrix
+       */
+      double m = Hj * (P_ext * Hj.transpose());
+
+      /*     -1
+       * M(k)      trivial,  since M is [1 x 1]
+       */
+      double m_inv = 1.0 / m;
+
+      /* K :: [n x 1] */
+      VectorXd K = P_ext * Hj.transpose() * m_inv;
+
+      return K;
+    } /*kalman_gain1*/
+
     MatrixXd
     KalmanFilterEngine::kalman_gain(KalmanFilterState const & skp1_ext,
 				    KalmanFilterObservable const & h)
@@ -58,11 +94,9 @@ namespace xo {
        *                         T  -1
        *   K(k+1) = P(k+1|k).H(k) .M
        *
-       *                         T /                  T        \ -1
+       *                         T /                   T       \ -1
        *          = P(k+1|k).H(k) .| H(k).P(k+1|k).H(k) + R(k) |
        *                           \                           /
-       *
-       *                           
        *
        * Notes:
        * 1. the matrix M being inverted is symmetric,  since represents covariances.
@@ -115,11 +149,56 @@ namespace xo {
     } /*kalman_gain*/
 
     KalmanFilterStateExt
+    KalmanFilterEngine::correct1(KalmanFilterState const & skp1_ext,
+				 KalmanFilterObservable const & h,
+				 KalmanFilterInput const & zkp1,
+				 uint32_t j)
+    {
+      uint32_t n = skp1_ext.n_state();
+      /* Kj :: [n x 1] */
+      VectorXd Kj = kalman_gain1(skp1_ext, h, j);
+      /* H :: [m x n] */
+      MatrixXd const & H = h.observable();
+      VectorXd const & z = zkp1.z();
+
+      /* Hj :: [1 x n]  the j'th row of H */
+      auto const & Hj = H.row(j);
+
+      /* x(k+1|x) :: [n x 1] */
+      VectorXd const & x_ext = skp1_ext.state_v();
+
+      /* P(k+1|k) :: [n x n] */
+      MatrixXd const & P_ext = skp1_ext.state_cov();
+
+      /* innovj : difference between jth 'actual observation'
+       *          and jth 'predicted observation'
+       */
+      double innovj = z[j] - (Hj * x_ext);
+
+      /* x(k+1) */
+      VectorXd xkp1 = x_ext + (Kj * innovj);
+
+      MatrixXd I = MatrixXd::Identity(n, n);
+      /* note: Kj [n x 1], Hj [1 x n],
+       *       so Kj * Hj [n x n],  with rank 1
+       */
+      MatrixXd Pkp1 = (I - (Kj * Hj)) * P_ext;
+
+      return KalmanFilterStateExt(skp1_ext.step_no(),
+				  skp1_ext.tm(),
+				  xkp1,
+				  Pkp1,
+				  Kj,
+				  j);
+    } /*correct1*/
+    
+    KalmanFilterStateExt
     KalmanFilterEngine::correct(KalmanFilterState const & skp1_ext,
 				KalmanFilterObservable const & h,
 				KalmanFilterInput const & zkp1)
     {
       uint32_t n = skp1_ext.n_state();
+      /* K :: [n x m] */
       MatrixXd K = kalman_gain(skp1_ext, h);
       MatrixXd const & H = h.observable();
       VectorXd const & z = zkp1.z();
@@ -129,8 +208,9 @@ namespace xo {
       /* innov: difference between 'actual observations'
        * and 'predicted observations'
        */
-      VectorXd innov = z - H * x_ext;
+      VectorXd innov = z - (H * x_ext);
 
+      /* x(k+1) :: [n x 1] */
       VectorXd xkp1 = x_ext + K * innov;
       MatrixXd I = MatrixXd::Identity(n, n);
       MatrixXd Pkp1 = (I - K * H) * P_ext;
@@ -139,7 +219,8 @@ namespace xo {
 				  skp1_ext.tm(),
 				  xkp1,
 				  Pkp1,
-				  K);
+				  K,
+				  -1 /*j: not used*/);
     } /*correct*/
 
     KalmanFilterStateExt
@@ -157,6 +238,7 @@ namespace xo {
 
       return skp1;
     } /*step*/
+
   } /*namespace kalman*/
 } /*namespace xo*/
 

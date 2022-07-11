@@ -44,6 +44,7 @@ add_code_coverage()
 # add process/, logutil/, .. subdirectory
 add_subdirectory(simulator)
 add_subdirectory(simulator_py)
+add_subdirectory(filter)
 add_subdirectory(process)
 add_subdirectory(option)
 add_subdirectory(option_util)
@@ -55,6 +56,7 @@ add_subdirectory(refcnt)
 add_subdirectory(logutil)
 
 # add unittest subdirectories
+add_subdirectory(filter/utest)
 add_subdirectory(process/utest)
 add_subdirectory(option/utest)
 add_subdirectory(tree/utest)

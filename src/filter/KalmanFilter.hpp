@@ -186,17 +186,33 @@ namespace xo {
      */
     class KalmanFilterStateExt : public KalmanFilterState {
     public:
+      using MatrixXd = Eigen::MatrixXd;
+      using int32_t = std::int32_t;
+
+    public:
       KalmanFilterStateExt(uint32_t k,
 			   utc_nanos tk,
 			   VectorXd x,
 			   MatrixXd P,
-			   MatrixXd K)
-	: KalmanFilterState(k, tk, x, P), K_{std::move(K)} {}
+			   MatrixXd K,
+			   int32_t j)
+	: KalmanFilterState(k, tk, x, P), j_{j}, K_{std::move(K)} {}
 
+      int32_t observable() const { return j_; }
       MatrixXd const & gain() const { return K_; }
 
     private:
-      /* [n x n] kalman gain */
+      /* if -1:  not used;
+       * if >= 0: identifies j'th of m observables;
+       * gain .K applies just to information obtainable from
+       * observing that scalar variable
+       */
+      int32_t j_ = -1;
+      /* if .j is -1:
+       *   [n x n] kalman gain
+       * if .j >= 0:
+       *   [n x 1] kalman gain for observable #j
+       */
       MatrixXd K_;
     }; /*KalamnFilterStateExt*/
       
@@ -220,6 +236,7 @@ namespace xo {
     class KalmanFilterEngine {
     public:
       using MatrixXd = Eigen::MatrixXd;
+      using VectorXd = Eigen::VectorXd;
       using utc_nanos = xo::time::utc_nanos;
 
     public:
@@ -252,6 +269,12 @@ namespace xo {
       /* compute kalman gain matrix for filter step t(k) -> t(k+1)
        * Expensive implementation using matrix inversion
        *
+       *                              T
+       *   M(k+1) = H(k).P(k+1|k).H(k) + R(k)
+       *
+       *                         T       -1
+       *   K(k+1) = P(k+1|k).H(k) .M(k+1)
+       *
        * Require:
        * - skp1_ext.n_state() = Hkp1.n_state()
        *
@@ -261,6 +284,39 @@ namespace xo {
        */
       static MatrixXd kalman_gain(KalmanFilterState const & skp1_ext,
 				  KalmanFilterObservable const & Hkp1);
+
+      /* compute kalman gain for a single observation z(k)[j].
+       * This is useful iff the observation error matrix R is diagonal.
+       * For diagonal R we can present a set of observations z(k) serially
+       * instead of all at once,  with lower time complexity
+       *
+       * Kalaman Filter specifies some space with m observables.
+       * j identifies one of those observables, indexing from 0.
+       * This corresponds to row #j of H(k), and element R[j,j] of R.
+       *
+       * Effectively,  we are projecting the kalman filter assoc'd with
+       * {skp1_ext, Hkp1} to a filter with a single observable variable z(k)[j],
+       * then computing the (scalar) kalman gain for this 1-variable filter
+       *
+       * The gain vector tells us for each member of filter state,
+       * how much to adjust our optimal estimate for that member for a unit
+       * amount of innovation in observable #j,  i.e. for difference between
+       * expected and actual value for that observable.
+       */
+      static VectorXd kalman_gain1(KalmanFilterState const & skp1_ext,
+				   KalmanFilterObservable const & Hkp1,
+				   uint32_t j);
+
+      /* correct extrapolated filter state for observation
+       * of j'th filter observable z(k+1)[j]
+       *
+       * Can use this when observation errors are uncorrelated
+       * (i.e. observation error matrix R is diagonal)
+       */
+      static KalmanFilterStateExt correct1(KalmanFilterState const & skp1_ext,
+					   KalmanFilterObservable const & Hkp1,
+					   KalmanFilterInput const & zkp1,
+					   uint32_t j);
 
       /* correct extrapolated state+cov estimate;
        * also computes kalman gain
@@ -280,12 +336,20 @@ namespace xo {
 					  KalmanFilterObservable const & Hkp1,
 					  KalmanFilterInput const & zkp1);
 
-      /* step filter from t(k) -> t(k+1) */
+      /* step filter from t(k) -> t(k+1)
+       *
+       * sk.    filter state from previous step:
+       *        x (state vector), P (state covar matrix)
+       * Fk.    transition-related params:
+       *        F (transition matrix), Q (system noise covar matrix)
+       * Hkp1.  observation-related params:
+       *        H (coupling matrix), R (error covar matrix)
+       */
       static KalmanFilterStateExt step(utc_nanos tkp1,
-				       KalmanFilterState const & sk,
-				       KalmanFilterTransition const & Fk,
-				       KalmanFilterObservable const & Hkp1,
-				       KalmanFilterInput const & zkp1);
+                                       KalmanFilterState const &sk,
+                                       KalmanFilterTransition const &Fk,
+                                       KalmanFilterObservable const &Hkp1,
+                                       KalmanFilterInput const & zkp1);
 
     }; /*KalmanFilterEngine*/
   } /*namespace kalman*/

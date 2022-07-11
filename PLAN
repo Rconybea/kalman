@@ -9,7 +9,9 @@ DONE write StrikeSetOmdSimSource::advance_until()
 DONE StrikeSetMarketModel to forward omd events to StrikeSetOmdSimSource
 DONE generalize simulator,  allow not-ready sources
 
-* StrikeSetOmdSim
-
+* overview map for filtering pipeline
+  StrikeSetMarketModel -> kalman filter
+* Size2
+* nicely-encapsulated Side,  with methods + conversions
 * simulate order flow!   random price-taking orders
 * add callbacks to StrikeSetOmdSimSource

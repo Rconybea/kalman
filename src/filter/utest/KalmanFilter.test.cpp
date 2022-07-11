@@ -97,7 +97,8 @@ namespace xo {
 			      s0.tm(),
 			      s0.state_v(),
 			      s0.state_cov(),
-			      MatrixXd::Zero(1, 1) /*K*/);
+			      MatrixXd::Zero(1, 1) /*K*/,
+			      -1);
 
       for(uint32_t i_step = 1; i_step < 100; ++i_step) {
 	/* note: for this filter,  measurement time doesn't matter */
@@ -129,6 +130,7 @@ namespace xo {
 	REQUIRE(skp1.state_cov().cols() == 1);
 	REQUIRE(skp1.gain().rows() == 1);
 	REQUIRE(skp1.gain().cols() == 1);
+	REQUIRE(skp1.observable() == -1);
 
 	/* z_stats reflects k = z_stats.n_sample() N(0,1) 'random' vars;
 	 * variance of sum (i.e. z_stats.mean() * k) is proportional to k;
