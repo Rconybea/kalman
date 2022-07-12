@@ -27,6 +27,39 @@ namespace xo {
   using Eigen::VectorXd;
 
   namespace ut {
+    namespace {
+      KalmanFilterSpec::MkStepFn
+      kalman_identity_mkstep_fn()
+      {
+	/* kalman state transition matrix: use identity <--> state is constant */
+	MatrixXd F = MatrixXd::Identity(1, 1);
+
+	/* state transition noise: set this to zero;
+	 * measuring something that's known to be constant
+	 */
+	MatrixXd Q = MatrixXd::Zero(1, 1);
+
+	/* single direct observation */
+	MatrixXd H = MatrixXd::Identity(1, 1);
+
+	/* observation errors understood to have
+	 * mean 0, sdev 1
+	 *
+	 * This is consistent with normal_rng below,
+	 * so R is correctly specified
+	 */
+	MatrixXd R = MatrixXd::Identity(1, 1);
+
+	return [F, Q, H, R](KalmanFilterState const & sk,
+			    KalmanFilterInput const & zkp1) {
+	  KalmanFilterTransition Fk(F, Q);
+	  KalmanFilterObservable Hk(H, R);
+
+	  return KalmanFilterStep(Fk, Hk);
+	};
+      } /*kalman_identity_mkstep_fn*/
+    } /*namespace*/
+
     /* example 1.
      *   repeated direct observation of a scalar
      *   use rng to generate observations
@@ -65,31 +98,6 @@ namespace xo {
       /* kalman prior : Variance = 1, sdev = 1 */
       MatrixXd P0 = 1.0 * MatrixXd::Identity(1, 1);
 
-      /* kalman state transition matrix: use identity <--> state is constant */
-      MatrixXd F = MatrixXd::Identity(1, 1);
-
-      /* state transition noise: set this to zero;
-       * measuring something that's known to be constant
-       */
-      MatrixXd Q = MatrixXd::Zero(1, 1);
-
-      /* single direct observation */
-      MatrixXd H = MatrixXd::Identity(1, 1);
-
-      /* observation errors understood to have
-       * mean 0, sdev 1
-       *
-       * This is consistent with normal_rng below,
-       * so R is correctly specified
-       */
-      MatrixXd R = MatrixXd::Identity(1, 1);
-
-      /* for this filter,  transition + observable stages are constant */
-      KalmanFilterTransition Fk
-	= KalmanFilterTransition(F, Q);
-      KalmanFilterObservable Hk
-	= KalmanFilterObservable(H, R);
-
       KalmanFilterStateExt s0(0 /*step#*/,
 			      t0,
 			      x0,
@@ -98,13 +106,7 @@ namespace xo {
 			      -1 /*j*/);
 
       auto mk_step_fn
-	= ([&F, &Q, &H, &R](KalmanFilterState const & sk,
-                            KalmanFilterInput const & zkp1) {
-	  KalmanFilterTransition Fk(F, Q);
-	  KalmanFilterObservable Hk(H, R);
-
-	  return KalmanFilterStep(Fk, Hk);
-	});
+	= kalman_identity_mkstep_fn();
 
       KalmanFilterSpec spec(s0, mk_step_fn);
 
@@ -124,11 +126,13 @@ namespace xo {
 	KalmanFilterInput inputk
 	  = KalmanFilterInput(z);
 
+	KalmanFilterStep step_spec
+	  = spec.make_step(sk, inputk);
+
 	KalmanFilterStateExt skp1
 	  = KalmanFilterEngine::step(tkp1,
 				     sk,
-				     Fk,
-				     Hk,
+				     step_spec,
 				     inputk);
 
 	REQUIRE(skp1.step_no() == i_step);
@@ -207,6 +211,7 @@ namespace xo {
       /* kalman prior : Variance = 1, sdev = 1 */
       MatrixXd P0 = 1.0 * MatrixXd::Identity(1, 1);
 
+#ifdef OBSOLETE
       /* kalman state transition matrix: use identity <--> state is constant */
       MatrixXd F = MatrixXd::Identity(1, 1);
 
@@ -225,24 +230,29 @@ namespace xo {
        * so R is correctly specified
        */
       MatrixXd R = MatrixXd::Identity(1, 1);
+#endif
 
+#ifdef OBSOLETE
       /* for this filter,  transition + observable stages are constant */
       KalmanFilterTransition Fk
 	= KalmanFilterTransition(F, Q);
       KalmanFilterObservable Hk
 	= KalmanFilterObservable(H, R);
+#endif
 
-      KalmanFilterState s0(0 /*step#*/,
-			   t0,
-			   x0,
-			   P0);
-
-      KalmanFilterStateExt sk(s0.step_no(),
-			      s0.tm(),
-			      s0.state_v(),
-			      s0.state_cov(),
+      KalmanFilterStateExt s0(0 /*step#*/,
+			      t0,
+			      x0,
+			      P0,
 			      MatrixXd::Zero(1, 1) /*K*/,
 			      -1);
+
+      auto mk_step_fn
+	= kalman_identity_mkstep_fn();
+
+      KalmanFilterSpec spec(s0, mk_step_fn);
+
+      KalmanFilterStateExt sk = spec.start_ext();
 
       for(uint32_t i_step = 1; i_step < 100; ++i_step) {
 	/* note: for this filter,  measurement time doesn't matter */
@@ -258,11 +268,13 @@ namespace xo {
 	KalmanFilterInput inputk
 	  = KalmanFilterInput(z);
 
+	KalmanFilterStep step_spec
+	  = spec.make_step(sk, inputk);
+
 	KalmanFilterStateExt skp1
 	  = KalmanFilterEngine::step1(tkp1,
 				      sk,
-				      Fk,
-				      Hk,
+				      step_spec,
 				      inputk,
 				      0 /*j*/);
 

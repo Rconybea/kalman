@@ -412,18 +412,34 @@ namespace xo {
 
       /* step filter from t(k) -> t(k+1)
        *
-       * sk.    filter state from previous step:
-       *        x (state vector), P (state covar matrix)
-       * Fk.    transition-related params:
-       *        F (transition matrix), Q (system noise covar matrix)
-       * Hkp1.  observation-related params:
-       *        H (coupling matrix), R (error covar matrix)
+       * sk.        filter state from previous step:
+       *            x (state vector), P (state covar matrix)
+       * Fk.        transition-related params:
+       *            F (transition matrix), Q (system noise covar matrix)
+       * Hkp1.      observation-related params:
+       *            H (coupling matrix), R (error covar matrix)
+       * zkp1.      observations z(k+1) for time t(k+1)
        */
       static KalmanFilterStateExt step(utc_nanos tkp1,
                                        KalmanFilterState const & sk,
                                        KalmanFilterTransition const & Fk,
                                        KalmanFilterObservable const & Hkp1,
                                        KalmanFilterInput const & zkp1);
+
+      /* step filter from t(k) -> tk(k+1)
+       * same as
+       *   .step(tkp1, sk, step_spec.model(), step_spec.obs(), zkp1);
+       *
+       * sk.         filter state from previous step:
+       *             x (state vector), P (state covar matrix)
+       * step_spec.  encapsulates Fk (transition-related params)
+       *             and Q (system noise covar matrix)
+       * zkp1.      observations z(k+1) for time t(k+1)
+       */
+      static KalmanFilterStateExt step(utc_nanos tkp1,
+				       KalmanFilterState const & sk,
+				       KalmanFilterStep const & step_spec,
+				       KalmanFilterInput const & zkp1);
 
       /* step filter from t(k) -> t(k+1)
        *
@@ -441,6 +457,25 @@ namespace xo {
 					KalmanFilterState const & sk,
 					KalmanFilterTransition const & Fk,
 					KalmanFilterObservable const & Hkp1,
+					KalmanFilterInput const & zkp1,
+					uint32_t j);
+
+      /* step filter from t(k) -> t(k+1)
+       *
+       * same as
+       *   .step1(tkp1, sk, step_spec.model(), step_spec.obs(), zkp1, j);
+       *
+       * sk.         filter state from previous step:
+       *             x (state vector), P (state covar matrix)
+       * step_spec.  encapsulates Fk (transition-related params)
+       *             and Q (system noise covar matrix)
+       * zkp1.       observations z(k+1) for time t(k+1)
+       * j.          identifies a single filter observable --
+       *             step will only consume observation z(k+1)[j]
+       */
+      static KalmanFilterStateExt step1(utc_nanos tkp1,
+					KalmanFilterState const & sk,
+					KalmanFilterStep const & step_spec,
 					KalmanFilterInput const & zkp1,
 					uint32_t j);
     }; /*KalmanFilterEngine*/
