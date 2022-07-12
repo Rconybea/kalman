@@ -290,7 +290,7 @@ namespace xo {
        * For diagonal R we can present a set of observations z(k) serially
        * instead of all at once,  with lower time complexity
        *
-       * Kalaman Filter specifies some space with m observables.
+       * Kalman Filter specifies some space with m observables.
        * j identifies one of those observables, indexing from 0.
        * This corresponds to row #j of H(k), and element R[j,j] of R.
        *
@@ -346,11 +346,29 @@ namespace xo {
        *        H (coupling matrix), R (error covar matrix)
        */
       static KalmanFilterStateExt step(utc_nanos tkp1,
-                                       KalmanFilterState const &sk,
-                                       KalmanFilterTransition const &Fk,
-                                       KalmanFilterObservable const &Hkp1,
+                                       KalmanFilterState const & sk,
+                                       KalmanFilterTransition const & Fk,
+                                       KalmanFilterObservable const & Hkp1,
                                        KalmanFilterInput const & zkp1);
 
+      /* step filter from t(k) -> t(k+1)
+       *
+       * sk.    filter state from previous step:
+       *        x (state vector), P (state covar matrix)
+       * Fk.    transition-related params:
+       *        F (transition matrix), Q (system noise covar matrix)
+       * Hkp1.  observation-related params:
+       *        H (coupling matrix), R (error covar matrix)
+       * zkp1.  observations z(k+1) for time t(k+1)
+       * j.     identifies a single filter observable --
+       *        step will only consume observation z(k+1)[j]
+       */
+      static KalmanFilterStateExt step1(utc_nanos tkp1,
+					KalmanFilterState const & sk,
+					KalmanFilterTransition const & Fk,
+					KalmanFilterObservable const & Hkp1,
+					KalmanFilterInput const & zkp1,
+					uint32_t j);
     }; /*KalmanFilterEngine*/
   } /*namespace kalman*/
 } /*namespace xo*/

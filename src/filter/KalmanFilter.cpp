@@ -1,10 +1,13 @@
 /* @file KalmanFilter.cpp */
 
 #include "KalmanFilter.hpp"
+#include "logutil/scope.hpp"
 #include "Eigen/src/Core/Matrix.h"
 
 namespace xo {
   using xo::time::utc_nanos;
+  using logutil::scope;
+  using logutil::xtag;
   using Eigen::LDLT;
   using Eigen::MatrixXd;
   using Eigen::VectorXd;
@@ -49,11 +52,16 @@ namespace xo {
 				     KalmanFilterObservable const & h,
 				     uint32_t j)
     {
+      constexpr bool c_debug_enabled = false;
+      scope lscope("KalmanFilterEngine::kalman_gain1", c_debug_enabled);
+      
       /* P(k+1|k) :: [n x n] */
       MatrixXd const & P_ext = skp1_ext.state_cov();
 
       /* H(k) :: [m x n] */
       MatrixXd const & H = h.observable();
+      /* R(k) :: [m x m] */
+      MatrixXd const & R = h.observable_cov();
 
       /* i'th col of H couples element #i of filter state to each member of input z(k);
        * j'th row of H couples filter state to j'th observable
@@ -62,12 +70,15 @@ namespace xo {
        */
       auto Hj = H.row(j);
 
+      /* Rjj is the j'th diagonal element of R */
+      double Rjj = R(j, j);
+
       /*                            T
-       *   M(k) = Hj * P(k+1|k) * Hj
+       *   M(k) = Hj * P(k+1|k) * Hj  + Rjj
        *
-       * is a [1 x 1] matrix
+       * M(k) is a [1 x 1] matrix
        */
-      double m = Hj * (P_ext * Hj.transpose());
+      double m = Hj * (P_ext * Hj.transpose()) + Rjj;
 
       /*     -1
        * M(k)      trivial,  since M is [1 x 1]
@@ -77,6 +88,9 @@ namespace xo {
       /* K :: [n x 1] */
       VectorXd K = P_ext * Hj.transpose() * m_inv;
 
+      if(c_debug_enabled)
+	lscope.log("result", xtag("P(k+1|k)", P_ext), xtag("R", R), xtag("m", m));
+
       return K;
     } /*kalman_gain1*/
 
@@ -84,6 +98,9 @@ namespace xo {
     KalmanFilterEngine::kalman_gain(KalmanFilterState const & skp1_ext,
 				    KalmanFilterObservable const & h)
     {
+      constexpr bool c_debug_enabled = false;
+      scope lscope("KalmanFilterEngine::kalman_gain", c_debug_enabled);
+
       /* P(k+1|k) */
       MatrixXd const & P_ext = skp1_ext.state_cov();
 
@@ -145,6 +162,9 @@ namespace xo {
       /* K(k+1) */
       MatrixXd K = P_ext * H * M_inv;
 
+      if(c_debug_enabled)
+	lscope.log("result", xtag("P(k+1|k)", P_ext), xtag("R", R), xtag("M", M));
+
       return K;
     } /*kalman_gain*/
 
@@ -163,6 +183,7 @@ namespace xo {
 
       /* Hj :: [1 x n]  the j'th row of H */
       auto const & Hj = H.row(j);
+
 
       /* x(k+1|x) :: [n x 1] */
       VectorXd const & x_ext = skp1_ext.state_v();
@@ -238,6 +259,23 @@ namespace xo {
 
       return skp1;
     } /*step*/
+
+    KalmanFilterStateExt
+    KalmanFilterEngine::step1(utc_nanos tkp1,
+			      KalmanFilterState const & sk,
+			      KalmanFilterTransition const & Fk,
+			      KalmanFilterObservable const & Hkp1,
+			      KalmanFilterInput const & zkp1,
+			      uint32_t j)
+    {
+      KalmanFilterState skp1_ext
+	= KalmanFilterEngine::extrapolate(tkp1, sk, Fk);
+
+      KalmanFilterStateExt skp1
+	= KalmanFilterEngine::correct1(skp1_ext, Hkp1, zkp1, j);
+
+      return skp1;
+    } /*step1*/
 
   } /*namespace kalman*/
 } /*namespace xo*/
