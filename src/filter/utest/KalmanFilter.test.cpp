@@ -55,7 +55,7 @@ namespace xo {
 	  KalmanFilterTransition Fk(F, Q);
 	  KalmanFilterObservable Hk(H, R);
 
-	  return KalmanFilterStep(sk, Fk, Hk);
+	  return KalmanFilterStep(sk, Fk, Hk, zkp1);
 	};
       } /*kalman_identity_mkstep_fn*/
     } /*namespace*/
