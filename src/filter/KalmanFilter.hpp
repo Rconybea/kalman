@@ -4,6 +4,7 @@
 
 #include "time/Time.hpp"
 #include <Eigen/Dense>
+#include <functional>
 #include <cstdint>
 
 namespace xo {
@@ -138,6 +139,25 @@ namespace xo {
       MatrixXd R_;
     }; /*KalmanFilterObservable*/
 
+    /* encapsulate {state + observation} models for a single time step t(k).
+     * Emitted by KalmanFilterSpec, q.v.
+     */
+    class KalmanFilterStep {
+    public:
+      KalmanFilterStep(KalmanFilterTransition model,
+		       KalmanFilterObservable obs)
+	: model_{std::move(model)}, obs_{std::move(obs)} {}
+      
+      KalmanFilterTransition const & model() const { return model_; }
+      KalmanFilterObservable const & obs() const { return obs_; }
+
+    private:
+      /* model for process being observed (state transition + noise) */
+      KalmanFilterTransition model_;
+      /* what can be observed (observables + noise) */
+      KalmanFilterObservable obs_;
+    }; /*KalmanFilterStep*/
+
     /* encapsulate state (i.e. output) of a kalman filter
      * after a particular step
      */
@@ -181,8 +201,8 @@ namespace xo {
       MatrixXd P_;
     }; /*KalmanFilterState*/
 
-    /* KalmanFilterState
-     * + additional details from filter step
+    /* KalmanFilterStateExt:
+     * adds additional details from filter step to KalmanFilterState
      */
     class KalmanFilterStateExt : public KalmanFilterState {
     public:
@@ -196,7 +216,8 @@ namespace xo {
 			   MatrixXd P,
 			   MatrixXd K,
 			   int32_t j)
-	: KalmanFilterState(k, tk, x, P), j_{j}, K_{std::move(K)} {}
+	: KalmanFilterState(k, tk, x, P),
+	  j_{j}, K_{std::move(K)} {}
 
       int32_t observable() const { return j_; }
       MatrixXd const & gain() const { return K_; }
@@ -216,7 +237,6 @@ namespace xo {
       MatrixXd K_;
     }; /*KalamnFilterStateExt*/
       
-
     class KalmanFilterInput {
     public:
       using VectorXd = Eigen::VectorXd;
@@ -232,6 +252,60 @@ namespace xo {
       /* [m x 1] observation vector z(k) */
       VectorXd z_;
     }; /*KalmanFilterInput*/
+
+    /* full specification for a kalman filter.
+     *
+     * For a textbook linear filter,  expect a KalmanFilterStep
+     * instance to be independent of KalmanFilterState/KalmanFilterInput.
+     * 
+     * Relaxing this requirement for two reasons:
+     * 1. (proper) want to allow filter with variable timing between observations,
+     *    expecially if observations are event-driven.
+     *    In that case it's likely that state transition matrices are a function
+     *    of elapsed time between observations.  Providing filter state sk
+     *    allows MkStepFn to use sk.tm()
+     * 2. (sketchy) when observations represent market data,
+     *    desirable to treat an observation as giving one-sided information
+     *    about true value.   For example treat a bid price as evidence 
+     *    true value is higher than that bid,  but don't want to constrain
+     *    "how much higher".   Certainly no reason to think that
+     *    bid price is normally distributed around fair value.
+     *    Allow for hack in which we 
+     *    and modulate error distribution "as if it were normal" to assess
+     *    a non-gaussian error distribution
+     */
+    class KalmanFilterSpec {
+    public:
+      using MkStepFn = std::function<KalmanFilterStep
+				     (KalmanFilterState const & sk,
+	                              KalmanFilterInput const & zkp1)>;
+
+    public:
+      explicit KalmanFilterSpec(KalmanFilterStateExt s0, MkStepFn mkstepfn)
+	: start_ext_{std::move(s0)}, mk_step_fn_{std::move(mkstepfn)} {}
+
+      KalmanFilterStateExt const & start_ext() const { return start_ext_; }
+      /* get step parameters (i.e. matrices F, Q, H, R)
+       * for step t(k) -> t(k+1).
+       *
+       * We supply t(k) state s and t(k+1) observation z(k+1)
+       * to allow time stepping to be observation-driven
+       */
+      KalmanFilterStep make_step(KalmanFilterState const & sk,
+				 KalmanFilterInput const & zkp1) {
+	return this->mk_step_fn_(sk, zkp1);
+      } /*make_step*/
+
+    public:
+      /* starting state */
+      KalmanFilterStateExt start_ext_;
+
+      /* creates kalman filter step object on demand;
+       * step object specifies inputs to 1 step in discrete
+       * linear kalman filter
+       */
+      MkStepFn mk_step_fn_;
+    }; /*KalmanFilterSpec*/
 
     class KalmanFilterEngine {
     public:

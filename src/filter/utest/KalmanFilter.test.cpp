@@ -8,6 +8,8 @@
 #include <catch2/catch.hpp>
 
 namespace xo {
+  using xo::kalman::KalmanFilterSpec;
+  using xo::kalman::KalmanFilterStep;
   using xo::kalman::KalmanFilterEngine;
   using xo::kalman::KalmanFilterStateExt;
   using xo::kalman::KalmanFilterState;
@@ -88,17 +90,25 @@ namespace xo {
       KalmanFilterObservable Hk
 	= KalmanFilterObservable(H, R);
 
-      KalmanFilterState s0(0 /*step#*/,
-			   t0,
-			   x0,
-			   P0);
-
-      KalmanFilterStateExt sk(s0.step_no(),
-			      s0.tm(),
-			      s0.state_v(),
-			      s0.state_cov(),
+      KalmanFilterStateExt s0(0 /*step#*/,
+			      t0,
+			      x0,
+			      P0,
 			      MatrixXd::Zero(1, 1) /*K*/,
-			      -1);
+			      -1 /*j*/);
+
+      auto mk_step_fn
+	= ([&F, &Q, &H, &R](KalmanFilterState const & sk,
+                            KalmanFilterInput const & zkp1) {
+	  KalmanFilterTransition Fk(F, Q);
+	  KalmanFilterObservable Hk(H, R);
+
+	  return KalmanFilterStep(Fk, Hk);
+	});
+
+      KalmanFilterSpec spec(s0, mk_step_fn);
+
+      KalmanFilterStateExt sk = spec.start_ext();
 
       for(uint32_t i_step = 1; i_step < 100; ++i_step) {
 	/* note: for this filter,  measurement time doesn't matter */
@@ -290,6 +300,9 @@ namespace xo {
       REQUIRE(sk.state_cov()(0, 0) == Approx(0.01).epsilon(1e-6));
       REQUIRE(sk.gain()(0, 0) == Approx(0.01).epsilon(1e-6));
     } /*TEST_CASE(kalman-identity1)*/
+
+
+
   } /*namespace ut*/
 } /*namespace xo*/
 
