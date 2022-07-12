@@ -241,15 +241,20 @@ namespace xo {
     class KalmanFilterInput {
     public:
       using VectorXd = Eigen::VectorXd;
+      using utc_nanos = xo::time::utc_nanos;
       using uint32_t = std::uint32_t;
 
     public:
-      explicit KalmanFilterInput(VectorXd z) : z_{std::move(z)} {}
+      explicit KalmanFilterInput(utc_nanos tkp1, VectorXd z)
+	: tkp1_(tkp1), z_{std::move(z)} {}
 
+      utc_nanos tkp1() const { return tkp1_; }
       uint32_t n_obs() const { return z_.size(); }
       VectorXd const & z() const { return z_; }
 
     private:
+      /* t(k+1) - asof time for observations .z */
+      utc_nanos tkp1_;
       /* [m x 1] observation vector z(k) */
       VectorXd z_;
     }; /*KalmanFilterInput*/

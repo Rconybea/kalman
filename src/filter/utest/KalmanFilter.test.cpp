@@ -123,11 +123,9 @@ namespace xo {
 
 	z_stats.include_sample(z[0]);
 
-	KalmanFilterInput inputk
-	  = KalmanFilterInput(z);
+	KalmanFilterInput inputk(tkp1, z);
 
-	KalmanFilterStep step_spec
-	  = spec.make_step(sk, inputk);
+	KalmanFilterStep step_spec = spec.make_step(sk, inputk);
 
 	KalmanFilterStateExt skp1
 	  = KalmanFilterEngine::step(tkp1,
@@ -263,8 +261,7 @@ namespace xo {
 
 	z_stats.include_sample(z[0]);
 
-	KalmanFilterInput inputk
-	  = KalmanFilterInput(z);
+	KalmanFilterInput inputk(tkp1, z);
 
 	KalmanFilterStep step_spec
 	  = spec.make_step(sk, inputk);
