@@ -139,25 +139,6 @@ namespace xo {
       MatrixXd R_;
     }; /*KalmanFilterObservable*/
 
-    /* encapsulate {state + observation} models for a single time step t(k).
-     * Emitted by KalmanFilterSpec, q.v.
-     */
-    class KalmanFilterStep {
-    public:
-      KalmanFilterStep(KalmanFilterTransition model,
-		       KalmanFilterObservable obs)
-	: model_{std::move(model)}, obs_{std::move(obs)} {}
-      
-      KalmanFilterTransition const & model() const { return model_; }
-      KalmanFilterObservable const & obs() const { return obs_; }
-
-    private:
-      /* model for process being observed (state transition + noise) */
-      KalmanFilterTransition model_;
-      /* what can be observed (observables + noise) */
-      KalmanFilterObservable obs_;
-    }; /*KalmanFilterStep*/
-
     /* encapsulate state (i.e. output) of a kalman filter
      * after a particular step
      */
@@ -237,6 +218,45 @@ namespace xo {
       MatrixXd K_;
     }; /*KalamnFilterStateExt*/
       
+    /* encapsulate {state + observation} models for a single time step t(k).
+     * Emitted by KalmanFilterSpec, q.v.
+     */
+    class KalmanFilterStepBase {
+    public:
+      KalmanFilterStepBase(KalmanFilterTransition model,
+			   KalmanFilterObservable obs)
+	: model_{std::move(model)},
+	  obs_{std::move(obs)} {}
+
+      KalmanFilterTransition const & model() const { return model_; }
+      KalmanFilterObservable const & obs() const { return obs_; }
+
+    private:
+      /* model for process being observed (state transition + noise) */
+      KalmanFilterTransition model_;
+      /* what can be observed (observables + noise) */
+      KalmanFilterObservable obs_;
+    }; /*KalmanFilterStepBase*/
+
+    /* encapsulate {state + observation} models for a single time step t(k).
+     * Emitted by KalmanFilterSpec, q.v.
+     */
+    class KalmanFilterStep : public KalmanFilterStepBase {
+    public:
+      KalmanFilterStep(KalmanFilterState state,
+		       KalmanFilterTransition model,
+		       KalmanFilterObservable obs)
+	: KalmanFilterStepBase(model, obs), state_{std::move(state)} {}
+      
+      KalmanFilterState const & state() const { return state_; }
+      //KalmanFilterTransition const & model() const { return model_; }
+      //KalmanFilterObservable const & obs() const { return obs_; }
+
+    private:
+      /* system state: timestamp, estimated process state, process covariance */
+      KalmanFilterState state_;
+    }; /*KalmanFilterStep*/
+
     class KalmanFilterInput {
     public:
       using VectorXd = Eigen::VectorXd;
