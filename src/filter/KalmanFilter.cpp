@@ -288,12 +288,17 @@ namespace xo {
 
     KalmanFilterStateExt
     KalmanFilterEngine::step1(utc_nanos tkp1,
-			      KalmanFilterState const & sk,
+			      //KalmanFilterState const & sk,
 			      KalmanFilterStep const & step_spec,
-			      KalmanFilterInput const & zkp1,
+			      //KalmanFilterInput const & zkp1,
 			      uint32_t j)
     {
-      return step1(tkp1, sk, step_spec.model(), step_spec.obs(), zkp1, j);
+      return step1(tkp1,
+		   step_spec.state(),
+		   step_spec.model(),
+		   step_spec.obs(),
+		   step_spec.input(),
+		   j);
     } /*step1*/
   } /*namespace kalman*/
 } /*namespace xo*/

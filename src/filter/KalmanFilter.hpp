@@ -491,20 +491,23 @@ namespace xo {
       /* step filter from t(k) -> t(k+1)
        *
        * same as
-       *   .step1(tkp1, sk, step_spec.model(), step_spec.obs(), zkp1, j);
+       *   .step1(tkp1, step_spec.state(), step_spec.model(), step_spec.obs(), zkp1, j);
        *
        * sk.         filter state from previous step:
        *             x (state vector), P (state covar matrix)
-       * step_spec.  encapsulates Fk (transition-related params)
-       *             and Q (system noise covar matrix)
-       * zkp1.       observations z(k+1) for time t(k+1)
+       * step_spec.  encapsulates
+       *             x (state vector),
+       *             P (state covar matrix),
+       *             Fk (transition-related params),
+       *             Q (system noise covar matrix)
+       *             z (z(k+1), observations at time t(k+1))
        * j.          identifies a single filter observable --
        *             step will only consume observation z(k+1)[j]
        */
       static KalmanFilterStateExt step1(utc_nanos tkp1,
-					KalmanFilterState const & sk,
+					//KalmanFilterState const & sk,
 					KalmanFilterStep const & step_spec,
-					KalmanFilterInput const & zkp1,
+					//KalmanFilterInput const & zkp1,
 					uint32_t j);
     }; /*KalmanFilterEngine*/
   } /*namespace kalman*/

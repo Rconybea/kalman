@@ -273,9 +273,7 @@ namespace xo {
 
 	KalmanFilterStateExt skp1
 	  = KalmanFilterEngine::step1(tkp1,
-				      sk,
 				      step_spec,
-				      inputk,
 				      0 /*j*/);
 
 	REQUIRE(skp1.step_no() == i_step);
