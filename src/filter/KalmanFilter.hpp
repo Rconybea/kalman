@@ -264,6 +264,9 @@ namespace xo {
      */
     class KalmanFilterStep : public KalmanFilterStepBase {
     public:
+      using utc_nanos = xo::time::utc_nanos;
+
+    public:
       KalmanFilterStep(KalmanFilterState state,
 		       KalmanFilterTransition model,
 		       KalmanFilterObservable obs,
@@ -274,8 +277,8 @@ namespace xo {
       
       KalmanFilterState const & state() const { return state_; }
       KalmanFilterInput const & input() const { return input_; }
-      //KalmanFilterTransition const & model() const { return model_; }
-      //KalmanFilterObservable const & obs() const { return obs_; }
+
+      utc_nanos tkp1() const { return input_.tkp1(); }
 
     private:
       /* system state: timestamp, estimated process state, process covariance
@@ -466,8 +469,7 @@ namespace xo {
        * step_spec.  encapsulates Fk (transition-related params)
        *             and Q (system noise covar matrix)
        */
-      static KalmanFilterStateExt step(utc_nanos tkp1,
-				       KalmanFilterStep const & step_spec);
+      static KalmanFilterStateExt step(KalmanFilterStep const & step_spec);
 
       /* step filter from t(k) -> t(k+1)
        *
@@ -491,10 +493,13 @@ namespace xo {
       /* step filter from t(k) -> t(k+1)
        *
        * same as
-       *   .step1(tkp1, step_spec.state(), step_spec.model(), step_spec.obs(), zkp1, j);
+       *   .step1(step_spec.tkp1(),
+       *          step_spec.state(),
+       *          step_spec.model(),
+       *          step_spec.obs(),
+       *          step_spec.input(),
+       *          j);
        *
-       * sk.         filter state from previous step:
-       *             x (state vector), P (state covar matrix)
        * step_spec.  encapsulates
        *             x (state vector),
        *             P (state covar matrix),
@@ -504,8 +509,7 @@ namespace xo {
        * j.          identifies a single filter observable --
        *             step will only consume observation z(k+1)[j]
        */
-      static KalmanFilterStateExt step1(utc_nanos tkp1,
-					KalmanFilterStep const & step_spec,
+      static KalmanFilterStateExt step1(KalmanFilterStep const & step_spec,
 					uint32_t j);
     }; /*KalmanFilterEngine*/
   } /*namespace kalman*/

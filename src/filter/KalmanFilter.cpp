@@ -261,10 +261,9 @@ namespace xo {
     } /*step*/
 
     KalmanFilterStateExt
-    KalmanFilterEngine::step(utc_nanos tkp1,
-			     KalmanFilterStep const & step_spec)
+    KalmanFilterEngine::step(KalmanFilterStep const & step_spec)
     {
-      return step(tkp1,
+      return step(step_spec.tkp1(),
 		  step_spec.state(),
 		  step_spec.model(),
 		  step_spec.obs(),
@@ -289,13 +288,10 @@ namespace xo {
     } /*step1*/
 
     KalmanFilterStateExt
-    KalmanFilterEngine::step1(utc_nanos tkp1,
-			      //KalmanFilterState const & sk,
-			      KalmanFilterStep const & step_spec,
-			      //KalmanFilterInput const & zkp1,
+    KalmanFilterEngine::step1(KalmanFilterStep const & step_spec,
 			      uint32_t j)
     {
-      return step1(tkp1,
+      return step1(step_spec.tkp1(),
 		   step_spec.state(),
 		   step_spec.model(),
 		   step_spec.obs(),

@@ -128,8 +128,7 @@ namespace xo {
 	KalmanFilterStep step_spec = spec.make_step(sk, inputk);
 
 	KalmanFilterStateExt skp1
-	  = KalmanFilterEngine::step(tkp1,
-				     step_spec);
+	  = KalmanFilterEngine::step(step_spec);
 
 	REQUIRE(skp1.step_no() == i_step);
 	REQUIRE(skp1.tm() == tkp1);
@@ -267,9 +266,7 @@ namespace xo {
 	  = spec.make_step(sk, inputk);
 
 	KalmanFilterStateExt skp1
-	  = KalmanFilterEngine::step1(tkp1,
-				      step_spec,
-				      0 /*j*/);
+	  = KalmanFilterEngine::step1(step_spec, 0 /*j*/);
 
 	REQUIRE(skp1.step_no() == i_step);
 	REQUIRE(skp1.tm() == tkp1);
