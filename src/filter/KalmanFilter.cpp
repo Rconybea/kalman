@@ -1,11 +1,13 @@
 /* @file KalmanFilter.cpp */
 
 #include "KalmanFilter.hpp"
+#include "print_eigen.hpp"
 #include "logutil/scope.hpp"
 #include "Eigen/src/Core/Matrix.h"
 
 namespace xo {
   using xo::time::utc_nanos;
+  using logutil::matrix;
   using logutil::scope;
   using logutil::xtag;
   using Eigen::LDLT;
@@ -22,11 +24,57 @@ namespace xo {
       : k_{k}, tk_{tk}, x_{std::move(x)}, P_{std::move(P)}
     {}
 
+    // ----- KalmanFilterExt -----
+
+    KalmanFilterStateExt::KalmanFilterStateExt(uint32_t k,
+					       utc_nanos tk,
+					       VectorXd x,
+					       MatrixXd P,
+					       MatrixXd K,
+					       int32_t j)
+      : KalmanFilterState(k, tk, x, P),
+	j_{j},
+	K_{std::move(K)}
+    {
+      uint32_t n = x.size();
+
+      if (n != P.rows() || n != P.cols()) {
+	std::string err_msg
+	  = tostr("with n=x.size expect [n x n] covar matrix P",
+		  xtag("n", x.size()),
+		  xtag("P.rows", P.rows()),
+		  xtag("P.cols", P.cols()));
+
+	  throw std::runtime_error(err_msg);
+      }
+
+      if ((K.rows() > 0) && (K.rows() > 0)) {
+	if (n != K.rows()) {
+	  std::string err_msg
+	    = tostr("with n=x.size expect [m x n] gain matrix K",
+		    xtag("n", x.size()),
+		    xtag("K.rows", K.rows()),
+		    xtag("K.cols", K.cols()));
+
+	  throw std::runtime_error(err_msg);
+	}
+      } else {
+	/* bypass test with [0 x 0] matrix K;
+	 * normal for initial filter state
+	 */
+      }
+    } /*ctor*/
+
+    // ----- KalmanFilterEngine -----
+
     KalmanFilterState
     KalmanFilterEngine::extrapolate(utc_nanos tkp1,
 				    KalmanFilterState const & s,
 				    KalmanFilterTransition const & f)
     {
+      constexpr char const * c_self_name
+	= "KalmanFilterEngine::extrapolate";
+
       /* prior estimates at t(k) */
       VectorXd const & x = s.state_v();
       MatrixXd const & P = s.state_cov();
@@ -34,6 +82,13 @@ namespace xo {
       /* model change from t(k) -> t(k+1) */
       MatrixXd const & F = f.transition_mat();
       MatrixXd const & Q = f.transition_cov();
+
+      if(F.cols() != x.rows()) {
+	scope lscope(c_self_name);
+
+	lscope.log("error: F*x: expected F.cols=x.rows",
+		   xtag("F.cols", F.cols()), xtag("x.rows", x.rows()));
+      }
 
       /* x(k+1|k) */
       VectorXd x_ext = F * x;
@@ -89,7 +144,10 @@ namespace xo {
       VectorXd K = P_ext * Hj.transpose() * m_inv;
 
       if(c_debug_enabled)
-	lscope.log("result", xtag("P(k+1|k)", P_ext), xtag("R", R), xtag("m", m));
+	lscope.log("result",
+		   xtag("P(k+1|k)", matrix(P_ext)),
+		   xtag("R", matrix(R)),
+		   xtag("m", m));
 
       return K;
     } /*kalman_gain1*/
@@ -98,7 +156,7 @@ namespace xo {
     KalmanFilterEngine::kalman_gain(KalmanFilterState const & skp1_ext,
 				    KalmanFilterObservable const & h)
     {
-      constexpr bool c_debug_enabled = false;
+      constexpr bool c_debug_enabled = true;
       scope lscope("KalmanFilterEngine::kalman_gain", c_debug_enabled);
 
       /* P(k+1|k) */
@@ -107,6 +165,27 @@ namespace xo {
       MatrixXd const & H = h.observable();
       MatrixXd const & R = h.observable_cov();
       
+      uint32_t m = H.rows();
+      uint32_t n = H.cols();
+
+      if ((P_ext.rows() != n) || (P_ext.cols() != n)) {
+	std::string err_msg
+	  = tostr("kalman_gain: with dim(H) = [m x n] expect dim(P) = [n x n]",
+		  xtag("m", m), xtag("n", n),
+		  xtag("P.rows", P_ext.rows()), xtag("P.cols", P_ext.cols()));
+
+	throw std::runtime_error(err_msg);
+      }
+
+      if ((R.rows() != m) || (R.cols() != m)) {
+	std::string err_msg
+	  = tostr("kalman_gain: with dim(H) = [m x n] expect dim(R) = [m x m]",
+		  xtag("m", m), xtag("n", n),
+		  xtag("R.rows", R.rows()), xtag("R.cols", R.cols()));
+
+	throw std::runtime_error(err_msg);
+      }
+
       /* kalman gain:
        *                         T  -1
        *   K(k+1) = P(k+1|k).H(k) .M
@@ -160,10 +239,16 @@ namespace xo {
       MatrixXd M_inv = ldlt.solve(I);
 
       /* K(k+1) */
-      MatrixXd K = P_ext * H * M_inv;
+      MatrixXd K = P_ext * H.transpose() * M_inv;
 
       if(c_debug_enabled)
-	lscope.log("result", xtag("P(k+1|k)", P_ext), xtag("R", R), xtag("M", M));
+	lscope.log("result",
+		   xtag("k", skp1_ext.step_no()),
+		   xtag("P(k+1|k)", matrix(P_ext)),
+		   xtag("H", matrix(H)),
+		   xtag("R", matrix(R)),
+		   xtag("M", matrix(M)),
+		   xtag("K", matrix(K)));
 
       return K;
     } /*kalman_gain*/

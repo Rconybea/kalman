@@ -196,9 +196,7 @@ namespace xo {
 			   VectorXd x,
 			   MatrixXd P,
 			   MatrixXd K,
-			   int32_t j)
-	: KalmanFilterState(k, tk, x, P),
-	  j_{j}, K_{std::move(K)} {}
+			   int32_t j);
 
       int32_t observable() const { return j_; }
       MatrixXd const & gain() const { return K_; }
