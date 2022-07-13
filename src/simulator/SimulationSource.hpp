@@ -7,6 +7,7 @@
 
 namespace xo {
   namespace sim {
+#ifdef OBSOLETE
     /* a simulation source has:
      *
      * - current time t0.
@@ -62,6 +63,7 @@ namespace xo {
     }; /*SimulationSource*/
 
     using SimulationSourcePtr = ref::rp<SimulationSource>;
+#endif
   } /*namespace sim*/
 } /*namespace xo*/
 

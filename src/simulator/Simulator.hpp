@@ -26,6 +26,8 @@ namespace xo {
      */
     class Simulator : public reactor::Reactor {
     public:
+      using SourcePtr = xo::reactor::SourcePtr;
+      using Source = xo::reactor::Source;
       using utc_nanos = xo::time::utc_nanos;
       
     public:
@@ -49,7 +51,7 @@ namespace xo {
       /* true iff src has been added to this simulator
        * (by .add_source())
        */
-      bool is_source_present(ref::brw<SimulationSource> src) const;
+      bool is_source_present(ref::brw<Source> src) const;
 
       /* promise:
        *   .next_tm() > .t0() || .is_exhausted()
@@ -102,12 +104,12 @@ namespace xo {
        * - src->is_primed()
        * - .sim_heap[.sim_heap.size - 1] already refers to src
        */
-      void heap_update_source(SimulationSource * src);
+      void heap_update_source(Source * src);
 
       /* insert source into .sim_heap.
        * increase sim_heap.size() by +1
        */
-      void heap_insert_source(SimulationSource * src);
+      void heap_insert_source(Source * src);
 
     private:
       /* simulation heap:
@@ -133,7 +135,7 @@ namespace xo {
        *     2.1 s.is_exhausted() = false
        *     2.2 s.t0() >= .t0
        */
-      std::vector<SimulationSourcePtr> src_v_;
+      std::vector<SourcePtr> src_v_;
     }; /*Simulator*/
 
   } /*namespace sim*/

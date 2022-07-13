@@ -33,6 +33,17 @@ namespace xo {
      * .online_current_tm(), .online_advance_until() respectively
      *   .online_current_tm() aborts since an online source is never exhausted
      *   .online_advance_until() is a no-op that returns 0
+     *
+     * Loop for consuming from a primary simulation source:
+     *
+     *   brw<Source> s = ...;
+     *   while(!s->is_exhausted())
+     *     s->deliver_one();
+     *
+     * Secondary sources (sources that depend on other sources) can be
+     * in a state where they don't know their next event,  in which case:
+     *
+     *   s->is_notprimed() == true
      */
     class Source : public ref::Refcount {
     public:
@@ -45,7 +56,7 @@ namespace xo {
       virtual bool is_empty() const = 0;
       bool is_nonempty() const { return !this->is_empty(); }
 
-      /* true when source doesn't know its next event
+      /* true when source knows its next event
        * A source that isn't primed is also excluded from simulation
        * heap until it becomes primed.
        * This make feasible simulation sources that
@@ -62,7 +73,10 @@ namespace xo {
 
       /* if this is a simulation source and .is_exhausted is false:
        * returns next event time;  more precisely, no events exist prior to
-       * this time
+       * this time.
+       *
+       * if sim, and .is_primed = true,
+       * returns timestamp of next event
        */
       virtual utc_nanos sim_current_tm() const = 0;
 
@@ -70,14 +84,23 @@ namespace xo {
        * interpretation of 'one event' is source-specific;
        * could be a collapsed or batched event in practice.
        *
-       * no-op if source is empty
+       * no-op if source is empty.
+       *
+       * if sim, promise:
+       * - new .current_tm >= old .current_tm() || .is_notprimed() || .is_exhausted()
        *
        * returns #of events delivered.  Must be 0 or 1 in this context
        */
       virtual std::uint64_t deliver_one() = 0;
 
       /* promise:
-       * - .current_tm() > tm || .is_exhausted() = true
+       * - .current_tm() > tm || .is_notprimed() || .is_exhausted() = true
+       * - if replay_flag is true,  then any events between previous .current_tm()
+       *    and new .current_tm() will have been published
+       *
+       * returns #of events delivered.
+       * does not count events that were skipped,  so always returns 0 if
+       * replay_flag is false
        */
       virtual std::uint64_t sim_advance_until(utc_nanos tm, bool replay_flag) = 0;
 

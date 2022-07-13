@@ -39,9 +39,9 @@ namespace xo {
     } /*dtor*/
 
     bool
-    Simulator::is_source_present(brw<SimulationSource> src) const
+    Simulator::is_source_present(brw<Source> src) const
     {
-      for(SimulationSourcePtr const & s : this->src_v_) {
+      for(SourcePtr const & s : this->src_v_) {
 	if(s == src)
 	  return true;
       }
@@ -65,8 +65,8 @@ namespace xo {
       constexpr bool c_logging_enabled_flag = true;
       scope lscope("Simulator::notify_source_primed", c_logging_enabled_flag);
 
-      brw<SimulationSource> sim_src
-	= brw<SimulationSource>::from(src);
+      brw<Source> sim_src
+	= brw<Source>::from(src);
 
       lscope.log(xtag("sim_src", (sim_src.get() != nullptr)));
 
@@ -100,7 +100,7 @@ namespace xo {
       /* verify that src isa SimulationSource instance.
        * Simulator does not support non-simulation sources.
        */
-      brw<SimulationSource> sim_src = brw<SimulationSource>::from(src);
+      brw<Source> sim_src = brw<Source>::from(src);
 
       if(!sim_src || this->is_source_present(sim_src))
 	return false;
@@ -134,7 +134,7 @@ namespace xo {
     {
       //constexpr char const * c_self = "Simulator::remove_source";
 
-      brw<SimulationSource> sim_src = brw<SimulationSource>::from(src);
+      brw<Source> sim_src = brw<Source>::from(src);
 
       if(!sim_src || !this->is_source_present(sim_src))
 	return false;
@@ -169,7 +169,7 @@ namespace xo {
     } /*run_one*/
 
     void
-    Simulator::heap_update_source(SimulationSource * src)
+    Simulator::heap_update_source(Source * src)
     {
       /* Require:
        *   .sim_heap[.sim_heap.size - 1] already refers to src
@@ -192,7 +192,7 @@ namespace xo {
     } /*heap_update_source*/
 
     void
-    Simulator::heap_insert_source(SimulationSource * src)
+    Simulator::heap_insert_source(Source * src)
     {
       this->sim_heap_.push_back(SourceTimestamp(src->sim_current_tm(), src));
 
@@ -208,7 +208,7 @@ namespace xo {
       }
 
       /* *src is source with earliest timestamp */
-      SimulationSource * src
+      Source * src
 	= this->sim_heap_.front().src();
 
       /* NOTE: src.current_tm() isn't preserved across

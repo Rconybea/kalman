@@ -36,7 +36,7 @@ namespace xo {
     template<typename Event,
 	     typename Callback,
 	     void (Callback::*member_fn)(Event const &)>
-    class SecondarySimSource : public sim::SimulationSource {
+    class SecondarySimSource : public reactor::Source {
     public:
       using Reactor = reactor::Reactor;
       template<typename Fn>

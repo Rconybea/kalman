@@ -21,7 +21,7 @@ namespace xo {
      * - invoke EventSink(std::pair<utc_nanos, T>)
      */
     template <typename T, typename EventSink>
-    class RealizationSimSource : public xo::sim::SimulationSource {
+    class RealizationSimSource : public xo::reactor::Source {
     public:
       using nanos = xo::time::nanos;
 
