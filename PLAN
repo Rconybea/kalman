@@ -15,3 +15,12 @@ DONE generalize simulator,  allow not-ready sources
 * nicely-encapsulated Side,  with methods + conversions
 * simulate order flow!   random price-taking orders
 * add callbacks to StrikeSetOmdSimSource
+
+* operate kalman filter from sim sources
+* kalman filter itself as simulation source
+
+* logistic function + distribution (fat tailed distribution)
+  - want to consider product of cumulative logistics,
+    differentiable + maybe(?) easy to work with
+* extended kalman filter
+* unscented kalman filter
