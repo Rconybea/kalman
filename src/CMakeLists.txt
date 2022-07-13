@@ -34,6 +34,7 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS ON CACHE INTERNAL "")
 # ability to configure dependencies given in pkg-config (.pc) files
 include(FindPkgConfig)
 include(cmake/code-coverage.cmake)
+include(cmake/symlink.cmake)
 
 # propagate version info to c++
 configure_file(KalmanConfig.h.in KalmanConfig.h)
