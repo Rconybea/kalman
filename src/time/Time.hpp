@@ -22,6 +22,10 @@ namespace xo {
     using days = std::chrono::days;
 
     struct Time {
+      static utc_nanos epoch() {
+	return std::chrono::system_clock::from_time_t(0);
+      } /*epoch*/
+
       static utc_nanos ymd_hms(uint32_t ymd, uint32_t hms) {
         /* e.g. ymd=20220610 -> n_yr=2022, n_mon=06, n_dy=10 */
 
@@ -43,6 +47,7 @@ namespace xo {
         t.tm_min = n_min;
         t.tm_sec = n_sec;
 
+	/* time since epoch */
         time_t epoch_time = timegm(&t);
 
 	return std::chrono::system_clock::from_time_t(epoch_time);

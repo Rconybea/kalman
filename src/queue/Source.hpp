@@ -3,6 +3,7 @@
 #pragma once
 
 #include "refcnt/Refcounted.hpp"
+#include "time/Time.hpp"
 #include <cstdint>
 
 namespace xo {
@@ -22,8 +23,21 @@ namespace xo {
      * formed/broken by the 
      *   .notify_reactor_add(), .notify_reactor_remove()
      * methods
+     *
+     * The source api intends also to provide for simulation.
+     * There introduces two simulation-specific methods:
+     *   .sim_current_tm()
+     *   .sim_advance_until()
+     *
+     * A non-simulation source can implement these as calls to
+     * .online_current_tm(), .online_advance_until() respectively
+     *   .online_current_tm() aborts since an online source is never exhausted
+     *   .online_advance_until() is a no-op that returns 0
      */
     class Source : public ref::Refcount {
+    public:
+      using utc_nanos = xo::time::utc_nanos;
+      
     public:
       virtual ~Source() = default;
 
@@ -46,6 +60,12 @@ namespace xo {
        */
       virtual bool is_exhausted() const = 0;
 
+      /* if this is a simulation source and .is_exhausted is false:
+       * returns next event time;  more precisely, no events exist prior to
+       * this time
+       */
+      virtual utc_nanos sim_current_tm() const = 0;
+
       /* deliver one  event to attached sink
        * interpretation of 'one event' is source-specific;
        * could be a collapsed or batched event in practice.
@@ -56,6 +76,11 @@ namespace xo {
        */
       virtual std::uint64_t deliver_one() = 0;
 
+      /* promise:
+       * - .current_tm() > tm || .is_exhausted() = true
+       */
+      virtual std::uint64_t sim_advance_until(utc_nanos tm, bool replay_flag) = 0;
+
       /* informs source when it's added to a reactor
        * (see Reactor.add_source())
        */
@@ -65,6 +90,11 @@ namespace xo {
        * (see Reactor.remove_source())
        */
       virtual void notify_reactor_remove(Reactor * /*reactor*/) {}
+
+    protected:
+      /* default implementations for online sources */
+      utc_nanos online_current_tm() const;
+      uint64_t online_advance_until(utc_nanos tm, bool replay_flag);
     }; /*Source*/
 
     using SourcePtr = ref::rp<Source>;
