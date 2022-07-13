@@ -75,25 +75,6 @@ namespace xo {
 	std::invoke(this->ev_sink_, this->tracer_->current_ev());
       } /*sink_one*/
 
-      // ----- inherited from SimulationSource -----
-
-      /* note:
-       *   with replay_flag=true,  treats tm as lower bound
-       */
-      virtual std::uint64_t advance_until(utc_nanos tm, bool replay_flag) override {
-	std::uint64_t retval = 0ul;
-
-	if(replay_flag) {
-	  while(this->sim_current_tm() < tm) {
-	    retval += this->deliver_one();
-	  }
-	} else {
-	  this->tracer_->advance_until(tm);
-	}
-
-	return retval;
-      } /*advance_until*/
-	
       // ----- inherited from Source -----
 
       /* process realizations are always primed (at least for now) */
@@ -112,6 +93,23 @@ namespace xo {
 	return 1;
       } /*deliver_one*/
 
+      /* note:
+       *   with replay_flag=true,  treats tm as lower bound
+       */
+      virtual std::uint64_t sim_advance_until(utc_nanos tm, bool replay_flag) override {
+	std::uint64_t retval = 0ul;
+
+	if(replay_flag) {
+	  while(this->sim_current_tm() < tm) {
+	    retval += this->deliver_one();
+	  }
+	} else {
+	  this->tracer_->advance_until(tm);
+	}
+
+	return retval;
+      } /*advance_until*/
+	
     private:
       RealizationSimSource(ref::rp<RealizationTracer<T>> const & tracer,
 			   nanos ev_interval_dt,

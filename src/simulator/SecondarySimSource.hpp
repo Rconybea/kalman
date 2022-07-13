@@ -113,25 +113,6 @@ namespace xo {
 
       virtual bool is_empty() const override { return this->event_heap_.empty(); }
       virtual bool is_exhausted() const override { return this->upstream_exhausted_ && this->is_empty(); }      
-      std::uint64_t advance_until(utc_nanos target_tm,
-				  bool replay_flag) override
-      {
-	uint64_t retval;
-
-	while(!this->event_heap_.empty()) {
-	  utc_nanos tm = this->sim_current_tm();
-
-	  if(tm < target_tm) {
-	    retval += this->deliver_one_aux(replay_flag);
-	  } else {
-	    break;
-	  }
-	}
-
-	return retval;
-      } /*advance_until*/
-
-      // ----- inherited from Source -----
 
       virtual utc_nanos sim_current_tm() const override {
 	if(this->event_heap_.empty()) {
@@ -155,6 +136,24 @@ namespace xo {
       } /*sim_current_tm*/
 
       virtual std::uint64_t deliver_one() override { return this->deliver_one_aux(true /*replay_flag*/); }
+
+      virtual std::uint64_t sim_advance_until(utc_nanos target_tm,
+					      bool replay_flag) override
+      {
+	uint64_t retval;
+
+	while(!this->event_heap_.empty()) {
+	  utc_nanos tm = this->sim_current_tm();
+
+	  if(tm < target_tm) {
+	    retval += this->deliver_one_aux(replay_flag);
+	  } else {
+	    break;
+	  }
+	}
+
+	return retval;
+      } /*advance_until*/
 
       virtual void notify_reactor_add(Reactor * reactor) override {
 	assert(!this->parent_reactor_);

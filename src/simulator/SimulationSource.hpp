@@ -29,17 +29,6 @@ namespace xo {
       using utc_nanos = xo::time::utc_nanos;
 
     public:
-      /* promise:
-       * - .current_tm() > tm || .is_exhausted() = true
-       * - if replay_flag is true,   then any events between
-       *   prev .t0() and new .t0() will have been published
-       *
-       * returns #of events delivered.
-       * does not count events that were skipped, so always returns 0 if
-       * replay_flag is false
-       */
-      virtual std::uint64_t advance_until(utc_nanos tm, bool replay_flag) = 0;
-
       // ----- inherited from reactor::Source -----
 
       virtual bool is_empty() const override = 0;
@@ -58,7 +47,16 @@ namespace xo {
        * returns #of events actually released (0 or 1)
        */
       virtual std::uint64_t deliver_one() override = 0;
-      virtual std::uint64_t sim_advance_until(utc_nanos tm, bool replay_flag) override { return this->advance_until(tm, replay_flag); }
+      /* promise:
+       * - .current_tm() > tm || .is_exhausted() = true
+       * - if replay_flag is true,   then any events between
+       *   prev .t0() and new .t0() will have been published
+       *
+       * returns #of events delivered.
+       * does not count events that were skipped, so always returns 0 if
+       * replay_flag is false
+       */
+      virtual std::uint64_t sim_advance_until(utc_nanos tm, bool replay_flag) override = 0;
       virtual void notify_reactor_add(Reactor * /*reactor*/) override {}
       virtual void notify_reactor_remove(Reactor * /*reactor*/) override {}
     }; /*SimulationSource*/

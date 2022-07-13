@@ -105,7 +105,7 @@ namespace xo {
       if(!sim_src || this->is_source_present(sim_src))
 	return false;
 
-      sim_src->advance_until(this->t0(), false /*!replay_flag*/);
+      sim_src->sim_advance_until(this->t0(), false /*!replay_flag*/);
 
       this->src_v_.push_back(sim_src.promote());
 
