@@ -8,6 +8,11 @@ add_executable(${SELF_EXECUTABLE_NAME} ${SOURCE_FILES})
 add_test(NAME ${SELF_EXECUTABLE_NAME} COMMAND ${SELF_EXECUTABLE_NAME})
 
 # ----------------------------------------------------------------
+# create convenience symlink to canned data
+
+create_symlink("${CMAKE_SOURCE_DIR}/utestdata/" "filter/utest/utestdata")
+
+# ----------------------------------------------------------------
 # generic project dependency
 
 # PROJECT_SOURCE_DIR:

@@ -156,7 +156,7 @@ namespace xo {
     KalmanFilterEngine::kalman_gain(KalmanFilterState const & skp1_ext,
 				    KalmanFilterObservable const & h)
     {
-      constexpr bool c_debug_enabled = true;
+      constexpr bool c_debug_enabled = false;
       scope lscope("KalmanFilterEngine::kalman_gain", c_debug_enabled);
 
       /* P(k+1|k) */
