@@ -73,7 +73,7 @@ namespace xo {
       if(!sim_src)
 	return;
 
-      lscope.log(xtag("src.current_tm", sim_src->current_tm()),
+      lscope.log(xtag("src.current_tm", sim_src->sim_current_tm()),
 		 xtag("sim_heap.size", this->sim_heap_.size()));
 
       /* inform Simulator when a source transitions from
@@ -115,7 +115,7 @@ namespace xo {
 	sim_src->notify_reactor_add(this /*reactor*/);
 
 	/* also add to simulation heap */
-	this->sim_heap_.push_back(SourceTimestamp(sim_src->current_tm(),
+	this->sim_heap_.push_back(SourceTimestamp(sim_src->sim_current_tm(),
 						  sim_src.get()));
 
 	/* use std::greater<> because we need a min-heap;
@@ -181,7 +181,7 @@ namespace xo {
 
       /* re-insert at new timestamp */
       this->sim_heap_[simheap_z - 1]
-	= SourceTimestamp(src->current_tm(), src);
+	= SourceTimestamp(src->sim_current_tm(), src);
 
       /* use std::greater<> because we need a min-heap;
        * smallest timestamp at the front
@@ -194,7 +194,7 @@ namespace xo {
     void
     Simulator::heap_insert_source(SimulationSource * src)
     {
-      this->sim_heap_.push_back(SourceTimestamp(src->current_tm(), src));
+      this->sim_heap_.push_back(SourceTimestamp(src->sim_current_tm(), src));
 
       this->heap_update_source(src);
     } /*heap_insert_source*/

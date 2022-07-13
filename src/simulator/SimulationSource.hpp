@@ -29,13 +29,6 @@ namespace xo {
       using utc_nanos = xo::time::utc_nanos;
 
     public:
-      /* if .is_exhausted = false:
-       *   - next event time.
-       *      more precisely:  no events exist in this source prior to .t0
-       * otherwise not defined.
-       */
-      virtual utc_nanos current_tm() const = 0;
-
       /* promise:
        * - .current_tm() > tm || .is_exhausted() = true
        * - if replay_flag is true,   then any events between
@@ -51,7 +44,12 @@ namespace xo {
 
       virtual bool is_empty() const override = 0;
       virtual bool is_exhausted() const override = 0;
-      virtual utc_nanos sim_current_tm() const override { return this->current_tm(); }
+      /* if .is_exhausted = false:
+       *   - next event time.
+       *      more precisely:  no events exist in this source prior to .t0
+       * otherwise not defined.
+       */
+      virtual utc_nanos sim_current_tm() const override = 0;
       /* release one event from this source.
        *
        * promise:

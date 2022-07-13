@@ -77,8 +77,6 @@ namespace xo {
 
       // ----- inherited from SimulationSource -----
 
-      virtual utc_nanos current_tm() const override { return this->tracer_->current_tm(); } 
-
       /* note:
        *   with replay_flag=true,  treats tm as lower bound
        */
@@ -86,7 +84,7 @@ namespace xo {
 	std::uint64_t retval = 0ul;
 
 	if(replay_flag) {
-	  while(this->current_tm() < tm) {
+	  while(this->sim_current_tm() < tm) {
 	    retval += this->deliver_one();
 	  }
 	} else {
@@ -104,6 +102,8 @@ namespace xo {
        * will need simulator to impose one
        */
       virtual bool is_exhausted() const override { return false; }
+
+      virtual utc_nanos sim_current_tm() const override { return this->tracer_->current_tm(); } 
 
       virtual std::uint64_t deliver_one() override {
 	this->sink_one();

@@ -109,11 +109,31 @@ namespace xo {
 	this->cb_set_.remove_callback(cb);
       } /*remove_callback*/
 
-      // ----- inherited from SimulationSource -----
+      // ----- inherited from reactor::Source -----
 
       virtual bool is_empty() const override { return this->event_heap_.empty(); }
       virtual bool is_exhausted() const override { return this->upstream_exhausted_ && this->is_empty(); }      
-      virtual utc_nanos current_tm() const override {
+      std::uint64_t advance_until(utc_nanos target_tm,
+				  bool replay_flag) override
+      {
+	uint64_t retval;
+
+	while(!this->event_heap_.empty()) {
+	  utc_nanos tm = this->sim_current_tm();
+
+	  if(tm < target_tm) {
+	    retval += this->deliver_one_aux(replay_flag);
+	  } else {
+	    break;
+	  }
+	}
+
+	return retval;
+      } /*advance_until*/
+
+      // ----- inherited from Source -----
+
+      virtual utc_nanos sim_current_tm() const override {
 	if(this->event_heap_.empty()) {
 	  /* this is a tricky case.
 	   * it means this source doesn't
@@ -132,27 +152,7 @@ namespace xo {
 
 	  return next_ev.tm();
 	}
-      } /*current_tm*/
-
-      std::uint64_t advance_until(utc_nanos target_tm,
-				  bool replay_flag) override
-      {
-	uint64_t retval;
-
-	while(!this->event_heap_.empty()) {
-	  utc_nanos tm = this->current_tm();
-
-	  if(tm < target_tm) {
-	    retval += this->deliver_one_aux(replay_flag);
-	  } else {
-	    break;
-	  }
-	}
-
-	return retval;
-      } /*advance_until*/
-
-      // ----- inherited from Source -----
+      } /*sim_current_tm*/
 
       virtual std::uint64_t deliver_one() override { return this->deliver_one_aux(true /*replay_flag*/); }
 
