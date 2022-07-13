@@ -1,6 +1,6 @@
 /* @file SourceTimestamp.hpp */
 
-#include "SimulationSource.hpp"
+#include "queue/Source.hpp"
 
 namespace xo {
   namespace sim {

@@ -2,7 +2,7 @@
 
 #pragma once
 
-#include "simulator/SimulationSource.hpp"
+#include "queue/Source.hpp"
 #include "process/RealizationTracer.hpp"
 #include <logutil/scope.hpp>
 #include <functional>

@@ -3,8 +3,8 @@
 #pragma once
 
 #include "queue/Reactor.hpp"
-#include "simulator/SimulationSource.hpp"
 #include "simulator/SourceTimestamp.hpp"
+#include "queue/Source.hpp"
 #include "refcnt/Refcounted.hpp"
 #include "time/Time.hpp"
 #include <vector>
