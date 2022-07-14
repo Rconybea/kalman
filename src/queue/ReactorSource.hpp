@@ -2,7 +2,7 @@
 
 #pragma once
 
-#include "refcnt/Refcounted.hpp"
+#include "queue/Source.hpp"
 #include "time/Time.hpp"
 #include <cstdint>
 
@@ -45,7 +45,7 @@ namespace xo {
      *
      *   s->is_notprimed() == true
      */
-    class ReactorSource : public ref::Refcount {
+    class ReactorSource : public Source {
     public:
       using utc_nanos = xo::time::utc_nanos;
       
