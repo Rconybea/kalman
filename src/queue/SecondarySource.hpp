@@ -9,8 +9,8 @@
 #include <vector>
 
 namespace xo {
-  namespace sim {
-    /* a simulation source that collects + forwards events produced
+  namespace reactor {
+    /* a source that collects + forwards events produced
      * elsewhere.   Events will be forwarded to callbacks in timestamp order
      * by a running simulator
      *
@@ -36,7 +36,7 @@ namespace xo {
     template<typename Event,
 	     typename Callback,
 	     void (Callback::*member_fn)(Event const &)>
-    class SecondarySimSource : public reactor::Source {
+    class SecondarySource : public reactor::Source {
     public:
       using Reactor = reactor::Reactor;
       template<typename Fn>
@@ -45,7 +45,7 @@ namespace xo {
       using scope = logutil::scope;
 
     public:
-      static ref::rp<SecondarySimSource> make() { return new SecondarySimSource(); }
+      static ref::rp<SecondarySource> make() { return new SecondarySource(); }
 
       void notify_upstream_exhausted() { this->upstream_exhausted_ = true; }
 
@@ -56,10 +56,10 @@ namespace xo {
 	using logutil::xtag;
 
 	constexpr bool c_logging_enabled_flag = true;
-	scope lscope("SecondarySimSource::notify_event", c_logging_enabled_flag);
+	scope lscope("SecondarySource::notify_event", c_logging_enabled_flag);
 
 	if(this->upstream_exhausted_) {
-	  throw std::runtime_error("SecondarySimSource::notify_event"
+	  throw std::runtime_error("SecondarySource::notify_event"
 				   ": not allowed after upstream exhausted");
 	}
 
@@ -212,8 +212,8 @@ namespace xo {
 
       /* invoke callbacks in this set for each event */
       CallbackSet<ref::rp<Callback>> cb_set_;
-    }; /*SecondarySimSource*/
-  } /*namespace sim*/
+    }; /*SecondarySource*/
+  } /*namespace reactor*/
 } /*namespace xo*/
 
 /* end SecondarySimSource.hpp */

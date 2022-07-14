@@ -2,12 +2,12 @@
 
 #pragma once
 
-#include "simulator/SecondarySimSource.hpp"
+#include "queue/SecondarySource.hpp"
 #include "option/OmdCallback.hpp"
 
 namespace xo {
   namespace option {
-    using StrikeSetOmdSimSource = xo::sim::SecondarySimSource<BboTick, OmdCallback, &OmdCallback::notify_bbo>;
+    using StrikeSetOmdSimSource = xo::reactor::SecondarySource<BboTick, OmdCallback, &OmdCallback::notify_bbo>;
   } /*namespace option*/
 } /*namespace xo*/
 
