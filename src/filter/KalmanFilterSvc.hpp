@@ -1,5 +1,6 @@
 /* @file KalmanFilterSvc.hpp */
 
+#include "queue/Sink.hpp"
 #include "filter/KalmanFilter.hpp"
 #include "filter/KalmanFilterInputSource.hpp"
 #include "filter/KalmanFilterOutputCallback.hpp"
@@ -8,11 +9,18 @@
 namespace xo {
   namespace kalman {
     /* encapsulate a passive KalmanFilter
-     * instance as an active event consumer/producer
+     * instance as an active event consumer+producer
+     *
+     * sinks that want to consume KalmanFilterSvc events will use
+     * .add_filter_callback()
      */
-    class KalmanFilterSvc {
+    class KalmanFilterSvc : public xo::reactor::Sink, public xo::reactor::Source {
     public:
-      KalmanFilterSvc(KalmanFilterSpec spec);
+      using Source = xo::reactor::Source;
+      
+    public:
+      /* named ctor idiom */
+      static ref::rp<KalmanFilterSvc> make(KalmanFilterSpec spec);
 
       KalmanFilter const & filter() const { return filter_; }
 
@@ -27,6 +35,16 @@ namespace xo {
 
       /* notify incoming observations;  will trigger kalman filter step */
       void notify_input(KalmanFilterInput const & input_kp1);
+
+      // ----- inherited from reactor::Sink -----
+
+      /* provide source of kalman filter input events.
+       * src.get() must dynamic cast to KalmanFilterInputSource
+       */
+      virtual void attach_source(ref::rp<Source> src) override;
+
+    private:
+      KalmanFilterSvc(KalmanFilterSpec spec);
 
     private:
       /* passive kalman filter */

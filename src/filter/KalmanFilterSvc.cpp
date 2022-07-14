@@ -3,7 +3,15 @@
 #include "KalmanFilterSvc.hpp"
 
 namespace xo {
+  using xo::ref::rp;
+
   namespace kalman {
+    rp<KalmanFilterSvc>
+    KalmanFilterSvc::make(KalmanFilterSpec spec)
+    {
+      return new KalmanFilterSvc(std::move(spec));
+    } /*make*/
+
     KalmanFilterSvc::KalmanFilterSvc(KalmanFilterSpec spec)
       : filter_{std::move(spec)}
     {}
@@ -49,6 +57,21 @@ namespace xo {
       this->pub_.invoke(&KalmanFilterOutputCallback::notify_filter,
 			this->filter_.state_ext());
     } /*notify_input*/
+
+    void
+    KalmanFilterSvc::attach_source(rp<Source> src)
+    {
+      /* Source must actually be a KalmanFilterInputSource */
+      KalmanFilterInputSource * kf_src
+	= dynamic_cast<KalmanFilterInputSource *>(src.get());
+
+      if (!kf_src) {
+	throw std::runtime_error("KalmanFilterSvc::attach_source: "
+				 " expected src to be a KalmanFilterInputSource");
+      }
+
+      this->attach_input(kf_src);
+    } /*attach_source*/
   } /*namespace kalman*/
 } /*namespace xo*/
 
