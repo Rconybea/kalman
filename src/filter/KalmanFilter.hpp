@@ -80,6 +80,7 @@ namespace xo {
       using uint32_t = std::uint32_t;
 
     public:
+      KalmanFilterTransition() = default;
       KalmanFilterTransition(MatrixXd F,
 			     MatrixXd Q)
 	: F_{std::move(F)}, Q_{std::move(Q)} { assert(this->check_ok()); }
@@ -216,11 +217,34 @@ namespace xo {
       MatrixXd K_;
     }; /*KalamnFilterStateExt*/
       
+    class KalmanFilterInput {
+    public:
+      using VectorXd = Eigen::VectorXd;
+      using utc_nanos = xo::time::utc_nanos;
+      using uint32_t = std::uint32_t;
+
+    public:
+      KalmanFilterInput() = default;
+      explicit KalmanFilterInput(utc_nanos tkp1, VectorXd z)
+	: tkp1_(tkp1), z_{std::move(z)} {}
+
+      utc_nanos tkp1() const { return tkp1_; }
+      uint32_t n_obs() const { return z_.size(); }
+      VectorXd const & z() const { return z_; }
+
+    private:
+      /* t(k+1) - asof time for observations .z */
+      utc_nanos tkp1_ = xo::time::Time::epoch();
+      /* [m x 1] observation vector z(k) */
+      VectorXd z_;
+    }; /*KalmanFilterInput*/
+
     /* encapsulate {state + observation} models for a single time step t(k).
      * Emitted by KalmanFilterSpec, q.v.
      */
     class KalmanFilterStepBase {
     public:
+      KalmanFilterStepBase() = default;
       KalmanFilterStepBase(KalmanFilterTransition model,
 			   KalmanFilterObservable obs)
 	: model_{std::move(model)},
@@ -236,27 +260,6 @@ namespace xo {
       KalmanFilterObservable obs_;
     }; /*KalmanFilterStepBase*/
 
-    class KalmanFilterInput {
-    public:
-      using VectorXd = Eigen::VectorXd;
-      using utc_nanos = xo::time::utc_nanos;
-      using uint32_t = std::uint32_t;
-
-    public:
-      explicit KalmanFilterInput(utc_nanos tkp1, VectorXd z)
-	: tkp1_(tkp1), z_{std::move(z)} {}
-
-      utc_nanos tkp1() const { return tkp1_; }
-      uint32_t n_obs() const { return z_.size(); }
-      VectorXd const & z() const { return z_; }
-
-    private:
-      /* t(k+1) - asof time for observations .z */
-      utc_nanos tkp1_;
-      /* [m x 1] observation vector z(k) */
-      VectorXd z_;
-    }; /*KalmanFilterInput*/
-
     /* encapsulate {state + observation} models for a single time step t(k).
      * Emitted by KalmanFilterSpec, q.v.
      */
@@ -265,6 +268,7 @@ namespace xo {
       using utc_nanos = xo::time::utc_nanos;
 
     public:
+      KalmanFilterStep() = default;
       KalmanFilterStep(KalmanFilterState state,
 		       KalmanFilterTransition model,
 		       KalmanFilterObservable obs,
@@ -510,6 +514,50 @@ namespace xo {
       static KalmanFilterStateExt step1(KalmanFilterStep const & step_spec,
 					uint32_t j);
     }; /*KalmanFilterEngine*/
+
+    /* encapsulate a (linear) kalman filter
+     * together with event publishing
+     */
+    class KalmanFilter {
+    public:
+      using MatrixXd = Eigen::MatrixXd;
+      using VectorXd = Eigen::VectorXd;
+      using utc_nanos = xo::time::utc_nanos;
+
+    public:
+      /* create filter with specification given by spec,  and initial state s0 */
+      explicit KalmanFilter(KalmanFilterSpec spec);
+
+      uint32_t step_no() const { return state_ext_.step_no(); }
+      utc_nanos tm() const { return state_ext_.tm(); }
+      KalmanFilterSpec const & filter_spec() const { return filter_spec_; }
+      KalmanFilterStep const & step() const { return step_; }
+      KalmanFilterStateExt const & state_ext() const { return state_ext_; }
+
+      /* notify kalman filter with input for time t(k+1) = input_kp1.tkp1()
+       * Require: input.tkp1() >= .current_tm()
+       * Promise:
+       * - .tm() = input_kp1.tkp1()
+       * - .step_no() = old .step_no() + 1
+       * - .filter_spec_k, .step_k, .state_k updated
+       *   for observations in input_kp1
+       */
+      void notify_input(KalmanFilterInput const & input_kp1);
+
+    private:
+      /* specification for kalman filter;
+       * produces process/observation matrices on demand
+       */
+      KalmanFilterSpec filter_spec_;
+
+      /* filter step for most recent observation */
+      KalmanFilterStep step_;
+
+      /* filter state as of most recent observation;
+       * result of applying KalmanFilterEngine::step() to contents of .step
+       */
+      KalmanFilterStateExt state_ext_;
+    }; /*KalmanFilter*/
   } /*namespace kalman*/
 } /*namespace xo*/
 

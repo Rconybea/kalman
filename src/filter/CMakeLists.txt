@@ -3,7 +3,7 @@
 set(SELF_LIBRARY_NAME filter)
 
 # build shared liburary 'filter'
-add_library(${SELF_LIBRARY_NAME} SHARED KalmanFilter.cpp)
+add_library(${SELF_LIBRARY_NAME} SHARED KalmanFilterSvc.cpp KalmanFilter.cpp)
 
 set_target_properties(${SELF_LIBRARY_NAME}
 		      PROPERTIES
@@ -35,7 +35,7 @@ target_include_directories(${SELF_LIBRARY_NAME}
 
 #target_link_libraries(${SELF_LIBRARY_NAME} PUBLIC process)
 target_link_libraries(${SELF_LIBRARY_NAME} PUBLIC logutil)
-#target_link_libraries(${SELF_LIBRARY_NAME} PUBLIC refcnt)
+target_link_libraries(${SELF_LIBRARY_NAME} PUBLIC refcnt)
 
 # ----------------------------------------------------------------
 # 3rd party dependency: eigen:

@@ -1,9 +1,9 @@
-/* @file SecondarySimSource.hpp */
+/* @file SecondarySource.hpp */
 
 #pragma once
 
 #include "time/Time.hpp"
-#include "queue/Source.hpp"
+#include "queue/EventSource.hpp"
 #include "queue/Reactor.hpp"
 #include "callback/CallbackSet.hpp"
 #include <vector>
@@ -36,7 +36,7 @@ namespace xo {
     template<typename Event,
 	     typename Callback,
 	     void (Callback::*member_fn)(Event const &)>
-    class SecondarySource : public reactor::Source {
+    class SecondarySource : public EventSource<Callback> {
     public:
       using Reactor = reactor::Reactor;
       template<typename Fn>
@@ -101,11 +101,13 @@ namespace xo {
 	  this->notify_event(ev);
       } /*notify_event_v*/
 
-      void add_callback(ref::rp<Callback> const & cb) {
+      // ----- inherited from reactor::EventSource -----
+
+      void add_callback(ref::rp<Callback> const & cb) override {
 	this->cb_set_.add_callback(cb);
       } /*add_callback*/
 
-      void remove_callback(ref::rp<Callback> const & cb) {
+      void remove_callback(ref::rp<Callback> const & cb) override {
 	this->cb_set_.remove_callback(cb);
       } /*remove_callback*/
 
@@ -216,4 +218,4 @@ namespace xo {
   } /*namespace reactor*/
 } /*namespace xo*/
 
-/* end SecondarySimSource.hpp */
+/* end SecondarySource.hpp */

@@ -383,6 +383,37 @@ namespace xo {
 		   step_spec.input(),
 		   j);
     } /*step1*/
+
+    // ----- KalmanFilter -----
+
+    KalmanFilter::KalmanFilter(KalmanFilterSpec spec)
+      : filter_spec_{std::move(spec)},
+	state_ext_{filter_spec_.start_ext()}
+    {} /*ctor*/
+
+    void
+    KalmanFilter::notify_input(KalmanFilterInput const & input_kp1)
+    {
+      /* on entry:
+       *    .state_ext refers to t(k)
+       * on exit:
+       *    .step refers to t(k+1)
+       *    .state_ext refers to t(k+1)
+       */
+
+      /* establish step inputs for this filter step:
+       *   F(k+1)   (system transition matrix)
+       *   Q(k+1)   (system noise covariance matrix)
+       *   H(k+1)   (observation coupling matrix)
+       *   R(k+1)   (observation noise covariance matrix)
+       *   z(k+1)   (observation vector)
+       */
+      this->step_ = this->filter_spec_.make_step(this->state_ext_, input_kp1);
+      /* extrapolate filter state to t(k+1),
+       * and correct based on z(k+1)
+       */
+      this->state_ext_ = KalmanFilterEngine::step(this->step_);
+    } /*notify_input*/
   } /*namespace kalman*/
 } /*namespace xo*/
 
