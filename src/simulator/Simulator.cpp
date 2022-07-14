@@ -7,7 +7,7 @@
 #include <algorithm>
 
 namespace xo {
-  using xo::reactor::Source;
+  using xo::reactor::ReactorSource;
   using xo::ref::brw;
   using xo::time::utc_nanos;
   using logutil::scope;
@@ -39,9 +39,9 @@ namespace xo {
     } /*dtor*/
 
     bool
-    Simulator::is_source_present(brw<Source> src) const
+    Simulator::is_source_present(brw<ReactorSource> src) const
     {
-      for(SourcePtr const & s : this->src_v_) {
+      for(ReactorSourcePtr const & s : this->src_v_) {
 	if(s == src)
 	  return true;
       }
@@ -60,13 +60,13 @@ namespace xo {
     } /*next_tm*/
 
     void
-    Simulator::notify_source_primed(brw<Source> src)
+    Simulator::notify_source_primed(brw<ReactorSource> src)
     {
       constexpr bool c_logging_enabled_flag = true;
       scope lscope("Simulator::notify_source_primed", c_logging_enabled_flag);
 
-      brw<Source> sim_src
-	= brw<Source>::from(src);
+      brw<ReactorSource> sim_src
+	= brw<ReactorSource>::from(src);
 
       lscope.log(xtag("sim_src", (sim_src.get() != nullptr)));
 
@@ -87,7 +87,7 @@ namespace xo {
     } /*notify_source_primed*/
 
     bool
-    Simulator::add_source(brw<Source> src)
+    Simulator::add_source(brw<ReactorSource> src)
     {
       constexpr char const * c_self = "Simulator::add_source";
       constexpr bool c_logging_enabled = false;
@@ -100,7 +100,7 @@ namespace xo {
       /* verify that src isa SimulationSource instance.
        * Simulator does not support non-simulation sources.
        */
-      brw<Source> sim_src = brw<Source>::from(src);
+      brw<ReactorSource> sim_src = brw<ReactorSource>::from(src);
 
       if(!sim_src || this->is_source_present(sim_src))
 	return false;
@@ -130,11 +130,11 @@ namespace xo {
     } /*add_source*/
 
     bool
-    Simulator::remove_source(brw<Source> src)
+    Simulator::remove_source(brw<ReactorSource> src)
     {
       //constexpr char const * c_self = "Simulator::remove_source";
 
-      brw<Source> sim_src = brw<Source>::from(src);
+      brw<ReactorSource> sim_src = brw<ReactorSource>::from(src);
 
       if(!sim_src || !this->is_source_present(sim_src))
 	return false;
@@ -169,7 +169,7 @@ namespace xo {
     } /*run_one*/
 
     void
-    Simulator::heap_update_source(Source * src)
+    Simulator::heap_update_source(ReactorSource * src)
     {
       /* Require:
        *   .sim_heap[.sim_heap.size - 1] already refers to src
@@ -192,7 +192,7 @@ namespace xo {
     } /*heap_update_source*/
 
     void
-    Simulator::heap_insert_source(Source * src)
+    Simulator::heap_insert_source(ReactorSource * src)
     {
       this->sim_heap_.push_back(SourceTimestamp(src->sim_current_tm(), src));
 
@@ -208,7 +208,7 @@ namespace xo {
       }
 
       /* *src is source with earliest timestamp */
-      Source * src
+      ReactorSource * src
 	= this->sim_heap_.front().src();
 
       /* NOTE: src.current_tm() isn't preserved across

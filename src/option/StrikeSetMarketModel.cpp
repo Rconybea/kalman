@@ -12,7 +12,7 @@
 namespace xo {
   using xo::process::RealizationTracer;
   using xo::process::RealizationSimSource;
-  using xo::reactor::Source;
+  using xo::reactor::ReactorSource;
   using xo::reactor::Reactor;
   using xo::ref::rp;
   using xo::ref::brw;
@@ -190,7 +190,7 @@ namespace xo {
 
     StrikeSetMarketModel::StrikeSetMarketModel(ref::rp<OptionStrikeSet> option_set,
 					       ref::rp<RealizationTracer<double>> ul_realization,
-					       ref::rp<Source> ul_sim_src,
+					       ref::rp<ReactorSource> ul_sim_src,
 					       ref::rp<PricingContext> ul_pricing_cx)
       : option_set_{std::move(option_set)},
 	ul_realization_tracer_{std::move(ul_realization)},

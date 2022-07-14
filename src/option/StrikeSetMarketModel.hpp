@@ -57,7 +57,7 @@ namespace xo {
      */
     class StrikeSetMarketModel : public ref::Refcount {
     public:
-      using Source = xo::reactor::Source;
+      using ReactorSource = xo::reactor::ReactorSource;
       using Reactor = reactor::Reactor;
       using utc_nanos = xo::time::utc_nanos;
       using nanos = xo::time::nanos;
@@ -103,7 +103,7 @@ namespace xo {
     private:
       StrikeSetMarketModel(ref::rp<OptionStrikeSet> option_set,
 			   ref::rp<RealizationTracer<double>> ul_realization,
-			   ref::rp<Source> ul_sim_src,
+			   ref::rp<ReactorSource> ul_sim_src,
 			   ref::rp<PricingContext> ul_pricing_cx);
 
     private:
@@ -114,7 +114,7 @@ namespace xo {
       ref::rp<RealizationTracer<double>> ul_realization_tracer_;
 
       /* simulation source for underlying prices */
-      ref::rp<Source> ul_sim_src_;
+      ref::rp<ReactorSource> ul_sim_src_;
 
       /* pricing context for options on this underlying */
       ref::rp<PricingContext> ul_pricing_cx_;

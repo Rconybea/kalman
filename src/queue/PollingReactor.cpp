@@ -10,10 +10,10 @@ namespace xo {
 
   namespace reactor {
     bool
-    PollingReactor::add_source(brw<Source> src)
+    PollingReactor::add_source(brw<ReactorSource> src)
     {
       /* make sure src does not already appear in .source_v[] */
-      for(SourcePtr const & x : this->source_v_) {
+      for(ReactorSourcePtr const & x : this->source_v_) {
 	if(x.get() == src.get()) {
 	  throw std::runtime_error("PollingReactor::add_source; source already present");
 	  return false;
@@ -28,7 +28,7 @@ namespace xo {
     } /*add_source*/
 
     bool
-    PollingReactor::remove_source(brw<Source> src)
+    PollingReactor::remove_source(brw<ReactorSource> src)
     {
       auto ix = std::find(this->source_v_.begin(),
 			  this->source_v_.end(),
@@ -52,7 +52,7 @@ namespace xo {
 
       /* search sources [ix .. z) */
       for(size_t ix = start_ix; ix < z; ++ix) {
-	brw<Source> src = this->source_v_[ix];
+	brw<ReactorSource> src = this->source_v_[ix];
 
 	if(src->is_nonempty())
 	  return ix;
@@ -60,7 +60,7 @@ namespace xo {
 
       /* search source [0 .. ix) */
       for(size_t ix = 0, n = std::min(start_ix, z); ix < n; ++ix) {
-	brw<Source> src = this->source_v_[ix];
+	brw<ReactorSource> src = this->source_v_[ix];
 
 	if(src->is_nonempty())
 	  return ix;
@@ -75,7 +75,7 @@ namespace xo {
       int64_t ix = this->find_nonempty_source(this->next_ix_);
 
       if(ix >= 0) {
-	brw<Source> src = this->source_v_[ix];
+	brw<ReactorSource> src = this->source_v_[ix];
 
 	return src->deliver_one();
       } else {

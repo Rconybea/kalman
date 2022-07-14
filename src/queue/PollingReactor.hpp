@@ -16,8 +16,8 @@ namespace xo {
 
       // ----- inherited from Reactor -----
 
-      virtual bool add_source(ref::brw<Source> src) override;
-      virtual bool remove_source(ref::brw<Source> src) override;
+      virtual bool add_source(ref::brw<ReactorSource> src) override;
+      virtual bool remove_source(ref::brw<ReactorSource> src) override;
       virtual std::uint64_t run_one() override;
 
     private:
@@ -36,7 +36,7 @@ namespace xo {
       /* ordered set of sources (see reactor::Source)
        * reactor will poll sources in round-robin order 
        */
-      std::vector<SourcePtr> source_v_;
+      std::vector<ReactorSourcePtr> source_v_;
     }; /*PollingReactor*/
   } /*namespace reactor*/
 } /*namespace xo*/

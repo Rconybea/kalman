@@ -9,7 +9,7 @@ namespace xo {
 
   namespace reactor {
     utc_nanos
-    Source::online_current_tm() const
+    ReactorSource::online_current_tm() const
     {
       /* for an online source:
        * .is_exhausted() must always be false;
@@ -23,8 +23,8 @@ namespace xo {
     } /*online_current_tm*/
 
     std::uint64_t
-    Source::online_advance_until(utc_nanos /*tm*/,
-				 bool /*replay_flag*/)
+    ReactorSource::online_advance_until(utc_nanos /*tm*/,
+					bool /*replay_flag*/)
     {
       return 0;
     } /*online_advance_until*/

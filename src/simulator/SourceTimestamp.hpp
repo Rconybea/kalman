@@ -16,12 +16,12 @@ namespace xo {
      */
     class SourceTimestamp {
     public:
-      using Source = xo::reactor::Source;
+      using ReactorSource = xo::reactor::ReactorSource;
       using utc_nanos = xo::time::utc_nanos;
       
     public:
       SourceTimestamp(utc_nanos t0,
-		      Source * src)
+		      ReactorSource * src)
 	: t0_(t0), src_(src) {}
       
       static int32_t compare(SourceTimestamp const & x,
@@ -44,7 +44,7 @@ namespace xo {
       } /*compare*/
 
       utc_nanos t0() const { return t0_; }
-      Source * src() const { return src_; }
+      ReactorSource * src() const { return src_; }
 
     private:
       /* timestamp for this source */
@@ -53,7 +53,7 @@ namespace xo {
        * promise:
        * - src.t0() >= .t0 || src.is_exhausted
        */
-      Source * src_ = nullptr;
+      ReactorSource * src_ = nullptr;
     }; /*SourceTimestamp*/
 
     inline bool operator==(SourceTimestamp const & x,

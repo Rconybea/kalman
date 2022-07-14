@@ -26,8 +26,8 @@ namespace xo {
      */
     class Simulator : public reactor::Reactor {
     public:
-      using SourcePtr = xo::reactor::SourcePtr;
-      using Source = xo::reactor::Source;
+      using ReactorSourcePtr = xo::reactor::ReactorSourcePtr;
+      using ReactorSource = xo::reactor::ReactorSource;
       using utc_nanos = xo::time::utc_nanos;
       
     public:
@@ -51,7 +51,7 @@ namespace xo {
       /* true iff src has been added to this simulator
        * (by .add_source())
        */
-      bool is_source_present(ref::brw<Source> src) const;
+      bool is_source_present(ref::brw<ReactorSource> src) const;
 
       /* promise:
        *   .next_tm() > .t0() || .is_exhausted()
@@ -75,21 +75,21 @@ namespace xo {
 
       /* notification when nonprimed source becomes primed
        */
-      void notify_source_primed(ref::brw<reactor::Source> src) override;
+      virtual void notify_source_primed(ref::brw<reactor::ReactorSource> src) override;
 
       /* add a new simulation source.
        * event that precede .t0 will be discarded.
        *
        * returns true if src added;  false if already present
        */
-      virtual bool add_source(ref::brw<reactor::Source> src) override;
+      virtual bool add_source(ref::brw<reactor::ReactorSource> src) override;
 
       /* remove simulation source.
        * returns true if src removed;  false if was not present
        *
        * (not typically needed for simulations)
        */
-      virtual bool remove_source(ref::brw<reactor::Source> src) override;
+      virtual bool remove_source(ref::brw<reactor::ReactorSource> src) override;
 
       /* synonym for .advance_one_event() */
       virtual std::uint64_t run_one() override;
@@ -104,12 +104,12 @@ namespace xo {
        * - src->is_primed()
        * - .sim_heap[.sim_heap.size - 1] already refers to src
        */
-      void heap_update_source(Source * src);
+      void heap_update_source(ReactorSource * src);
 
       /* insert source into .sim_heap.
        * increase sim_heap.size() by +1
        */
-      void heap_insert_source(Source * src);
+      void heap_insert_source(ReactorSource * src);
 
     private:
       /* simulation heap:
@@ -135,7 +135,7 @@ namespace xo {
        *     2.1 s.is_exhausted() = false
        *     2.2 s.t0() >= .t0
        */
-      std::vector<SourcePtr> src_v_;
+      std::vector<ReactorSourcePtr> src_v_;
     }; /*Simulator*/
 
   } /*namespace sim*/

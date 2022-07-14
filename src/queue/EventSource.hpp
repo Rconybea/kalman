@@ -9,7 +9,7 @@ namespace xo {
     template</*typename Event,*/
 	     typename Callback
              /*void (Callback::*member_fn)(Event const &)*/> 
-    class EventSource : public Source {
+    class EventSource : public ReactorSource {
     public:
       virtual void add_callback(ref::rp<Callback> const & cb) = 0;
       virtual void remove_callback(ref::rp<Callback> const & cb) = 0;

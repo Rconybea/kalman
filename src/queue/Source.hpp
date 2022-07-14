@@ -1,4 +1,4 @@
-/* @file Source.hpp */
+/* @file ReactorSource.hpp */
 
 #pragma once
 
@@ -15,7 +15,7 @@ namespace xo {
      * need to have compatible event representations,
      * and coordination is left to such (Source, Sink) pairs.
      *
-     * Source->Sink activity is expected to be mediated by a reactor,
+     * Source->Sink activity may be expected to be mediated by a reactor,
      * that implements the Reactor api.
      *
      * At any time,  A Source can be associated with at most one reactor.
@@ -45,12 +45,12 @@ namespace xo {
      *
      *   s->is_notprimed() == true
      */
-    class Source : public ref::Refcount {
+    class ReactorSource : public ref::Refcount {
     public:
       using utc_nanos = xo::time::utc_nanos;
       
     public:
-      virtual ~Source() = default;
+      virtual ~ReactorSource() = default;
 
       /* true if source is currently empty (has 0 events to deliver) */
       virtual bool is_empty() const = 0;
@@ -118,10 +118,10 @@ namespace xo {
       /* default implementations for online sources */
       utc_nanos online_current_tm() const;
       uint64_t online_advance_until(utc_nanos tm, bool replay_flag);
-    }; /*Source*/
+    }; /*ReactorSource*/
 
-    using SourcePtr = ref::rp<Source>;
+    using ReactorSourcePtr = ref::rp<ReactorSource>;
   } /*namespace reactor*/
 } /*namespace xo*/
 
-/* end Source.hpp */
+/* end ReactorSource.hpp */

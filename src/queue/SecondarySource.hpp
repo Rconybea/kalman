@@ -91,7 +91,7 @@ namespace xo {
 		     xtag("event.tm", ev.tm()));
 
 	if (is_priming && r) {
-	  r->notify_source_primed(ref::brw<Source>::from_native(this));
+	  r->notify_source_primed(ref::brw<ReactorSource>::from_native(this));
 	}
       } /*notify_event*/
 
