@@ -3,7 +3,7 @@
 set(SELF_LIBRARY_NAME queue)
 
 # build shared library 'process'
-add_library(${SELF_LIBRARY_NAME} SHARED Source.cpp PollingReactor.cpp)
+add_library(${SELF_LIBRARY_NAME} SHARED ReactorSource.cpp PollingReactor.cpp)
 
 set_target_properties(${SELF_LIBRARY_NAME} PROPERTIES
 		      VERSION ${PROJECT_VERSION}

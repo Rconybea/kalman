@@ -2,7 +2,7 @@
 
 #pragma once
 
-#include "queue/Source.hpp"
+#include "queue/ReactorSource.hpp"
 #include "process/RealizationTracer.hpp"
 #include <logutil/scope.hpp>
 #include <functional>

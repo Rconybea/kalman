@@ -3,7 +3,7 @@
 #pragma once
 
 #include "queue/Reactor.hpp"
-#include "queue/Source.hpp"
+#include "queue/ReactorSource.hpp"
 #include <vector>
 #include <cstdint>
 

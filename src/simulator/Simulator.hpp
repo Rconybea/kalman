@@ -4,7 +4,7 @@
 
 #include "queue/Reactor.hpp"
 #include "simulator/SourceTimestamp.hpp"
-#include "queue/Source.hpp"
+#include "queue/ReactorSource.hpp"
 #include "refcnt/Refcounted.hpp"
 #include "time/Time.hpp"
 #include <vector>
