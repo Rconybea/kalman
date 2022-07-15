@@ -61,6 +61,9 @@ namespace xo {
        */
       utc_nanos next_tm() const;
 
+      /* human-readable string identifying this simulator */
+      std::string display_string() const;
+
       /* emit the first available event from a single simulation source.
        * resolve ties arbitrarily.
        *

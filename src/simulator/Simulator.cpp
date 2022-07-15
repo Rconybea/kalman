@@ -5,6 +5,7 @@
 #include "logutil/scope.hpp"
 #include <_types/_uint64_t.h>
 #include <algorithm>
+#include <string_view>
 
 namespace xo {
   using xo::reactor::ReactorSource;
@@ -198,6 +199,12 @@ namespace xo {
 
       this->heap_update_source(src);
     } /*heap_insert_source*/
+
+    std::string
+    Simulator::display_string() const
+    {
+      return "<Simulator>";
+    } /*display_string*/
 
     std::uint64_t
     Simulator::advance_one_event()
