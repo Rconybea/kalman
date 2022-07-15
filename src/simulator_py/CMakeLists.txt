@@ -35,6 +35,11 @@ target_include_directories(simulator_py PUBLIC
 			   ${PROJECT_BINARY_DIR})
 
 # ----------------------------------------------------------------
+# internal dependencies: logutils, ...
+
+target_link_libraries(simulator_py PUBLIC simulator)
+
+# ----------------------------------------------------------------
 # make standard directories for std:: includes explicit
 # so that
 # (1) they appear in compile_commands.json.

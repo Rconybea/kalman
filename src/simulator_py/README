@@ -18,6 +18,12 @@ To demo:
 
 3. import pybind11 module + run:
      >>> import simulator_py
+     >>> dir(simulator_py)
+     ['__doc__', '__file__', '__loader__', '__name__', '__package__', '__spec__', 'make_simulator', 'xoadd']
      >>> simulator_py.xoadd(4,5)
      9
+     >>> s = simulator_py.make_simulator()
+     >>> s
+     <Simulator>
+     
 

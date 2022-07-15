@@ -25,4 +25,21 @@
   |  +- utest            refcnt unit tests
   +- reflect             symbol demangler: should work for clang / gcc / vs
   +- logutil             logging support: scope, xtag, ...
-  
+
+* Pybind11
+  1. to control how a class prints:
+
+       std::string Foo::display_string() const { return "string-describing-foo"; }
+
+       py::class_<Foo>(m, "Foo")
+         .def("__repr__", &Foo::display_string);
+
+     for example see simulator_py/SimulatorPy.cpp
+
+  2. std::chrono::time_point<>
+
+     pybind11 handles this automagically,  just need
+
+       #include <pybind11/chrono.h>
+
+    
