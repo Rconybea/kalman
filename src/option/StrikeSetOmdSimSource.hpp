@@ -2,7 +2,7 @@
 
 #pragma once
 
-#include "queue/SecondarySource.hpp"
+#include "reactor/SecondarySource.hpp"
 #include "option/OmdCallback.hpp"
 
 namespace xo {

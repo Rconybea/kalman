@@ -52,7 +52,7 @@ add_subdirectory(option_util)
 add_subdirectory(distribution)
 add_subdirectory(distribution_py)
 add_subdirectory(random)
-add_subdirectory(queue)
+add_subdirectory(reactor)
 add_subdirectory(refcnt)
 add_subdirectory(logutil)
 

@@ -1,6 +1,6 @@
 /* @file Source.cpp */
 
-#include "queue/ReactorSource.hpp"
+#include "reactor/ReactorSource.hpp"
 #include <cstdint>
 
 namespace xo {

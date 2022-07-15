@@ -6,7 +6,7 @@
 #include "BlackScholes.hpp"
 #include "BboTick.hpp"
 #include "process/RealizationSimSource.hpp"
-#include "queue/Reactor.hpp"
+#include "reactor/Reactor.hpp"
 #include <vector>
 
 namespace xo {

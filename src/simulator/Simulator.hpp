@@ -2,9 +2,9 @@
 
 #pragma once
 
-#include "queue/Reactor.hpp"
+#include "reactor/Reactor.hpp"
 #include "simulator/SourceTimestamp.hpp"
-#include "queue/ReactorSource.hpp"
+#include "reactor/ReactorSource.hpp"
 #include "refcnt/Refcounted.hpp"
 #include "time/Time.hpp"
 #include <vector>

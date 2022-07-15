@@ -3,8 +3,8 @@
 #pragma once
 
 #include "time/Time.hpp"
-#include "queue/EventSource.hpp"
-#include "queue/Reactor.hpp"
+#include "reactor/EventSource.hpp"
+#include "reactor/Reactor.hpp"
 #include "callback/CallbackSet.hpp"
 #include <vector>
 

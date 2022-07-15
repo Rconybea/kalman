@@ -2,7 +2,7 @@
 
 #include "time/Time.hpp"
 #include "StrikeSetOmdSimSource.hpp"
-#include "queue/Reactor.hpp"
+#include "reactor/Reactor.hpp"
 #include <cstdint>
 
 #ifdef OBSOLETE

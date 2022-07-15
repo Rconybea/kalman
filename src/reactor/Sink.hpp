@@ -2,7 +2,7 @@
 
 #pragma once
 
-#include "queue/Source.hpp"
+#include "reactor/Source.hpp"
 
 namespace xo {
   namespace reactor {

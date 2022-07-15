@@ -2,8 +2,8 @@
 
 #pragma once
 
-#include "queue/Reactor.hpp"
-#include "queue/ReactorSource.hpp"
+#include "reactor/Reactor.hpp"
+#include "reactor/ReactorSource.hpp"
 #include <vector>
 #include <cstdint>
 

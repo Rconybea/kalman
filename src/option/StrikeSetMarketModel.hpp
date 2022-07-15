@@ -10,7 +10,7 @@
 #include "option/BboTick.hpp"
 #include "option_util/Px2.hpp"
 #include "process/RealizationTracer.hpp"
-#include "queue/ReactorSource.hpp"
+#include "reactor/ReactorSource.hpp"
 
 namespace xo {
   namespace option {

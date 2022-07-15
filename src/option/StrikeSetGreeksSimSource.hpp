@@ -2,7 +2,7 @@
 
 #pragma once
 
-#include "queue/SecondarySource.hpp"
+#include "reactor/SecondarySource.hpp"
 #include "option/GreeksCallback.hpp"
 
 namespace xo {

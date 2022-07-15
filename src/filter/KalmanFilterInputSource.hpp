@@ -2,7 +2,7 @@
 
 #pragma once
 
-#include "queue/EventSource.hpp"
+#include "reactor/EventSource.hpp"
 #include "filter/KalmanFilterInputCallback.hpp"
 
 namespace xo {

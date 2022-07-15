@@ -1,6 +1,6 @@
 /* @file KalmanFilterSvc.hpp */
 
-#include "queue/Sink.hpp"
+#include "reactor/Sink.hpp"
 #include "filter/KalmanFilter.hpp"
 #include "filter/KalmanFilterInputSource.hpp"
 #include "filter/KalmanFilterOutputCallback.hpp"
