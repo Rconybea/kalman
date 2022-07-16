@@ -52,7 +52,7 @@ namespace xo {
       /* receive filter input from this source; see .attach_input() */
       ref::rp<KalmanFilterInputSource> input_src_;
       /* publish filter state updates to these callbacks */
-      fn::CallbackSet<ref::rp<KalmanFilterOutputCallback>> pub_;
+      fn::RpCallbackSet<KalmanFilterOutputCallback> pub_;
     }; /*KalmanFilterSvc*/
   } /*namespace kalman*/
 } /*namespace xo*/

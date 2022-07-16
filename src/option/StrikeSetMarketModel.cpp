@@ -11,7 +11,7 @@
 
 namespace xo {
   using xo::process::RealizationTracer;
-  using xo::process::RealizationSimSource;
+  using xo::process::RealizationSimSourceBase;
   using xo::reactor::ReactorSource;
   using xo::reactor::Reactor;
   using xo::ref::rp;
@@ -172,10 +172,10 @@ namespace xo {
       /* sim source for underlying prices.
        * feeds updates to *this
        */
-      rp<RealizationSimSource<double, NotifyMarketModel>> ul_sim_src
-	= RealizationSimSource<double, NotifyMarketModel>::make(ul_tracer,
-								ul_ev_interval_dt,
-								NotifyMarketModel());
+      rp<RealizationSimSourceBase<double, NotifyMarketModel>> ul_sim_src
+	= RealizationSimSourceBase<double, NotifyMarketModel>::make(ul_tracer,
+								    ul_ev_interval_dt,
+								    NotifyMarketModel());
 								
       rp<StrikeSetMarketModel> retval
 	(new StrikeSetMarketModel(std::move(option_set),

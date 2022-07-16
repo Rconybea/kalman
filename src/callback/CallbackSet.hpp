@@ -38,9 +38,14 @@ namespace xo {
       Fn fn_;
     }; /*ReentrantCbsetCmd*/
     
-    /* If Fn has call signature Fn(args...),
+    /* If Fnptr is a type such that this works:
+     *   Fnptr fn = ...;
+     *   using Fn = Fnptr::destination_type;
+     *   Fn * native_fn = fn.get();
+     *   (native_fn->*member_fn)(args ...);
+     * 
      * then
-     *   CallbackSet<Fn> cbset = ...;
+     *   CallbackSet<Fnptr> cbset = ...;
      *   cbset.invoke(&Fn::member_fn, args...)
      *
      * calls
@@ -54,7 +59,7 @@ namespace xo {
      * when adding/removing callback.
      *
      * Require:
-     * - can invoke (*Fn)(...)
+     * - can invoke (Fnptr->*member_fn)(...)
      *
      * implementation is reentrant: running callbacks can safely make
      * add/remove calls on the cbset that invoked them.
@@ -62,12 +67,12 @@ namespace xo {
      * not threadsafe.
      */
     template<typename Fn>
-    class CallbackSet {
+    class CallbackSetImpl {
     public:
       using callback_type = typename Fn::destination_type;
 
     public:
-      CallbackSet() = default;
+      CallbackSetImpl() = default;
 
       /* invoke callbacks registered with this callback set */
       template<typename ... Tn, typename ... Sn>
@@ -155,7 +160,38 @@ namespace xo {
        * remember deferred instructions here.
        */
       std::vector<ReentrantCbsetCmd<Fn>> reentrant_cmd_v_;
-    }; /*CallbackSet*/
+    }; /*CallbackSetImpl*/
+
+    template<typename NativeFn>
+    using RpCallbackSet = CallbackSetImpl<xo::ref::rp<NativeFn>>;
+
+    /* like RpCallbackSet<NativeFn>,
+     * but also provides overload(s) for operator()(..)
+     *
+     * FOR NOW: only implemented for callback methods that take
+     *          0 or 1 arguments
+     */
+    template<typename NativeFn, typename MemberFn>
+    class NotifyCallbackSet : public RpCallbackSet<NativeFn> {
+    public:
+      NotifyCallbackSet(MemberFn fn)
+	: privileged_member_fn_{fn} {}
+
+      template<typename ... Tn>
+      void operator()(Tn&&... args) {
+	this->invoke(this->privileged_member_fn_, args...);
+      } /*operator()*/
+
+    private:
+      /* implements operator()(...) */
+      MemberFn privileged_member_fn_;
+    }; /*NotifyCallbackSet*/
+
+    template<typename NativeFn, typename Sret, typename ... Sn>
+    inline NotifyCallbackSet<NativeFn, Sret (NativeFn::*)(Sn...)>
+    make_notify_cbset(Sret (NativeFn::* member_fn)(Sn...)) {
+      return NotifyCallbackSet<NativeFn, Sret (NativeFn::*)(Sn...)>(member_fn);
+    } /*make_notify_cbset*/
   } /*namespace fn*/
 } /*namespace xo*/
 

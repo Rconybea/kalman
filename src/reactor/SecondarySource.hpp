@@ -40,7 +40,7 @@ namespace xo {
     public:
       using Reactor = reactor::Reactor;
       template<typename Fn>
-      using CallbackSet = fn::CallbackSet<Fn>;
+      using RpCallbackSet = fn::RpCallbackSet<Fn>;
       using utc_nanos = xo::time::utc_nanos;
       using scope = logutil::scope;
 
@@ -213,7 +213,7 @@ namespace xo {
       Reactor * parent_reactor_ = nullptr;
 
       /* invoke callbacks in this set for each event */
-      CallbackSet<ref::rp<Callback>> cb_set_;
+      RpCallbackSet<Callback> cb_set_;
     }; /*SecondarySource*/
   } /*namespace reactor*/
 } /*namespace xo*/
