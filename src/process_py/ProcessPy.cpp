@@ -3,6 +3,7 @@
 #include "process/StochasticProcess.hpp"
 #include "process/BrownianMotion.hpp"
 #include "process/ExpProcess.hpp"
+#include "process/RealizationSimSource.hpp"
 #include "random/random_seed.hpp"
 #include "random/xoshiro256.hpp"
 #include <pybind11/pybind11.h>
@@ -60,6 +61,29 @@ namespace xo {
       py::class_<ExpProcess, StochasticProcess<double>,
 		 xo::ref::rp<ExpProcess>>(m, "ExpProcess");
 
+      m.def("make_tracer",
+	    &RealizationTracer<double>::make);
+
+      py::class_<RealizationTracer<double>,
+		 xo::ref::rp<RealizationTracer<double>>>(m, "RealizationTracer");
+
+      /* e.g.
+       *   import datetime as dt
+       *   t0=dt.datetime.now()
+       *   ebm=process_py.make_exponential_brownian_motion(t0, 0.5)
+       *   s=process_py.make_tracer_source(ebm, dt.timedelta(seconds=1))
+       */
+      m.def("make_tracer_source",
+	    [](xo::ref::rp<StochasticProcess<double>> p,
+	       xo::time::nanos sample_dt)
+	    {
+	      return RealizationSimSource<double>::make(RealizationTracer<double>::make(p),
+							sample_dt);
+	    });
+
+      py::class_<RealizationSimSource<double>,
+		 xo::ref::rp<RealizationSimSource<double>>>(m, "RealizationSource");
+										    
     } /*process_py*/
   } /*namespace process*/
 } /*namespace xo*/

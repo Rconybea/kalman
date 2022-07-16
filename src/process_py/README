@@ -40,4 +40,6 @@ To demo
      >>> ebm.exterior_sample(t + dt.timedelta(days=180, [t0, 50.0]))
      56.16317742801309
 
+     >>> r=process_py.make_realization(ebm)
+     >>> s=process_py.make_realization_source(r, dt.timedelta(seconds=1))
      
