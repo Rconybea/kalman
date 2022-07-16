@@ -1,0 +1,43 @@
+process module,  using pybind11 to wrap c++ implementation
+
+To demo
+
+1. build the kalman project
+   see path/to/kalman/README
+
+   python-compatible .so will be at:
+   path/to/kalman/build/process_py/process_py.cpython-39-darwin.so
+
+2. run python:
+     $ cd path/to/kalman/build/simulator_py
+     $ python3
+     Python 3.9.12 (main, May 13 2022, 08:13:55) 
+     [Clang 11.1.0 ] on darwin
+     Type "help", "copyright", "credits" or "license" for more information.
+      >>>
+
+3. import pybind11 module and run:
+     >>> import process_py
+     >>> import datetime as dt
+     >>> from dt import datetime as clock
+     >>> t0=clock.now()
+     # brownian motion, 50% annual volatility 
+     >>> bm=process_py.make_brownian_motion(t0, 0.5)
+     >>> bm
+     <BrownianMotion>
+     >>> bm.exterior_sample(t0, [t0, 2.0])
+     2.0
+     >>> bm.exterior_sample(t0, [t0, 1.0])
+     1.0
+     >>> bm.exterior_sample(t0 + dt.timedelta(days=30, [t0, 1.0]))
+     1.959941114989831
+     
+     >>> ebm=process_py.make_exponential_brownian_motion(t0, 0.5)
+     >>> ebm
+     <ExpProcess>
+     >>> ebm.exterior_sample(t + dt.timedelta(days=180, [t0, 50.0]))
+     42.3212369005776
+     >>> ebm.exterior_sample(t + dt.timedelta(days=180, [t0, 50.0]))
+     56.16317742801309
+
+     
