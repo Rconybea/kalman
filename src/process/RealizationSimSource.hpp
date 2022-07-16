@@ -4,6 +4,8 @@
 
 #include "reactor/ReactorSource.hpp"
 #include "process/RealizationTracer.hpp"
+#include "process/RealizationCallback.hpp"
+#include "callback/CallbackSet.hpp"
 #include <logutil/scope.hpp>
 #include <functional>
 
@@ -21,12 +23,12 @@ namespace xo {
      * - invoke EventSink(std::pair<utc_nanos, T>)
      */
     template <typename T, typename EventSink>
-    class RealizationSimSource : public xo::reactor::ReactorSource {
+    class RealizationSimSourceBase : public xo::reactor::ReactorSource {
     public:
       using nanos = xo::time::nanos;
 
     public:
-      ~RealizationSimSource() {
+      ~RealizationSimSourceBase() {
 	using logutil::scope;
 	using logutil::xtag;
 
@@ -38,22 +40,22 @@ namespace xo {
 	  lscope.log("delete instance", xtag("p", this));
       } /*dtor*/
 
-      static ref::rp<RealizationSimSource> make(ref::rp<RealizationTracer<T>> const & tracer,
-						nanos ev_interval_dt,
-						EventSink const & ev_sink)
+      static ref::rp<RealizationSimSourceBase> make(ref::rp<RealizationTracer<T>> const & tracer,
+						    nanos ev_interval_dt,
+						    EventSink const & ev_sink)
       {
 	using logutil::scope;
 	using logutil::xtag;
 
-	constexpr bool c_logging_enabled = true;
+	constexpr bool c_logging_enabled = false;
 
-	auto p = new RealizationSimSource(tracer, ev_interval_dt, ev_sink);
+	auto p = new RealizationSimSourceBase(tracer, ev_interval_dt, ev_sink);
 
 	scope lscope(sc_self_type, "::make", c_logging_enabled);
 	if(c_logging_enabled)
 	  lscope.log("create instance",
 		     xtag("p", p),
-		     xtag("bytes", sizeof(RealizationSimSource)));
+		     xtag("bytes", sizeof(RealizationSimSourceBase)));
 
 	return p;
       } /*make*/
@@ -72,7 +74,14 @@ namespace xo {
 
       /* deliver current event to sink */
       void sink_one() const {
-	std::invoke(this->ev_sink_, this->tracer_->current_ev());
+	/* calling .ev_sink() can modify the callback set reentrantly
+	 * (i.e. adding/removing callbacks)
+	 * although this changes the state of .ev_sink,
+	 * we want to treat this as not changing the state of *this
+	 */
+	RealizationSimSourceBase * self = const_cast<RealizationSimSourceBase *>(this);
+
+	self->ev_sink_(this->tracer_->current_ev());
       } /*sink_one*/
 
       // ----- inherited from Source -----
@@ -110,34 +119,63 @@ namespace xo {
 	return retval;
       } /*advance_until*/
 	
-    private:
-      RealizationSimSource(ref::rp<RealizationTracer<T>> const & tracer,
-			   nanos ev_interval_dt,
-			   EventSink const & ev_sink)
+    protected:
+      RealizationSimSourceBase(ref::rp<RealizationTracer<T>> const & tracer,
+			       nanos ev_interval_dt,
+			       EventSink const & ev_sink)
 	: tracer_{tracer},
 	  ev_sink_{std::move(ev_sink)},
 	  ev_interval_dt_{ev_interval_dt} {}
-      RealizationSimSource(ref::rp<RealizationTracer<T>> const & tracer,
-			   nanos ev_interval_dt,
-			   EventSink && ev_sink)
+      RealizationSimSourceBase(ref::rp<RealizationTracer<T>> const & tracer,
+			       nanos ev_interval_dt,
+			       EventSink && ev_sink)
 	: tracer_{tracer},
 	  ev_sink_{std::move(ev_sink)},
 	  ev_interval_dt_(ev_interval_dt) {}
 
     private:
-      static constexpr std::string_view sc_self_type = xo::reflect::type_name<RealizationSimSource<T, EventSink>>();
+      static constexpr std::string_view sc_self_type = xo::reflect::type_name<RealizationSimSourceBase<T, EventSink>>();
 
     private:
       /* produces events representing realized stochastic-process values */
       ref::rp<RealizationTracer<T>> tracer_;
-      /* consume events coming from this sim source */
+      /* send stochastic-process events to this sink */
       EventSink ev_sink_;
       /* discretize process using this interval:
        * consecutive events from this simulation source will be at least
        * .ev_interval_dt apart
        */
       nanos ev_interval_dt_;
+    }; /*RealizationSimSourceBase*/
+
+    template<typename T>
+    class RealizationSimSource : public RealizationSimSourceBase<T,
+								 xo::fn::NotifyCallbackSet<RealizationCallback<T>,
+      decltype(&RealizationCallback<T>::notify_ev)>>
+
+    {
+    public:
+      using nanos = xo::time::nanos;
+
+      static ref::rp<RealizationSimSource<T>> make(ref::rp<RealizationTracer<T>> const & tracer,
+						   nanos ev_interval_dt)
+      {
+	return new RealizationSimSource<T>(tracer, ev_interval_dt);
+      } /*make*/
+
+    private:
+      RealizationSimSource(ref::rp<RealizationTracer<T>> const & tracer,
+			   nanos ev_interval_dt)
+	: RealizationSimSourceBase
+	  <T,
+	   xo::fn::NotifyCallbackSet<RealizationCallback<T>,
+				     decltype(&RealizationCallback<T>::notify_ev)>
+	   >(tracer,
+	     ev_interval_dt,
+	     fn::make_notify_cbset(&RealizationCallback<T>::notify_ev))
+      {}
     }; /*RealizationSimSource*/
+
   } /*namespace process*/
 } /*namespace xo*/
 
