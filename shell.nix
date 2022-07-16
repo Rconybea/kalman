@@ -6,7 +6,7 @@ let
   mkDerivation = import ./kalman.nix pkgs;
 
   attrs = {
-    devInputs = [ emacs ripgrep less ps git gnuplot tree xterm cloc ];
+    devInputs = [ emacs ripgrep less ps git gnuplot tree xterm cloc pmccabe ];
     shellHook = ''
       alias ll='ls -l'
       source $setup
