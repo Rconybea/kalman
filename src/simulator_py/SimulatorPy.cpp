@@ -1,8 +1,7 @@
 /* @file SimulatorPy.cpp */
 
-#include <pybind11/pybind11.h>
 #include "simulator/Simulator.hpp"
-#include "refcnt/Refcounted.hpp"
+#include <pybind11/pybind11.h>
 #include <pybind11/chrono.h>
 
 /* xo::ref::intrusive_ptr<T> is an intrusively-reference-counted pointer.
@@ -22,7 +21,7 @@ namespace xo {
     }
 
     PYBIND11_MODULE(simulator_py, m) {
-      m.doc() = "pybind11 example plugin for xo"; // optional module docstring
+      m.doc() = "pybind11 plugin for xo.simulator"; // optional module docstring
 
       // python: simulator_py.xoadd(x,y)
       m.def("xoadd",
@@ -41,7 +40,7 @@ namespace xo {
 	.def("start_tm", &Simulator::t0)
 	.def("is_exhausted", &Simulator::is_exhausted)
 	.def("__repr__", &Simulator::display_string);
-    }
+    } /*simulator_py*/
   } /*namespace sim*/
 } /*namespace xo*/
 

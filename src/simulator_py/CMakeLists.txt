@@ -1,5 +1,7 @@
 # simulator_py/CMakeLists.txt
 
+set(SELF_LIBRARY_NAME simulator_py)
+
 # build python module 'simulator_py'
 
 # ----------------------------------------------------------------
@@ -12,13 +14,12 @@
 #find_package(Python COMPONENTS Interpreter Development REQUIRED)
 
 find_package(pybind11)
-pybind11_add_module(simulator_py MODULE SimulatorPy.cpp)
-#pybind11_extension(simulator_py)
+pybind11_add_module(${SELF_LIBRARY_NAME} MODULE SimulatorPy.cpp)
 
 # ----------------------------------------------------------------
 # all the errors+warnings!
 #
-target_compile_options(simulator_py PRIVATE -Werror -Wall -Wextra)
+target_compile_options(${SELF_LIBRARY_NAME} PRIVATE -Werror -Wall -Wextra)
 
 # ----------------------------------------------------------------
 # PROJECT_SOURCE_DIR:
@@ -30,14 +31,14 @@ target_compile_options(simulator_py PRIVATE -Werror -Wall -Wextra)
 #   need that build directory to also appear in
 #   compiler's include path
 #
-target_include_directories(simulator_py PUBLIC
+target_include_directories(${SELF_LIBRARY_NAME} PUBLIC
                            ${PROJECT_SOURCE_DIR}
 			   ${PROJECT_BINARY_DIR})
 
 # ----------------------------------------------------------------
 # internal dependencies: logutils, ...
 
-target_link_libraries(simulator_py PUBLIC simulator)
+target_link_libraries(${SELF_LIBRARY_NAME} PUBLIC simulator)
 
 # ----------------------------------------------------------------
 # make standard directories for std:: includes explicit
@@ -57,7 +58,7 @@ endif()
 #
 find_package(Boost REQUIRED)
 
-target_include_directories(simulator_py PUBLIC
+target_include_directories(${SELF_LIBRARY_NAME} PUBLIC
  		           ${Boost_INCLUDE_DIR})
 
 # end CMakeLists.txt
