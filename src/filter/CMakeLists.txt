@@ -34,6 +34,7 @@ target_include_directories(${SELF_LIBRARY_NAME}
 # internal dependencies: logutil, ...
 
 #target_link_libraries(${SELF_LIBRARY_NAME} PUBLIC process)
+target_link_libraries(${SELF_LIBRARY_NAME} PUBLIC reactor)
 target_link_libraries(${SELF_LIBRARY_NAME} PUBLIC logutil)
 target_link_libraries(${SELF_LIBRARY_NAME} PUBLIC refcnt)
 

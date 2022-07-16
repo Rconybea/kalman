@@ -30,6 +30,7 @@ target_include_directories(simulator PUBLIC
 # ----------------------------------------------------------------
 # internal dependencies: logutil, ...
 
+target_link_libraries(simulator PUBLIC reactor)
 target_link_libraries(simulator PUBLIC logutil)
 target_link_libraries(simulator PUBLIC refcnt)
 
