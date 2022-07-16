@@ -1,9 +1,9 @@
 # queue/CMakeLists.txt
 
-set(SELF_LIBRARY_NAME queue)
+set(SELF_LIBRARY_NAME reactor)
 
 # build shared library 'process'
-add_library(${SELF_LIBRARY_NAME} SHARED ReactorSource.cpp PollingReactor.cpp)
+add_library(${SELF_LIBRARY_NAME} SHARED Source.cpp ReactorSource.cpp PollingReactor.cpp)
 
 set_target_properties(${SELF_LIBRARY_NAME} PROPERTIES
 		      VERSION ${PROJECT_VERSION}
@@ -32,8 +32,8 @@ target_include_directories(${SELF_LIBRARY_NAME} PUBLIC
 # ----------------------------------------------------------------
 # internal dependencies: logutil, ...
 
-target_link_libraries(queue PUBLIC logutil)
-target_link_libraries(queue PUBLIC refcnt)
+target_link_libraries(${SELF_LIBRARY_NAME} PUBLIC logutil)
+target_link_libraries(${SELF_LIBRARY_NAME} PUBLIC refcnt)
 
 # ----------------------------------------------------------------
 # make standard directories for std:: includes explicit

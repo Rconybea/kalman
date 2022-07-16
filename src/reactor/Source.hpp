@@ -3,6 +3,7 @@
 #pragma once
 
 #include "refcnt/Refcounted.hpp"
+#include <string>
 
 namespace xo {
   namespace reactor {
@@ -17,6 +18,9 @@ namespace xo {
      * methods, for listening to source events
      */
     class Source : public virtual ref::Refcount {
+    public:
+      /* human-readable string identifying this source */
+      virtual std::string display_string() const;
     }; /*Source*/
 
     using SourcePtr = ref::rp<Source>;
