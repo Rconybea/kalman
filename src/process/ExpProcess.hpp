@@ -63,6 +63,12 @@ namespace xo {
         return m * ::exp(e);
       } /*interior_sample*/
 
+      virtual std::string display_string() const override {
+	// return tostr("<ExpProcess ",	exponent_process_->display_string(), ">");
+
+	return "<ExpProcess>";
+      } /*display_string*/
+
     private:
       ExpProcess(double scale, ref::brw<StochasticProcess> exp_proc)
 	: scale_(scale),

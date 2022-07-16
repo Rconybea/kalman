@@ -4,6 +4,7 @@
 
 #include "refcnt/Refcounted.hpp"
 #include "time/Time.hpp"
+#include <string>
 #include <utility>
 
 namespace xo {
@@ -61,6 +62,8 @@ public:
 				 event_type const & lo) = 0;
 #endif				 
 
+  /* human-readable string identifying this process */
+  virtual std::string display_string() const = 0;
 }; /*StochasticProcess*/
 
 } /*namespace process*/

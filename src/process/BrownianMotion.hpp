@@ -112,6 +112,11 @@ namespace xo {
                                      event_type const &lo) override;
 #endif
 
+      /* return human-readable string identifying this process */
+      virtual std::string display_string() const override {
+	return "<BrownianMotion>";
+      }
+
     private:
       template<class Seed>
       BrownianMotion(utc_nanos t0, double sdev, Seed const & seed)
