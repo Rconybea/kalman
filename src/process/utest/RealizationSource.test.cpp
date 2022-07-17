@@ -1,7 +1,7 @@
-/* @file RealizationSimSource.test.cpp */
+/* @file RealizationSource.test.cpp */
 
 #include "time/Time.hpp"
-#include "process/RealizationSimSource.hpp"
+#include "process/RealizationSource.hpp"
 #include "process/LogNormalProcess.hpp"
 #include "process/BrownianMotion.hpp"
 #include "random/xoshiro256.hpp"
@@ -12,7 +12,7 @@
 
 namespace xo {
   using xo::sim::Simulator;
-  using xo::process::RealizationSimSourceBase;
+  using xo::process::RealizationSourceBase;
   using xo::process::RealizationTracer;
   using xo::process::LogNormalProcess;
   using xo::process::ExpProcess;
@@ -116,11 +116,11 @@ namespace xo {
       lscope.log("create sim source from tracer..");
 
       /* what is step dt? */
-      rp<RealizationSimSourceBase<double, decltype(sink)>>
+      rp<RealizationSourceBase<double, decltype(sink)>>
 	sim_source
-	= RealizationSimSourceBase<double, decltype(sink)>::make(tracer,
-								 std::chrono::seconds(1) /*ev_interval_dt*/,
-								 sink);
+	= RealizationSourceBase<double, decltype(sink)>::make(tracer,
+							      std::chrono::seconds(1) /*ev_interval_dt*/,
+							      sink);
 
       lscope.log("..done");
 
@@ -192,11 +192,11 @@ namespace xo {
 	   (std::pair<utc_nanos,double> const & ev)
 	{ sample_v.push_back(ev); });
 
-      rp<RealizationSimSourceBase<double, decltype(sink)>>
+      rp<RealizationSourceBase<double, decltype(sink)>>
 	sim_source
-	= RealizationSimSourceBase<double, decltype(sink)>::make(tracer,
-								 std::chrono::seconds(1) /*ev_interval_dt*/,
-								 sink);
+	= RealizationSourceBase<double, decltype(sink)>::make(tracer,
+							      std::chrono::seconds(1) /*ev_interval_dt*/,
+							      sink);
 
       sim->add_source(sim_source);
 
@@ -221,4 +221,4 @@ namespace xo {
   } /*namespace ut*/
 } /*namespace xo*/
 
-/* end RealizationSimSource.test.cpp */
+/* end RealizationSource.test.cpp */

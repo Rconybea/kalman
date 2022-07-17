@@ -3,7 +3,7 @@
 #include "process/StochasticProcess.hpp"
 #include "process/BrownianMotion.hpp"
 #include "process/ExpProcess.hpp"
-#include "process/RealizationSimSource.hpp"
+#include "process/RealizationSource.hpp"
 #include "random/random_seed.hpp"
 #include "random/xoshiro256.hpp"
 #include <pybind11/pybind11.h>
@@ -77,12 +77,12 @@ namespace xo {
 	    [](xo::ref::rp<StochasticProcess<double>> p,
 	       xo::time::nanos sample_dt)
 	    {
-	      return RealizationSimSource<double>::make(RealizationTracer<double>::make(p),
-							sample_dt);
+	      return RealizationSource<double>::make(RealizationTracer<double>::make(p),
+						     sample_dt);
 	    });
 
-      py::class_<RealizationSimSource<double>,
-		 xo::ref::rp<RealizationSimSource<double>>>(m, "RealizationSource");
+      py::class_<RealizationSource<double>,
+		 xo::ref::rp<RealizationSource<double>>>(m, "RealizationSource");
 										    
     } /*process_py*/
   } /*namespace process*/

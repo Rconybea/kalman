@@ -5,13 +5,13 @@
 #include "StrikeSetOmdSimSource.hpp"
 #include "BlackScholes.hpp"
 #include "BboTick.hpp"
-#include "process/RealizationSimSource.hpp"
+#include "process/RealizationSource.hpp"
 #include "reactor/Reactor.hpp"
 #include <vector>
 
 namespace xo {
   using xo::process::RealizationTracer;
-  using xo::process::RealizationSimSourceBase;
+  using xo::process::RealizationSourceBase;
   using xo::reactor::ReactorSource;
   using xo::reactor::Reactor;
   using xo::ref::rp;
@@ -172,10 +172,10 @@ namespace xo {
       /* sim source for underlying prices.
        * feeds updates to *this
        */
-      rp<RealizationSimSourceBase<double, NotifyMarketModel>> ul_sim_src
-	= RealizationSimSourceBase<double, NotifyMarketModel>::make(ul_tracer,
-								    ul_ev_interval_dt,
-								    NotifyMarketModel());
+      rp<RealizationSourceBase<double, NotifyMarketModel>> ul_sim_src
+	= RealizationSourceBase<double, NotifyMarketModel>::make(ul_tracer,
+								 ul_ev_interval_dt,
+								 NotifyMarketModel());
 								
       rp<StrikeSetMarketModel> retval
 	(new StrikeSetMarketModel(std::move(option_set),
