@@ -45,7 +45,7 @@ namespace xo {
      *
      *   s->is_notprimed() == true
      */
-    class ReactorSource : public Source {
+    class ReactorSource : public AbstractSource {
     public:
       using utc_nanos = xo::time::utc_nanos;
       

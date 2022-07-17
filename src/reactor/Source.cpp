@@ -5,9 +5,9 @@
 namespace xo {
   namespace reactor {
     std::string
-    Source::display_string() const
+    AbstractSource::display_string() const
     {
-      return "<Source>";
+      return "<AbstractSource>";
     } /*display_string*/
   } /*namespace reactor*/
 } /*namespace xo*/

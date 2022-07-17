@@ -14,9 +14,10 @@ namespace xo {
      * sinks that want to consume KalmanFilterSvc events will use
      * .add_filter_callback()
      */
-    class KalmanFilterSvc : public xo::reactor::Sink, public xo::reactor::Source {
+    class KalmanFilterSvc : public xo::reactor::Sink1<KalmanFilterInput>,
+			    public xo::reactor::AbstractSource {
     public:
-      using Source = xo::reactor::Source;
+      using AbstractSource = xo::reactor::AbstractSource;
       
     public:
       /* named ctor idiom */
@@ -30,18 +31,38 @@ namespace xo {
       /* add callback to receive filter output */
       void add_filter_callback(ref::rp<KalmanFilterOutputCallback> const & cb) {
 	this->pub_.add_callback(cb);
-	//this->pub_->add_callback(cb);
+      }
+
+      /* reverse the effect of .add_callback(cb) */
+      void remove_filter_callback(ref::rp<KalmanFilterOutputCallback> const & cb) {
+	this->pub_.remove_callback(cb);
       }
 
       /* notify incoming observations;  will trigger kalman filter step */
-      void notify_input(KalmanFilterInput const & input_kp1);
+      void notify_ev(KalmanFilterInput const & input_kp1) override;
 
-      // ----- inherited from reactor::Sink -----
+      // ----- inherited from reactor::AbstractSink -----
 
       /* provide source of kalman filter input events.
        * src.get() must dynamic cast to KalmanFilterInputSource
        */
-      virtual void attach_source(ref::rp<Source> src) override;
+      virtual void attach_source(ref::rp<AbstractSource> const & src) override;
+
+      // ----- inherited from reactor::AbstractSource -----
+
+      virtual void attach_sink(ref::rp<AbstractSink> const & sink) override {
+	constexpr std::string_view c_self_name = "KalmanFilterSvc::attach_sink";
+
+	this->add_filter_callback
+	  (Sink1<KalmanFilterStateExt>::require_native(c_self_name, sink));
+      } /*attach_sink*/
+
+      virtual void detach_sink(ref::rp<AbstractSink> const & sink) override {
+	constexpr std::string_view c_self_name = "KalmanFilterSvc::detach_sink";
+
+	this->remove_filter_callback
+	  (Sink1<KalmanFilterStateExt>::require_native(c_self_name, sink));
+      } /*detach_sink*/
 
     private:
       KalmanFilterSvc(KalmanFilterSpec spec);

@@ -25,7 +25,7 @@ namespace xo {
 	  KalmanFilterSvc * svc = this->svc_;
 
 	  if (svc) {
-	    svc->notify_input(input_kp1);
+	    svc->notify_ev(input_kp1);
 	  }
 	} /*notify_input*/
 
@@ -50,16 +50,16 @@ namespace xo {
     } /*attach_input*/
 
     void
-    KalmanFilterSvc::notify_input(KalmanFilterInput const & input_kp1)
+    KalmanFilterSvc::notify_ev(KalmanFilterInput const & input_kp1)
     {
       this->filter_.notify_input(input_kp1);
 
-      this->pub_.invoke(&KalmanFilterOutputCallback::notify_filter,
+      this->pub_.invoke(&KalmanFilterOutputCallback::notify_ev,
 			this->filter_.state_ext());
     } /*notify_input*/
 
     void
-    KalmanFilterSvc::attach_source(rp<Source> src)
+    KalmanFilterSvc::attach_source(rp<AbstractSource> const & src)
     {
       /* Source must actually be a KalmanFilterInputSource */
       KalmanFilterInputSource * kf_src

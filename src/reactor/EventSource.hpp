@@ -15,7 +15,6 @@ namespace xo {
       virtual void remove_callback(ref::rp<Callback> const & cb) = 0;
     }; /*EventSource*/
       
-    
   } /*namespace reactor*/
 } /*namespace xo*/
 

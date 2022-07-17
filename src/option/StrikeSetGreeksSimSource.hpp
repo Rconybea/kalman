@@ -7,7 +7,7 @@
 
 namespace xo {
   namespace option {
-    using StrikeSetGreeksSimSource = xo::reactor::SecondarySource<GreeksEvent, GreeksCallback, &GreeksCallback::notify_greeks>;
+    using StrikeSetGreeksSimSource = xo::reactor::SecondarySource<GreeksEvent>;
   } /*namespace option*/
 } /*namespace xo*/
 

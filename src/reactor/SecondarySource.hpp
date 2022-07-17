@@ -3,9 +3,11 @@
 #pragma once
 
 #include "time/Time.hpp"
+#include "reactor/Sink.hpp"
 #include "reactor/EventSource.hpp"
 #include "reactor/Reactor.hpp"
 #include "callback/CallbackSet.hpp"
+#include "reflect/demangle.hpp"
 #include <vector>
 
 namespace xo {
@@ -33,11 +35,10 @@ namespace xo {
      *     Event const & evt = ...;
      *     (cb->*member_fn)(evt);
      */
-    template<typename Event,
-	     typename Callback,
-	     void (Callback::*member_fn)(Event const &)>
-    class SecondarySource : public EventSource<Callback> {
+    template<typename Event>
+    class SecondarySource : public EventSource<Sink1<Event>> {
     public:
+      using EventSink = Sink1<Event>;
       using Reactor = reactor::Reactor;
       template<typename Fn>
       using RpCallbackSet = fn::RpCallbackSet<Fn>;
@@ -103,15 +104,15 @@ namespace xo {
 
       // ----- inherited from reactor::EventSource -----
 
-      void add_callback(ref::rp<Callback> const & cb) override {
+      void add_callback(ref::rp<EventSink> const & cb) override {
 	this->cb_set_.add_callback(cb);
       } /*add_callback*/
 
-      void remove_callback(ref::rp<Callback> const & cb) override {
+      void remove_callback(ref::rp<EventSink> const & cb) override {
 	this->cb_set_.remove_callback(cb);
       } /*remove_callback*/
 
-      // ----- inherited from reactor::Source -----
+      // ----- inherited from reactor::ReactorSource -----
 
       virtual bool is_empty() const override { return this->event_heap_.empty(); }
       virtual bool is_exhausted() const override { return this->upstream_exhausted_ && this->is_empty(); }      
@@ -165,6 +166,34 @@ namespace xo {
 
       virtual void notify_reactor_remove(Reactor * /*reactor*/) override {}
 
+      // ----- inherited from AbstractSource -----
+
+      virtual void attach_sink(ref::rp<AbstractSink> const & sink) override {
+	EventSink * native_sink
+	  = dynamic_cast<EventSink *>(sink.get());
+
+	if (native_sink) {
+	  this->add_callback(native_sink);
+	} else {
+	  throw std::runtime_error("SecondarySource::attach_sink"
+				   ": expected sink accepting "
+				   + std::string(reflect::type_name<Event>()));
+	}
+      } /*attach_sink*/
+
+      virtual void detach_sink(ref::rp<AbstractSink> const & sink) override {
+	EventSink * native_sink
+	  = dynamic_cast<EventSink *>(sink.get());
+
+	if (native_sink) {
+	  this->remove_callback(native_sink);
+	} else {
+	  throw std::runtime_error("SecondarySource::detach_sink"
+				   ": expecting sink accepting "
+				   + std::string(reflect::type_name<Event>()));
+	}
+      } /*detach_sink*/
+
     private:
       /* deliver one event from .event_heap[];   invoke callback for that event
        * provided replay_flag is true.
@@ -190,7 +219,7 @@ namespace xo {
 
 	if(replay_flag) {
 	  /* publish first event */
-	  this->cb_set_.invoke(member_fn, ev);
+	  this->cb_set_.invoke(&EventSink::notify_ev, ev);
 	}
 
 	return 1;
@@ -213,7 +242,7 @@ namespace xo {
       Reactor * parent_reactor_ = nullptr;
 
       /* invoke callbacks in this set for each event */
-      RpCallbackSet<Callback> cb_set_;
+      RpCallbackSet<EventSink> cb_set_;
     }; /*SecondarySource*/
   } /*namespace reactor*/
 } /*namespace xo*/

@@ -84,7 +84,7 @@ namespace xo {
 	self->ev_sink_(this->tracer_->current_ev());
       } /*sink_one*/
 
-      // ----- inherited from Source -----
+      // ----- inherited from ReactorSource -----
 
       /* process realizations are always primed (at least for now) */
       virtual bool is_empty() const override { return false; }
@@ -119,6 +119,18 @@ namespace xo {
 	return retval;
       } /*advance_until*/
 	
+      virtual void attach_sink(ref::rp<reactor::AbstractSink> const & /*sink*/) override {
+	/* see RealizationSimSource */
+	assert(false);
+      }
+
+      virtual void detach_sink(ref::rp<reactor::AbstractSink> const & /*sink*/) override {
+	/* see RealizationSimSource */
+	assert(false);
+      }
+
+      // ----- inherited from AbstractSource -----
+
     protected:
       RealizationSimSourceBase(ref::rp<RealizationTracer<T>> const & tracer,
 			       nanos ev_interval_dt,
@@ -149,12 +161,14 @@ namespace xo {
     }; /*RealizationSimSourceBase*/
 
     template<typename T>
-    class RealizationSimSource : public RealizationSimSourceBase<T,
-								 xo::fn::NotifyCallbackSet<RealizationCallback<T>,
-      decltype(&RealizationCallback<T>::notify_ev)>>
+    class RealizationSimSource
+      : public RealizationSimSourceBase<T,
+					xo::fn::NotifyCallbackSet<reactor::Sink1<std::pair<xo::time::utc_nanos,T>>,
+								  decltype(&reactor::Sink1<std::pair<xo::time::utc_nanos,T>>::notify_ev)>>
 
     {
     public:
+      using utc_nanos = xo::time::utc_nanos;
       using nanos = xo::time::nanos;
 
       static ref::rp<RealizationSimSource<T>> make(ref::rp<RealizationTracer<T>> const & tracer,
@@ -163,16 +177,56 @@ namespace xo {
 	return new RealizationSimSource<T>(tracer, ev_interval_dt);
       } /*make*/
 
+      void add_callback(ref::rp<reactor::Sink1<std::pair<utc_nanos,T>>> const & cb) {
+	this->ev_sink_addr()->add_callback(cb);
+      } /*add_callback*/
+
+      void remove_callback(ref::rp<reactor::Sink1<std::pair<utc_nanos,T>>> const & cb) {
+	this->ev_sink_addr()->remove_callback(cb);
+      } /*remove_callback*/
+
+      // ----- inherited from AbstractSink -----
+
+      /* alternative naming:
+       *    .add_callback(sink)    <--> .attach_sink(sink)
+       *    .remove_callback(sink) <--> .detach_sink(sink)
+       */
+      virtual void attach_sink(ref::rp<reactor::AbstractSink> const & sink) {
+	using logutil::xtag;
+
+	/* checking that sink handles events of type T
+	 * This is quick-n-dirty.   Want reflection here,   so we can write
+	 * a runtime type test
+	 *    sink->can_consume<T>()
+	 * w/out exploding vtable size
+	 */
+	constexpr std::string_view c_self_name
+	  = "RealizationSource::attach_sink";
+
+	this->add_callback(reactor::Sink1<std::pair<utc_nanos,T>>::require_native
+			   (c_self_name, sink));
+      } /*attach_sink*/
+
+      virtual void detach_sink(ref::rp<reactor::AbstractSink> const & sink) {
+	/* see comment on .attach_sink() */
+
+	constexpr std::string_view c_self_name
+	  = "RealizationSource::detach_sink";
+	   
+	this->remove_callback(reactor::Sink1<std::pair<utc_nanos,T>>::require_native
+				(c_self_name, sink));
+      } /*detach_sink*/
+
     private:
       RealizationSimSource(ref::rp<RealizationTracer<T>> const & tracer,
 			   nanos ev_interval_dt)
 	: RealizationSimSourceBase
 	  <T,
-	   xo::fn::NotifyCallbackSet<RealizationCallback<T>,
-				     decltype(&RealizationCallback<T>::notify_ev)>
+	   xo::fn::NotifyCallbackSet<reactor::Sink1<std::pair<xo::time::utc_nanos,T>>,
+				     decltype(&reactor::Sink1<std::pair<xo::time::utc_nanos,T>>::notify_ev)>
 	   >(tracer,
 	     ev_interval_dt,
-	     fn::make_notify_cbset(&RealizationCallback<T>::notify_ev))
+	     fn::make_notify_cbset(&reactor::Sink1<std::pair<xo::time::utc_nanos,T>>::notify_ev))
       {}
     }; /*RealizationSimSource*/
 
