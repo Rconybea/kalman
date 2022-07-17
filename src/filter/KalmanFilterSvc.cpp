@@ -21,7 +21,7 @@ namespace xo {
       public:
 	XferInputCb(KalmanFilterSvc * svc) : svc_{svc} {}
 
-	virtual void notify_input(KalmanFilterInput const & input_kp1) {
+	virtual void notify_ev(KalmanFilterInput const & input_kp1) override {
 	  KalmanFilterSvc * svc = this->svc_;
 
 	  if (svc) {

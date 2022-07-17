@@ -20,7 +20,19 @@ namespace xo {
       virtual void attach_source(ref::rp<AbstractSource> const & src) = 0;
     }; /*AbstractSink*/
 
-    /* Sink for events of type T */
+    /* Sink for events of type T
+     *
+     * inheritance:
+     *   ref::Refcount
+     *     ^
+     *     isa
+     *     |
+     *   reactor::AbstractSink
+     *     ^
+     *     isa
+     *     |
+     *   reactor::Sink1<T>
+     */
     template<typename T>
     class Sink1 : public AbstractSink {
     public:
