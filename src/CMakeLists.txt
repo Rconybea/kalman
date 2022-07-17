@@ -55,6 +55,7 @@ add_subdirectory(distribution_py)
 add_subdirectory(random)
 add_subdirectory(reactor)
 add_subdirectory(refcnt)
+add_subdirectory(reflect)
 add_subdirectory(logutil)
 
 # add unittest subdirectories
