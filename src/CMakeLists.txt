@@ -13,7 +13,7 @@ enable_testing()
 # c++ compiler
 
 # introduce a variable to hold c++ compiler flags
-SET(PROJECT_CXX_FLAGS "--std=c++20")
+set(PROJECT_CXX_FLAGS "--std=c++20 -frtti")
 
 # adds to {c,c++} compiler flags
 add_definitions(${PROJECT_CXX_FLAGS})
@@ -54,6 +54,7 @@ add_subdirectory(distribution)
 add_subdirectory(distribution_py)
 add_subdirectory(random)
 add_subdirectory(reactor)
+add_subdirectory(reactor_py)
 add_subdirectory(refcnt)
 add_subdirectory(reflect)
 add_subdirectory(logutil)
@@ -63,6 +64,7 @@ add_subdirectory(filter/utest)
 add_subdirectory(process/utest)
 add_subdirectory(option/utest)
 add_subdirectory(tree/utest)
+add_subdirectory(reactor/utest)
 add_subdirectory(refcnt/utest)
 
 # add the executable

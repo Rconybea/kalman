@@ -1,0 +1,12 @@
+* see ../process_py/README
+
+>>> import reactor_py
+>>> p=reactor_py.make_realization_printer()
+>>> p
+<reactor_py.SinkToConsole object at 0x1011853f0>
+>>> 
+
+>>> import inspect
+>>> inspect.getmro(reactor_py.SinkToConsole)
+
+>>> dir(reactor_py)
