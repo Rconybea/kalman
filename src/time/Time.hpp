@@ -123,12 +123,19 @@ namespace xo {
 } /*namespace xo*/
 
 namespace logutil {
-inline std::ostream & operator<<(std::ostream & os,
+  inline std::ostream & operator<<(std::ostream & os,
 				 xo::time::utc_nanos t0)
-{
-  xo::time::Time::print_ymd_hms_usec(t0, os);
-  return os;
-} /*operator<<*/
+  {
+    xo::time::Time::print_ymd_hms_usec(t0, os);
+    return os;
+  } /*operator<<*/
+
+  inline std::ostream & operator<<(std::ostream & os,
+				   std::pair<xo::time::utc_nanos, double> const & p)
+  {
+    os << "[" << p.first << ", " << p.second << "]";
+    return os;
+  } /*operator<<*/
 } /*namespace logutil*/
 
 /* end Time.hpp */
