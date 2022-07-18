@@ -80,19 +80,6 @@ namespace xo {
        */
       virtual utc_nanos sim_current_tm() const = 0;
 
-      /* deliver one  event to attached sink
-       * interpretation of 'one event' is source-specific;
-       * could be a collapsed or batched event in practice.
-       *
-       * no-op if source is empty.
-       *
-       * if sim, promise:
-       * - new .current_tm >= old .current_tm() || .is_notprimed() || .is_exhausted()
-       *
-       * returns #of events delivered.  Must be 0 or 1 in this context
-       */
-      virtual std::uint64_t deliver_one() = 0;
-
       /* promise:
        * - .current_tm() > tm || .is_notprimed() || .is_exhausted() = true
        * - if replay_flag is true,  then any events between previous .current_tm()
@@ -113,6 +100,21 @@ namespace xo {
        * (see Reactor.remove_source())
        */
       virtual void notify_reactor_remove(Reactor * /*reactor*/) {}
+
+      // ----- Inherited from AbstractSource -----
+
+      /* deliver one  event to attached sink
+       * interpretation of 'one event' is source-specific;
+       * could be a collapsed or batched event in practice.
+       *
+       * no-op if source is empty.
+       *
+       * if sim, promise:
+       * - new .current_tm >= old .current_tm() || .is_notprimed() || .is_exhausted()
+       *
+       * returns #of events delivered.  Must be 0 or 1 in this context
+       */
+      virtual std::uint64_t deliver_one() override = 0;
 
     protected:
       /* default implementations for online sources */

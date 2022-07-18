@@ -43,6 +43,10 @@ namespace xo {
 
       // ----- inherited from reactor::AbstractSink -----
 
+      virtual std::string_view self_typename() const override { return reflect::type_name<KalmanFilterSvc>(); }
+      virtual std::string_view parent_typename() const override { return reflect::type_name<xo::reactor::Sink1<KalmanFilterInput>>(); }
+      virtual std::type_info const * parent_typeinfo() const override { return &typeid(xo::reactor::Sink1<KalmanFilterInput>); }
+
       /* provide source of kalman filter input events.
        * src.get() must dynamic cast to KalmanFilterInputSource
        */
@@ -63,6 +67,14 @@ namespace xo {
 	this->remove_filter_callback
 	  (Sink1<KalmanFilterStateExt>::require_native(c_self_name, sink));
       } /*detach_sink*/
+
+      /* this is a noop for KalmanFilterSvc.  It's not a standalone source.
+       * Instead relies on upstream calling KalmanFilterSvc.notify_ev()
+       *
+       * To manually feed events to KalmanFilter,  need to act on attached source.
+       * See .attach_source()
+       */
+      virtual std::uint64_t deliver_one() override { return 0; };
 
     private:
       KalmanFilterSvc(KalmanFilterSpec spec);

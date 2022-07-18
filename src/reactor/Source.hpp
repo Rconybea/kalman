@@ -27,12 +27,24 @@ namespace xo {
       virtual void attach_sink(ref::rp<AbstractSink> const & sink) = 0;
       virtual void detach_sink(ref::rp<AbstractSink> const & sink) = 0;
 
+      /* typically expect events to be delivered using a reactor or simulator.
+       * (for example see reactor/Reactor, simulator/Simulator);
+       * reactor allocates cpu, and controls event ordering across sources
+       * when there are multiple sources.
+       *
+       * However, also possible for user code to invoke .deliver_one() directly.
+       * Beware,  may get unpredictable results if attempt to do this on a source
+       * that's also attached to a reactor.
+       */
+      virtual std::uint64_t deliver_one() = 0;
+
       /* human-readable string identifying this source */
       virtual std::string display_string() const;
     }; /*AbstractSource*/
 
     using AbstractSourcePtr = ref::rp<AbstractSource>;
 
+#ifdef OBSOLETE
     /* Source for events of type T.
      * Can connect to a Sink1<T>
      */
@@ -41,6 +53,7 @@ namespace xo {
     public:
       // ----- inherited from AbstractSource -----
     }; /*Source1*/
+#endif
 
   } /*namespace reactor*/
 } /*namespace xo*/

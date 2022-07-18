@@ -29,6 +29,18 @@ namespace xo {
 	  }
 	} /*notify_input*/
 
+	virtual std::string_view self_typename() const override {
+	  return reflect::type_name<XferInputCb>();
+	}
+
+	virtual std::string_view parent_typename() const override {
+	  return reflect::type_name<KalmanFilterInputCallback>();
+	}
+
+	virtual std::type_info const * parent_typeinfo() const override {
+	  return &typeid(KalmanFilterInputCallback);
+	}
+
       private:
 	/* destination for input events.
 	 * naked pointer to avoid refcount cycle
