@@ -19,7 +19,7 @@ To demo
 3. import pybind11 module and run:
      >>> import process_py
      >>> import datetime as dt
-     >>> from dt import datetime as clock
+     >>> from datetime import datetime as clock
      >>> t0=clock.now()
      # brownian motion, 50% annual volatility 
      >>> bm=process_py.make_brownian_motion(t0, 0.5)
@@ -40,6 +40,12 @@ To demo
      >>> ebm.exterior_sample(t + dt.timedelta(days=180, [t0, 50.0]))
      56.16317742801309
 
-     >>> r=process_py.make_realization(ebm)
-     >>> s=process_py.make_realization_source(r, dt.timedelta(seconds=1))
+     >>> r=process_py.make_realization_source(ebm, dt.timedelta(seconds=1))
+
+4. attach printer
+
+     >>> import reactor_py
+     >>> p=reactor_py.make_realization_printer()
+     >>> r.attach_sink(p)
+     
      
