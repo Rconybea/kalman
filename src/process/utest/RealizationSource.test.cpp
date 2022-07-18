@@ -13,11 +13,13 @@
 namespace xo {
   using xo::sim::Simulator;
   using xo::process::RealizationSourceBase;
+  using xo::process::RealizationSource;
   using xo::process::RealizationTracer;
   using xo::process::LogNormalProcess;
   using xo::process::ExpProcess;
   using xo::process::BrownianMotion;
   using xo::random::xoshiro256ss;
+  using xo::reactor::SinkToConsole;
   using xo::ref::rp;
   using xo::time::Time;
   using xo::time::seconds;
@@ -155,8 +157,36 @@ namespace xo {
 
     } /*TEST_CASE("sim-brownian-motion")*/
 
+    TEST_CASE("sim-brownian-motion-with-sink", "[process][simulation]") {
+      constexpr char const * c_self = "TEST_CASE:sim-brownian-motion-with-sink";
+      constexpr bool c_logging_enabled = true;
+
+      scope lscope(c_self, c_logging_enabled);
+
+      utc_nanos t0 = Time::ymd_hms_usec(20220718 /*ymd*/,
+					120000 /*hms*/,
+					0 /*usec*/);
+
+      auto bm
+	= BrownianMotion<xoshiro256ss>::make(t0,
+					     0.50 /*annualized volatility*/,
+					     65431123UL /*seed*/);
+
+      auto tracer
+	= RealizationTracer<double>::make(bm);
+
+      auto realization
+	= RealizationSource<double>::make(tracer,
+					  std::chrono::seconds(1) /*ev_interval_dt*/);
+
+      rp<SinkToConsole<std::pair<utc_nanos, double>>> sink
+	= new SinkToConsole<std::pair<utc_nanos, double>>();
+
+      realization->attach_sink(sink);
+    } /*TEST_CASE(sim-brownian-motion-with-sink)*/
+
     TEST_CASE("sim-lognormal", "[process][simulation]") {
-      constexpr char const * c_self = "TEST_CASE:sim-brownian-motion";
+      constexpr char const * c_self = "TEST_CASE:sim-lognormal";
       constexpr bool c_logging_enabled = false;
 
       scope lscope(c_self, c_logging_enabled);

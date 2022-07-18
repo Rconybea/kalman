@@ -158,6 +158,8 @@ namespace xo {
       nanos ev_interval_dt_;
     }; /*RealizationSourceBase*/
 
+    // ----- RealizationSource -----
+
     template<typename T>
     class RealizationSource
       : public RealizationSourceBase<T,
@@ -190,7 +192,19 @@ namespace xo {
        *    .remove_callback(sink) <--> .detach_sink(sink)
        */
       virtual void attach_sink(ref::rp<reactor::AbstractSink> const & sink) {
-	using logutil::xtag;
+	/* -------
+	 * WARNING
+	 * -------
+	 * spent some time chasing down clang behavior here.
+	 * the call to
+	 *   reactor::Sink1<...>::require_native()
+	 * fails unexpectedly because the template
+	 *   Sink1<std::pair<utc_nanos,T>>
+	 * and RealizationSource<T> may come from different modules.
+	 */
+
+	//using logutil::scope;
+	//using logutil::xtag;
 
 	/* checking that sink handles events of type T
 	 * This is quick-n-dirty.   Want reflection here,   so we can write
@@ -200,6 +214,9 @@ namespace xo {
 	 */
 	constexpr std::string_view c_self_name
 	  = "RealizationSource::attach_sink";
+
+	//scope lscope(c_self_name);
+	//lscope.log(xtag("T", reflect::type_name<T>()));
 
 	this->add_callback(reactor::Sink1<std::pair<utc_nanos,T>>::require_native
 			   (c_self_name, sink));
