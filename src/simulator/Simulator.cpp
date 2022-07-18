@@ -219,7 +219,7 @@ namespace xo {
 	= this->sim_heap_.front().src();
 
       /* NOTE: src.current_tm() isn't preserved across
-       *       call to src.deliver_one(
+       *       call to src.deliver_one()
        */
       uint64_t retval = src->deliver_one();
 
