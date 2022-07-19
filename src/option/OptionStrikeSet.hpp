@@ -36,6 +36,22 @@ namespace xo {
       ref::brw<VanillaOption> call() const { return (*this)[0]; }
       ref::brw<VanillaOption>  put() const { return (*this)[1]; }
 
+      ref::brw<VanillaOption> any_option(Callput prefer) const {
+	if(prefer == Callput::call) {
+	  if (this->call()) {
+	    return this->call();
+	  } else {
+	    return this->put();
+	  }
+	} else {
+	  if (this->put()) {
+	    return this->put();
+	  } else {
+	    return this->call();
+	  }
+	}
+      } /*any_option*/
+
       /* return #of options for this strike pair.
        * must be one of:
        * - 2 (call + put)
@@ -98,9 +114,29 @@ namespace xo {
 	}
       } /*visit_strikes*/
 
+      template<typename V>
+      void append_strikes(V * v) const {
+	for(StrikePair const & strike_pair : this->strike_v_) {
+	  v->push_back(strike_pair);
+	}
+      } /*append_strikes*/
+
+      template<typename V>
+      void append_options(V * v) const {
+	for(StrikePair const & strike_pair : this->strike_v_) {
+	  if(strike_pair.call())
+	    v->push_back(strike_pair.call().get());
+	  if(strike_pair.put())
+	    v->push_back(strike_pair.put().get());
+	}
+      } /*append_options*/
+
       void push_back(StrikePair const & x) { this->strike_v_.push_back(x); }
 
       bool verify_ok(bool may_throw) const;
+
+      void display(std::ostream & os) const;
+      std::string display_string() const;
 
     private:
       OptionStrikeSet() = default;
@@ -109,6 +145,13 @@ namespace xo {
       /* call/put pairs, in increasing effective strike order */
       std::vector<StrikePair> strike_v_;
     }; /*OptionStrikeSet*/
+
+    inline std::ostream &
+    operator<<(std::ostream & os, ref::rp<OptionStrikeSet> const & oset) {
+      oset->display(os);
+      return os;
+    } /*operator<<*/
+
   } /*namespace option*/
 } /*namespace xo*/
 

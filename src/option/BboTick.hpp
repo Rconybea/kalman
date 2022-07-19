@@ -2,9 +2,9 @@
 
 #pragma once
 
+#include "time/Time.hpp"
 #include "option/OptionId.hpp"
 #include "option_util/PxSize2.hpp"
-#include "time/Time.hpp"
 
 namespace xo {
   namespace option {

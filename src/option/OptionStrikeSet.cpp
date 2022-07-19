@@ -7,6 +7,7 @@
 
 namespace xo {
   using xo::ref::rp;
+  using logutil::xtag;
   //using logutil::operator<<;
 
   namespace option {
@@ -135,6 +136,50 @@ namespace xo {
 
       return retval;
     } /*regular*/
+
+    void
+    OptionStrikeSet::display(std::ostream & os) const
+    {
+      OptionId lo_id;
+      double lo_strike = 0.0;
+      OptionId hi_id;
+      double hi_strike = 0.0;
+
+      if(!(this->strike_v_.empty())) {
+	ref::brw<VanillaOption> lo_option
+	  = this->strike_v_[0].any_option(Callput::call);
+
+	if(lo_option) {
+	  lo_id = lo_option->id();
+	  lo_strike = lo_option->effective_strike();
+	}
+
+	ref::brw<VanillaOption> hi_option
+	  = this->strike_v_[this->strike_v_.size() - 1].any_option(Callput::put);
+
+	if(hi_option) {
+	  hi_id = hi_option->id();
+	  hi_strike = hi_option->effective_strike();
+	}
+      }
+
+      os << "<OptionStrikeSet"
+	 << xtag("n_strike", this->strike_v_.size())
+	 << xtag("lo_id", lo_id)
+	 << xtag("lo_strike", lo_strike)
+	 << xtag("hi_id", hi_id)
+	 << xtag("hi_strike", hi_strike)
+	 << ">";
+    } /*display*/
+
+    std::string
+    OptionStrikeSet::display_string() const
+    {
+      std::stringstream ss;
+      this->display(ss);
+
+      return ss.str();
+    } /*display_string*/
   } /*namespace option*/
 } /*namespace xo*/
 
