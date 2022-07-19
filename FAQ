@@ -1,8 +1,73 @@
+Environment Issues
+----------------------------------------------------------------
+Q1. how to get python with numpy available?
+
+A1. see [[https://github.com/NixOS/nixpkgs/blob/master/doc/languages-frameworks/python.section.md]]
+
+      $ nix-shell -p 'python39.withPackages(ps: with ps; [ numpy ])' --run python
+
+    To embed this in a .py script,  use nix-shell sh-bang:
+
+      #!/usr/bin/env nix-shell
+      #!nix-shell -i python3 -p "python39.withPackages(ps: [ ps.numpy ])"
+
+    To embed with pinned nixpkgs:
+
+      #!/usr/bin/env nix-shell
+      #!nix-shell -i python3 -p "python3.withPackages(ps: [ ps.numpy ])"
+      #!nix-shell -I nixpkgs=https://github.com/NixOS/nixpkgs/archive/d373d80b1207d52621961b16aa4a3438e4f98167.tar.gz
+
+    alternatively,  write a shell.nix file somewhere:
+
+      with import <nixpkgs> {};
+      (python39.withPackages (ps: [ps.numpy])).env
+
+    to combine with other packages,  can write:
+
+      with import <nixpkgs> {};
+      let
+	pythonEnv = python39.withPackages (ps: [
+	  ps.numpy
+	  ps.toolz
+	]);
+      in mkShell {
+	packages = [
+	  pythonEnv
+
+	  libffi
+	  openssl
+
+          # ..etc..
+	];
+      }
+
 Build Issues
-Q. after adding a new subdirectory,   build fails with something like:
+----------------------------------------------------------------
+Q1. after adding a new subdirectory,   build fails with something like:
 
     ld: library not found for -loption_util
 
-A. check directory added to src/CMakeLists.txt
+A1. check directory added to src/CMakeLists.txt
 
     add_subdirectory(option_util)
+----------------------------------------------------------------
+Q2. dynamic_cast<Foo<T> *> fails unexpectedly for a template class
+
+    This can happen if Foo<specifictype> is introduced separately in
+    different libraries {libA, libB}.
+
+    Looks like problem stems from: libA, libB each provide their own typeinfo
+    object for Foo<specifictype>,  with different hash codes.
+
+    Encountered this with reactor::Sink1<std::pair<utc_nanos, double>>,
+    referenced from both process_py/ and reactor_py/.
+
+A2. Workaround was to consolidate template specialization
+    from reactor_py/ into process_py/.
+
+    Note that cmake doesn't allow one python module to link against another.
+    It's possible problem could have been avoided if this were allowed.
+
+    Lesson: beware of specializing template classes in a *Py.cpp file,
+    if such templates classes need to work with dynamic_cast<>
+    
