@@ -2,6 +2,7 @@
 
 #pragma once
 
+#include "logutil/scope.hpp"
 #include <iostream>
 #include <cstdint>
 
@@ -18,8 +19,8 @@ namespace xo {
 	return x.num() - y.num();
       } /*compare*/
 
-      bool is_valid() const { return num_ != -1; }
-      bool is_invalid() const { return num_ == -1; }
+      bool is_valid() const { return num_ != static_cast<uint32_t>(-1); }
+      bool is_invalid() const { return num_ == static_cast<uint32_t>(-1); }
       uint32_t num() const { return num_; }
 
       /* option id#'s are always generated in pairs;
@@ -34,10 +35,21 @@ namespace xo {
        */
       uint32_t strike_pair_ix() const { return num_ % 2; }
 
+      std::string display_string() const {
+	return logutil::tostr("<OptionId :num ", num_, ">");
+      } /*display_string*/
+
     private:
       /* unique id# for an option */
       uint32_t num_ = -1;
     }; /*OptionId*/
+
+    inline bool operator==(OptionId x, OptionId y) { return x.num() == y.num(); }
+    inline bool operator!=(OptionId x, OptionId y) { return x.num() != y.num(); }
+    inline bool operator< (OptionId x, OptionId y) { return x.num() <  y.num(); }
+    inline bool operator<=(OptionId x, OptionId y) { return x.num() <= y.num(); }
+    inline bool operator>=(OptionId x, OptionId y) { return x.num() >= y.num(); }
+    inline bool operator> (OptionId x, OptionId y) { return x.num() >  y.num(); }
 
     inline std::ostream &
     operator<<(std::ostream & os, OptionId id) {
