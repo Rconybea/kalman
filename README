@@ -22,6 +22,7 @@
   +- default.nix           controls hermetic build.   nix-build uses this
   +- shell.nix             controls interactive development environment.  nix-shell uses this
   +- kalman.nix            specifies dependencies + build scripts for this project
+  +- python.nix            python environment suitable for using kalman build;  e.g. has numpy
   +- mkderivation.nix      utility for kalman.nix
   +- builder.sh            build script; invoked from nix-build
   +- setup.sh              make shell environment for building;  called from builder.sh, shell.nix

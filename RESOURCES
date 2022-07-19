@@ -1,5 +1,15 @@
+* python-on-nix tutorial
+  [[https://github.com/FRidh/python-on-nix/blob/master/tutorial.md]]
+  [[https://github.com/NixOS/nixpkgs/blob/master/doc/languages-frameworks/python.section.md]]
+  
 * unscented kalman filter (UKF)
   [[https://groups.seas.harvard.edu/courses/cs281/papers/unscented.pdf]]
   tutorial
   [[https://www.cse.sc.edu/~terejanu/files/tutorialUKF.pdf]]
+
+* clang bug with dynamic_cast<> across module boundaries
+  [[https://github.com/android/ndk/issues/533#issuecomment-335977747]]
+
+* llvm rtti - advertised as good,  but complicated to setup
+  [[https://llvm.org/docs/HowToSetUpLLVMStyleRTTI.html]]
   

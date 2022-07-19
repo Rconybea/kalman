@@ -9,6 +9,13 @@ DONE write StrikeSetOmdSimSource::advance_until()
 DONE StrikeSetMarketModel to forward omd events to StrikeSetOmdSimSource
 DONE generalize simulator,  allow not-ready sources
 
+* __repr__ for OptionStrikeSet in option_py/
+* wrap PricingContext for option_py/
+* wrap StrikeSetMarketModel in option_py/
+* make it so can connect an underlying process to StrikeSetMarketModel
+  using x.add_sink(y)
+  * ul_sim_src ctor for StrikeSetMarketModel
+
 * overview map for filtering pipeline
   StrikeSetMarketModel -> kalman filter
 * Size2
