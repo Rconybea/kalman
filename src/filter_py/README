@@ -1,0 +1,8 @@
+filter module,  using pybind11 to wrap c++ implementation
+
+see option_py/README
+see process_py/README
+
+
+Notes on Eigen <-> numpy conversion
+
