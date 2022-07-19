@@ -16,6 +16,22 @@ namespace xo {
 	}
       } /*other*/
     }; /*CallputUtil*/
+
+    inline std::ostream & operator<<(std::ostream & os, Callput x) {
+      switch(x) {
+      case Callput::call:
+	os << "call";
+	break;
+      case Callput::put:
+	os << "put";
+	break;
+      default:
+	os << "???";
+      }
+
+      return os;
+    } /*operator<<*/
+
   } /*namespace option*/
 } /*namespace xo*/
 
