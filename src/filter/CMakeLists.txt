@@ -3,7 +3,7 @@
 set(SELF_LIBRARY_NAME filter)
 
 # build shared liburary 'filter'
-add_library(${SELF_LIBRARY_NAME} SHARED KalmanFilterSvc.cpp KalmanFilter.cpp)
+add_library(${SELF_LIBRARY_NAME} SHARED KalmanFilterSvc.cpp KalmanFilter.cpp KalmanFilterState.cpp)
 
 set_target_properties(${SELF_LIBRARY_NAME}
 		      PROPERTIES

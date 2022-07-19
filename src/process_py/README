@@ -47,5 +47,13 @@ To demo
      >>> import reactor_py
      >>> p=reactor_py.make_realization_printer()
      >>> r.attach_sink(p)
-     
-     
+     >>> bm.deliver_one()
+     >>> bm.deliver_one()
+     >>> r.deliver_one()
+     [20220718:224818.909576, 0]
+     1
+     >>> r.deliver_one()
+     [20220718:224819.909576, -0.000111338]
+     1
+
+
