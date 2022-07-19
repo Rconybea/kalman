@@ -1,0 +1,17 @@
+option module,  using pybind11 to wrap c++ implementation
+
+see process_py/README
+
+
+$ python
+Python 3.9.13 (main, Jul  3 2022, 07:34:40) 
+[Clang 11.1.0 ] on darwin
+Type "help", "copyright", "credits" or "license" for more information.
+>>> import option_py
+>>> import datetime as dt
+>>> t0=dt.datetime.now()
+>>> t0
+datetime.datetime(2022, 7, 18, 21, 10, 29, 684618)
+>>> option_py.make_option_strike_set(10, option_py.OptionId(0), 5, 15, t0, option_py.Pxtick.penny_nickel)
+<option_py.OptionStrikeSet object at 0x1045ef7f0>
+>>> 
