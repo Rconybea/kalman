@@ -38,7 +38,7 @@ target_include_directories(${SELF_LIBRARY_NAME} PUBLIC
 # ----------------------------------------------------------------
 # internal dependencies: logutils, ...
 
-target_link_libraries(${SELF_LIBRARY_NAME} PUBLIC option)
+target_link_libraries(${SELF_LIBRARY_NAME} PUBLIC filter)
 
 # ----------------------------------------------------------------
 # make standard directories for std:: includes explicit

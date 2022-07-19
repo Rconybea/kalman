@@ -65,6 +65,24 @@ namespace xo {
       }
     } /*ctor*/
 
+    void
+    KalmanFilterState::display(std::ostream & os) const
+    {
+      os << "<KalmanFilterState"
+	 << xtag("step", k_)
+	 << xtag("tm", tk_)
+	 << xtag("x", x_)
+	 << xtag("P", matrix(P_))
+	 << ">";
+    } /*display*/
+
+    std::string
+    KalmanFilterState::display_string() const
+    {
+      std::stringstream ss;
+      ss << *this;
+      return ss.str();
+    } /*display_string*/
   } /*namespace filter*/
 } /*namespace xo*/
 

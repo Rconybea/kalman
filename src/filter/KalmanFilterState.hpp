@@ -36,6 +36,9 @@ namespace xo {
       VectorXd const & state_v() const { return x_; }
       MatrixXd const & state_cov() const { return P_; }
 
+      void display(std::ostream & os) const;
+      std::string display_string() const;
+
     private:
       /* step# k,  advances by +1 on each filter step */
       uint32_t k_ = 0;
@@ -51,6 +54,13 @@ namespace xo {
        */
       MatrixXd P_;
     }; /*KalmanFilterState*/
+
+    inline std::ostream & operator<<(std::ostream & os,
+				     KalmanFilterState const & s)
+    {
+      s.display(os);
+      return os;
+    } /*operator<<*/
 
     /* KalmanFilterStateExt:
      * adds additional details from filter step to KalmanFilterState
