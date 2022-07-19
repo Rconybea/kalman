@@ -40,6 +40,8 @@ namespace xo {
       /* convert a per-share quantity to screen units */
       double sh2px(double x) const { return x * this->delivmult() / this->pxmult(); }
 
+      std::string display_string() const;
+
     private:
       VanillaOption() = default;
       VanillaOption(OptionId id, Callput cp, double k, utc_nanos x, Pxtick pxtick)
