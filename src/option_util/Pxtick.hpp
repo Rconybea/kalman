@@ -74,8 +74,32 @@ namespace xo {
       static Price lub_tick(Pxtick pxtick, double x) {
 	return tickmult_aux(+1, pxtick, x);
       } /*lub_tick*/
+
+      static void display(std::ostream & os, Pxtick x) {
+	switch(x) {
+	case Pxtick::all_penny:
+	  os << "penny";
+	  break;
+	case Pxtick::penny_nickel:
+	  os << "penny/nickel";
+	  break;
+	case Pxtick::nickel_dime:
+	  os << "nickel/dime";
+	  break;
+	default:
+	  os << "???";
+	  break;
+	}
+      } /*display*/
     }; /*PxtickUtil*/
 
+    inline std::ostream & operator<<(std::ostream & os,
+				     Pxtick x)
+    {
+      PxtickUtil::display(os, x);
+      return os;
+    } /*operator<<*/
+      
   } /*namespace option*/
 } /*namespace xo*/
 
