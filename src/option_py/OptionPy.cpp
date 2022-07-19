@@ -41,7 +41,7 @@ namespace xo {
         .def(py::init<uint32_t>())
 	.def("is_valid", &OptionId::is_valid)
 	.def("is_invalid", &OptionId::is_invalid)
-	.def("num", &OptionId::num)
+	.def_property_readonly("num", &OptionId::num)
 	.def("strike_ix", &OptionId::strike_ix)
 	.def("strike_pair_ix", &OptionId::strike_pair_ix)
 	.def(py::self == py::self)
@@ -56,6 +56,14 @@ namespace xo {
 
       py::class_<VanillaOption,
 		 rp<VanillaOption>>(m, "VanillaOption")
+	.def_property_readonly("id", &VanillaOption::id)
+	.def_property_readonly("callput", &VanillaOption::callput)
+	.def_property_readonly("stated_strike", &VanillaOption::stated_strike)
+	.def_property_readonly("expiry", &VanillaOption::expiry)
+	.def_property_readonly("pxtick", &VanillaOption::pxtick)
+	.def_property_readonly("pxmult", &VanillaOption::pxmult)
+	.def_property_readonly("delivmult", &VanillaOption::delivmult)
+	.def_property_readonly("effective_strike", &VanillaOption::effective_strike)
 	.def("__repr__", &VanillaOption::display_string);
       
       // ----- xo::option::OptionStrikeSet -----

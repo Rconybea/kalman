@@ -12,6 +12,12 @@ Type "help", "copyright", "credits" or "license" for more information.
 >>> t0=dt.datetime.now()
 >>> t0
 datetime.datetime(2022, 7, 18, 21, 10, 29, 684618)
->>> option_py.make_option_strike_set(10, option_py.OptionId(0), 5, 15, t0, option_py.Pxtick.penny_nickel)
-<option_py.OptionStrikeSet object at 0x1045ef7f0>
->>> 
+>>> ss=option_py.make_option_strike_set(10, option_py.OptionId(0), 5, 15, t0, option_py.Pxtick.penny_nickel)
+>>> ss.get_options()
+[<VanillaOption :id 0 :callput call :strike 5 :expiry 20220719:170808.375680 :pxtick penny/nickel>,
+ <VanillaOption :id 1 :callput put :strike 5 :expiry 20220719:170808.375680 :pxtick penny/nickel>,
+ ...]
+>>> o1=ss.get_options()[0]
+>>> o1.id
+>>> o1.stated_strike
+>>> o1.callput
