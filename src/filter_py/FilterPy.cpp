@@ -3,9 +3,8 @@
 #include "refcnt/Refcounted.hpp"
 #include "filter/KalmanFilterState.hpp"
 #include "filter/KalmanFilterTransition.hpp"
-//#include "option/OptionStrikeSet.hpp"
-//#include "option/OptionId.hpp"
-//#include "option_util/Pxtick.hpp"
+#include "filter/KalmanFilterObservable.hpp"
+
 #include <pybind11/pybind11.h>
 #include <pybind11/eigen.h>
 //#include <pybind11/stl.h>
@@ -21,6 +20,7 @@ PYBIND11_DECLARE_HOLDER_TYPE(T, xo::ref::intrusive_ptr<T>, true);
 namespace xo {
   using xo::kalman::KalmanFilterState;
   using xo::kalman::KalmanFilterTransition;
+  using xo::kalman::KalmanFilterObservable;
   //  using xo::ref::rp;
   using xo::time::utc_nanos;
   using Eigen::VectorXd;
@@ -67,6 +67,18 @@ namespace xo {
 	.def_property_readonly("F", &KalmanFilterTransition::transition_mat)
 	.def_property_readonly("Q", &KalmanFilterTransition::transition_cov)
 	.def("__repr__", &KalmanFilterTransition::display_string);
+
+      // ----- xo::kalman::KalmanFilterObservable -----
+
+      py::class_<KalmanFilterObservable>(m, "KalmanFilterObservable")
+	.def(py::init<MatrixXd, MatrixXd>())
+	.def("n_state", &KalmanFilterObservable::n_state)
+	.def("n_observable", &KalmanFilterObservable::n_observable)
+	.def("observable_mat", &KalmanFilterObservable::observable)
+	.def("observable_cov", &KalmanFilterObservable::observable_cov)
+	.def_property_readonly("H", &KalmanFilterObservable::observable)
+	.def_property_readonly("R", &KalmanFilterObservable::observable_cov)
+	.def("__repr__", &KalmanFilterObservable::display_string);
 
 #ifdef OBSOLETE
       // ----- xo::option::Pxtick -----
