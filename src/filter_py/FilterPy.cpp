@@ -4,6 +4,7 @@
 #include "filter/KalmanFilterState.hpp"
 #include "filter/KalmanFilterTransition.hpp"
 #include "filter/KalmanFilterObservable.hpp"
+#include "filter/KalmanFilterInput.hpp"
 
 #include <pybind11/pybind11.h>
 #include <pybind11/eigen.h>
@@ -21,6 +22,7 @@ namespace xo {
   using xo::kalman::KalmanFilterState;
   using xo::kalman::KalmanFilterTransition;
   using xo::kalman::KalmanFilterObservable;
+  using xo::kalman::KalmanFilterInput;
   //  using xo::ref::rp;
   using xo::time::utc_nanos;
   using Eigen::VectorXd;
@@ -80,6 +82,15 @@ namespace xo {
 	.def_property_readonly("R", &KalmanFilterObservable::observable_cov)
 	.def("__repr__", &KalmanFilterObservable::display_string);
 
+      // ----- xo::kalman::KalmanFilterInput -----
+
+      py::class_<KalmanFilterInput>(m, "KalmanFilterInput")
+	.def(py::init<utc_nanos, VectorXd>())
+	.def("n_observable", &KalmanFilterInput::n_obs)
+	.def_property_readonly("tkp1", &KalmanFilterInput::tkp1)
+	.def_property_readonly("z", &KalmanFilterInput::z)
+	.def("__repr__", &KalmanFilterInput::display_string);
+
 #ifdef OBSOLETE
       // ----- xo::option::Pxtick -----
 
@@ -89,26 +100,10 @@ namespace xo {
 	.value("nickel_dime", Pxtick::nickel_dime);
 	//.export_values(); // only need this for pre-c++11-style enum inside a class
 
-      // ----- xo::option::VanillaOption -----
-
-      py::class_<VanillaOption,
-		 rp<VanillaOption>>(m, "VanillaOption")
-	.def_property_readonly("id", &VanillaOption::id)
-	.def_property_readonly("callput", &VanillaOption::callput)
-	.def_property_readonly("stated_strike", &VanillaOption::stated_strike)
-	.def_property_readonly("expiry", &VanillaOption::expiry)
-	.def_property_readonly("pxtick", &VanillaOption::pxtick)
-	.def_property_readonly("pxmult", &VanillaOption::pxmult)
-	.def_property_readonly("delivmult", &VanillaOption::delivmult)
-	.def_property_readonly("effective_strike", &VanillaOption::effective_strike)
-	.def("__repr__", &VanillaOption::display_string);
-      
       // ----- xo::option::OptionStrikeSet -----
 
       py::class_<OptionStrikeSet,
 		 rp<OptionStrikeSet>>(m, "OptionStrikeSet")
-	.def("n_strike", &OptionStrikeSet::n_strike)
-	.def("n_option", &OptionStrikeSet::n_option)
 	.def("get_options",
 	     [](OptionStrikeSet const & x) {
 	       std::vector<rp<VanillaOption>> v;
