@@ -8,6 +8,7 @@
 namespace xo {
   using xo::time::utc_nanos;
   using logutil::matrix;
+  using logutil::vector;
   using logutil::scope;
   using logutil::xtag;
   using Eigen::LDLT;
@@ -71,7 +72,7 @@ namespace xo {
       os << "<KalmanFilterState"
 	 << xtag("step", k_)
 	 << xtag("tm", tk_)
-	 << xtag("x", x_)
+	 << xtag("x", matrix(x_))
 	 << xtag("P", matrix(P_))
 	 << ">";
     } /*display*/

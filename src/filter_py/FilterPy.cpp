@@ -2,6 +2,7 @@
 
 #include "refcnt/Refcounted.hpp"
 #include "filter/KalmanFilterState.hpp"
+#include "filter/KalmanFilterTransition.hpp"
 //#include "option/OptionStrikeSet.hpp"
 //#include "option/OptionId.hpp"
 //#include "option_util/Pxtick.hpp"
@@ -19,6 +20,7 @@ PYBIND11_DECLARE_HOLDER_TYPE(T, xo::ref::intrusive_ptr<T>, true);
 
 namespace xo {
   using xo::kalman::KalmanFilterState;
+  using xo::kalman::KalmanFilterTransition;
   //  using xo::ref::rp;
   using xo::time::utc_nanos;
   using Eigen::VectorXd;
@@ -54,6 +56,18 @@ namespace xo {
 	.def_property_readonly("P", &KalmanFilterState::state_cov)
 	.def("__repr__", &KalmanFilterState::display_string);
       
+      // ----- xo::kalman::KalmanFilterTransition -----
+
+      py::class_<KalmanFilterTransition>(m, "KalmanFilterTransition")
+	.def(py::init<MatrixXd, MatrixXd>())
+	.def("n_state", &KalmanFilterTransition::n_state)
+	.def("transition_mat", &KalmanFilterTransition::transition_mat)
+	.def("transition_cov", &KalmanFilterTransition::transition_cov)
+	.def("check_ok", &KalmanFilterTransition::check_ok)
+	.def_property_readonly("F", &KalmanFilterTransition::transition_mat)
+	.def_property_readonly("Q", &KalmanFilterTransition::transition_cov)
+	.def("__repr__", &KalmanFilterTransition::display_string);
+
 #ifdef OBSOLETE
       // ----- xo::option::Pxtick -----
 

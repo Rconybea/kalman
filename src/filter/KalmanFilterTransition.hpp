@@ -39,6 +39,9 @@ namespace xo {
 	return f_is_nxn && q_is_nxn;
       } /*check_ok*/
 
+      void display(std::ostream & os) const;
+      std::string display_string() const;
+
     private:
       /* [n x n] state transition matrix */
       MatrixXd F_;

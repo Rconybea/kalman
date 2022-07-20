@@ -14,6 +14,9 @@ namespace logutil {
   }; /*matrix*/
 
   template<typename T>
+  using vector = matrix<T>;
+
+  template<typename T>
   inline std::ostream &
   operator<<(std::ostream & s, matrix<T> const & mat)
   {
