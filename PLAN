@@ -8,8 +8,17 @@ DONE write generator for family of related options
 DONE write StrikeSetOmdSimSource::advance_until()
 DONE StrikeSetMarketModel to forward omd events to StrikeSetOmdSimSource
 DONE generalize simulator,  allow not-ready sources
+DONE __repr__ for OptionStrikeSet in option_py/
+DONE wrap KalmanFilterTransition
+DONE wrap KalmanFilterObservable
+* wrap KalmanFilterInput
+* wrap KalmanFilterStep
+* wrap KalmanFilterSpec (somehow ..  need to learn about lambdas or provide simple MkStepFn variations)
+* wrap KalmanFilterEngine::extrapolate()
+* wrap KalmanFilterEngine::kalman_gain(), .kalman_gain1()
+* wrap KalmanFilterEngine::correct(), .correct1()
+* wrap KalmanFilterEngine::step(), .step1() (somehow .. learn about overloading functions)
 
-* __repr__ for OptionStrikeSet in option_py/
 * wrap PricingContext for option_py/
 * wrap StrikeSetMarketModel in option_py/
 * make it so can connect an underlying process to StrikeSetMarketModel

@@ -12,4 +12,8 @@
 
 * llvm rtti - advertised as good,  but complicated to setup
   [[https://llvm.org/docs/HowToSetUpLLVMStyleRTTI.html]]
+
+* d3 + jupyterlab
+  [[https://stackoverflow.com/questions/66060012/display-d3-js-visualisation-in-jupyter-lab]]
+  [[https://gist.github.com/gnestor/f1893e0226ced227e910f11b769adc06]]
   
