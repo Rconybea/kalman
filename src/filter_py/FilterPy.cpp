@@ -1,6 +1,7 @@
 /* @file FilterPy.cpp */
 
 #include "refcnt/Refcounted.hpp"
+#include "filter/KalmanFilterStep.hpp"
 #include "filter/KalmanFilterState.hpp"
 #include "filter/KalmanFilterTransition.hpp"
 #include "filter/KalmanFilterObservable.hpp"
@@ -19,6 +20,8 @@
 PYBIND11_DECLARE_HOLDER_TYPE(T, xo::ref::intrusive_ptr<T>, true);
 
 namespace xo {
+  using xo::kalman::KalmanFilterStepBase;
+  using xo::kalman::KalmanFilterStep;
   using xo::kalman::KalmanFilterState;
   using xo::kalman::KalmanFilterStateExt;
   using xo::kalman::KalmanFilterTransition;
@@ -94,11 +97,23 @@ namespace xo {
       // ----- xo::kalman::KalmanFilterInput -----
 
       py::class_<KalmanFilterInput>(m, "KalmanFilterInput")
-	.def(py::init<utc_nanos, VectorXd>())
+	.def(py::init<utc_nanos, VectorXd>(),
+	     py::arg("tkp1"), py::arg("z"))
 	.def("n_observable", &KalmanFilterInput::n_obs)
 	.def_property_readonly("tkp1", &KalmanFilterInput::tkp1)
 	.def_property_readonly("z", &KalmanFilterInput::z)
 	.def("__repr__", &KalmanFilterInput::display_string);
+
+      // ----- xo::kalman::KalmanFilterStep -----
+
+      py::class_<KalmanFilterStep>(m, "KalmanFilterStep")
+	.def(py::init<KalmanFilterState, KalmanFilterTransition, KalmanFilterObservable, KalmanFilterInput>(),
+	     py::arg("state"), py::arg("model"), py::arg("obs"), py::arg("input"))
+	.def_property_readonly("state", &KalmanFilterStep::state)
+	.def_property_readonly("model", &KalmanFilterStepBase::model)
+	.def_property_readonly("obs", &KalmanFilterStepBase::obs)
+	.def_property_readonly("input", &KalmanFilterStep::input)
+	.def("__repr__", &KalmanFilterStep::display_string);
 
 #ifdef OBSOLETE
       // ----- xo::option::Pxtick -----
@@ -118,12 +133,6 @@ namespace xo {
 	       return v;
 	     })
 	.def("__repr__", &OptionStrikeSet::display_string);
-
-      // OptionStrikeSet::regular(n, start_id, lo_strike, d_strike, expiry, pxtick);
-      m.def("make_option_strike_set", &OptionStrikeSet::regular,
-	    py::arg("n"), py::arg("start_id"), py::arg("lo_strike"), py::arg("hi_strike"),
-	    py::arg("expiry"), py::arg("pxtick"));
-
 #endif
     } /*filter_py*/
   } /*namespace filter*/

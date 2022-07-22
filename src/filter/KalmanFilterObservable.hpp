@@ -42,6 +42,13 @@ namespace xo {
       /* [m x m] covariance matrix for observation noise */
       MatrixXd R_;
     }; /*KalmanFilterObservable*/
+
+    inline std::ostream &
+    operator<<(std::ostream & os, KalmanFilterObservable const & x)
+    {
+      x.display(os);
+      return os;
+    } /*operator<<*/
   } /*namespace kalman*/
 } /*namespace xo*/
 

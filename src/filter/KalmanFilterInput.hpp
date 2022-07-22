@@ -33,6 +33,12 @@ namespace xo {
       VectorXd z_;
     }; /*KalmanFilterInput*/
 
+    inline std::ostream &
+    operator<<(std::ostream & os, KalmanFilterInput const & x)
+    {
+      x.display(os);
+      return os;
+    } /*operator<<*/
     
   } /*namespace kalman*/
 } /*namespace xo*/

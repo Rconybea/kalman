@@ -48,6 +48,12 @@ namespace xo {
       /* [n x n] covariance matrix for system noise */
       MatrixXd Q_;
     }; /*KalmanFilterTransition*/
+
+    inline std::ostream &
+    operator<<(std::ostream & os, KalmanFilterTransition const & x) {
+      x.display(os);
+      return os;
+    } /*operator<<*/
   } /*namespace kalman*/
 } /*namespace xo*/
     
