@@ -25,6 +25,7 @@ namespace xo {
 			utc_nanos tk,
 			VectorXd x,
 			MatrixXd P);
+      virtual ~KalmanFilterState() = default;
 
       uint32_t step_no() const { return k_; }
       utc_nanos tm() const { return tk_; }
@@ -36,7 +37,7 @@ namespace xo {
       VectorXd const & state_v() const { return x_; }
       MatrixXd const & state_cov() const { return P_; }
 
-      void display(std::ostream & os) const;
+      virtual void display(std::ostream & os) const;
       std::string display_string() const;
 
     private:
@@ -80,6 +81,8 @@ namespace xo {
 
       int32_t observable() const { return j_; }
       MatrixXd const & gain() const { return K_; }
+
+      virtual void display(std::ostream & os) const;
 
     private:
       /* if -1:  not used;

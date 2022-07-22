@@ -8,13 +8,14 @@ Notes on Eigen <-> numpy conversion
 
 example:
 
-import filter_py
+import filter_py as kf
 import numpy as np
 import datetime as dt
 t0=dt.datetime.now()
 s=kf.KalmanFilterState(0, t0, np.array([1, 2]), np.array([[100.0, 0.0], [0.0, 10.0]]))
 s.state_v()
 s.state_cov()
+sx=kf.KalmanFilterStateExt(k=0, tk=t0, x=np.array([1, 2]), P=np.array([[100.0, 0.0], [0.0, 10.0]]), K=np.array([[]]), j=-1)
 t=kf.KalmanFilterTransition(np.array([[1.0, 0.0], [0.0, 1.0]]), np.array([[0.0, 0.0], [0.0, 0.0]]))
 o=kf.KalmanFilterObservable(np.array([[1.0, 0.0], [0.0, 0.0]]), np.array([[0.05, 0.0], [0.0, 0.5]]))
 

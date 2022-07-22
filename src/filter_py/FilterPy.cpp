@@ -20,6 +20,7 @@ PYBIND11_DECLARE_HOLDER_TYPE(T, xo::ref::intrusive_ptr<T>, true);
 
 namespace xo {
   using xo::kalman::KalmanFilterState;
+  using xo::kalman::KalmanFilterStateExt;
   using xo::kalman::KalmanFilterTransition;
   using xo::kalman::KalmanFilterObservable;
   using xo::kalman::KalmanFilterInput;
@@ -58,6 +59,14 @@ namespace xo {
 	.def_property_readonly("P", &KalmanFilterState::state_cov)
 	.def("__repr__", &KalmanFilterState::display_string);
       
+      // ----- xo::kalman::KalmanFilterStateExt -----
+
+      py::class_<KalmanFilterStateExt, KalmanFilterState>(m, "KalmanFilterStateExt")
+	.def(py::init<uint32_t, utc_nanos, VectorXd, MatrixXd, MatrixXd, int32_t>(),
+	     py::arg("k"), py::arg("tk"), py::arg("x"), py::arg("P"), py::arg("K"), py::arg("j"))
+	.def_property_readonly("j", &KalmanFilterStateExt::observable)
+	.def_property_readonly("K", &KalmanFilterStateExt::gain);
+
       // ----- xo::kalman::KalmanFilterTransition -----
 
       py::class_<KalmanFilterTransition>(m, "KalmanFilterTransition")
@@ -95,8 +104,6 @@ namespace xo {
       // ----- xo::option::Pxtick -----
 
       py::enum_<Pxtick>(m, "Pxtick")
-	.value("all_penny", Pxtick::all_penny)
-	.value("penny_nickel", Pxtick::penny_nickel)
 	.value("nickel_dime", Pxtick::nickel_dime);
 	//.export_values(); // only need this for pre-c++11-style enum inside a class
 

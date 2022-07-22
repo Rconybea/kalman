@@ -4,6 +4,8 @@
 #include "print_eigen.hpp"
 #include "logutil/scope.hpp"
 #include "Eigen/src/Core/Matrix.h"
+#include <ostream>
+#include <string>
 
 namespace xo {
   using xo::time::utc_nanos;
@@ -70,8 +72,8 @@ namespace xo {
     KalmanFilterState::display(std::ostream & os) const
     {
       os << "<KalmanFilterState"
-	 << xtag("step", k_)
-	 << xtag("tm", tk_)
+	 << xtag("k", k_)
+	 << xtag("tk", tk_)
 	 << xtag("x", matrix(x_))
 	 << xtag("P", matrix(P_))
 	 << ">";
@@ -84,6 +86,22 @@ namespace xo {
       ss << *this;
       return ss.str();
     } /*display_string*/
+
+    // ----- KalmanFilterStateExt -----
+
+    void
+    KalmanFilterStateExt::display(std::ostream & os) const
+    {
+      os << "<KalmanFilterStateExt"
+	 << xtag("k", this->step_no())
+	 << xtag("tk", this->tm())
+	 << xtag("x", matrix(this->state_v()))
+	 << xtag("P", matrix(this->state_cov()))
+	 << xtag("K", matrix(K_))
+	 << xtag("j", j_)
+	 << ">";
+    } /*display*/
+
   } /*namespace filter*/
 } /*namespace xo*/
 
